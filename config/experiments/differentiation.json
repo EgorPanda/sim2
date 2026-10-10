@@ -1,0 +1,9 @@
+{
+  "name": "differentiation",
+  "description": "Дифференцировка при делении: сигнал вокруг колонии решает фенотип дочерней клетки в момент её рождения (Divide.ChildTypeId). Рабочие и покровные клетки не делятся.",
+  "simulationFile": "differentiation/simulation.json",
+  "morphogenFile": "differentiation/morphogens.json",
+  "genomeFile": "differentiation/genomes.json",
+  "cellTypeFile": "differentiation/celltypes.json",
+  "adhesionFile": "differentiation/adhesion.json"
+}

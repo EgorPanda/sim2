@@ -66,7 +66,7 @@ public static class GenomeSystem
             {
                 var effect = gene.Effects[e];
                 if (effect.Once && !justActivated) continue;
-                ApplyEffect(cell, type, effect, ctx, dt);
+                ApplyEffect(cell, type, effect, gene.Key, ctx, dt);
             }
         }
     }
@@ -171,7 +171,7 @@ public static class GenomeSystem
         _ => double.NaN
     };
 
-    private static void ApplyEffect(Cell cell, CellTypeConfig type, GeneEffectConfig effect, GeneContext ctx, double dt)
+    private static void ApplyEffect(Cell cell, CellTypeConfig type, GeneEffectConfig effect, string geneKey, GeneContext ctx, double dt)
     {
         switch (effect.Kind)
         {
@@ -201,6 +201,10 @@ public static class GenomeSystem
 
             case "Divide":
                 cell.DivisionProgress += effect.Rate * dt;
+                // Record the child phenotype intent; the last active Divide effect
+                // wins (deterministic genome order). Null means "inherit parent".
+                cell.PendingChildTypeId = effect.ChildTypeId;
+                cell.PendingDivideGene = geneKey;
                 break;
 
             case "SetCellType":

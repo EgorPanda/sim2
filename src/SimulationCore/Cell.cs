@@ -50,6 +50,20 @@ public sealed class Cell
     /// <summary>Set by the "BlockDivision" effect; prevents division this step.</summary>
     public bool DivisionBlocked;
 
+    /// <summary>
+    /// Child phenotype the next division of this cell should produce, set by the
+    /// "Divide" gene effect. Null means "inherit the parent's phenotype". This is
+    /// a per-step intent: the last active Divide effect wins (deterministic
+    /// genome order), and it is cleared after the division is resolved.
+    /// </summary>
+    public int? PendingChildTypeId;
+
+    /// <summary>
+    /// Gene id of the "Divide" effect that produced <see cref="PendingChildTypeId"/>,
+    /// recorded for diagnostics and tests. Cleared together with the intent.
+    /// </summary>
+    public string? PendingDivideGene;
+
     // Recomputed each step so genes can regulate on local density.
     public double NeighbourCount;
 

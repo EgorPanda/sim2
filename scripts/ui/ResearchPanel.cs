@@ -26,6 +26,7 @@ public partial class ResearchPanel : PanelContainer
     private WorldLayersPanel? _worldTab;
     private MorphogenEditor? _morphogens;
     private CellTypeEditor? _types;
+    private ExperimentEditor? _experiment;
     private Label? _dirtyLabel;
     private VBoxContainer? _issuesBox;
     private Label? _summary;
@@ -84,8 +85,8 @@ public partial class ResearchPanel : PanelContainer
         _tabs.AddChild(_types);
         _tabs.SetTabTitle(TabTypes, "Типы клеток");
 
-        var experimentTab = new ExperimentEditor(main);
-        _tabs.AddChild(experimentTab);
+        _experiment = new ExperimentEditor(main);
+        _tabs.AddChild(_experiment);
         _tabs.SetTabTitle(TabExperiment, "Эксперимент");
 
         var helpTab = new HelpPanel(main);
@@ -137,6 +138,7 @@ public partial class ResearchPanel : PanelContainer
         _genome?.RefreshData();
         _morphogens?.RefreshData();
         _types?.RefreshData();
+        _experiment?.RefreshData();
         UpdateDirtyLabel();
     }
 

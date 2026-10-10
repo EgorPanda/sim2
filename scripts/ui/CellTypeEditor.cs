@@ -34,7 +34,8 @@ public partial class CellTypeEditor : VBoxContainer
         left.AddChild(Ui.Btn("Добавить тип", () =>
         {
             var draft = _main.WorkingDraft;
-            int id = draft.CellTypes.Length > 0 ? draft.CellTypes.Max(t => t.Id) + 1 : 1;
+            int id = ConfigDraft.UniqueCellTypeId(draft,
+                draft.CellTypes.Length > 0 ? draft.CellTypes.Max(t => t.Id) + 1 : 1);
             var type = new CellTypeConfig
             {
                 Id = id,
@@ -76,7 +77,7 @@ public partial class CellTypeEditor : VBoxContainer
         for (int i = 0; i < draft.CellTypes.Length; i++)
         {
             var t = draft.CellTypes[i];
-            _list.AddItem($"{t.Id}: {Localization.CellTypeName(t)}");
+            _list.AddItem($"{t.Id}: {Localization.CellTypeName(t)}", t.Id);
         }
         if (prev is int p)
         {
@@ -105,8 +106,9 @@ public partial class CellTypeEditor : VBoxContainer
             return;
         }
         _main.WorkingDraft.CellTypes = _main.WorkingDraft.CellTypes.Where(t => t.Id != selected.Id).ToArray();
+        _typeId = _main.WorkingDraft.CellTypes.Length > 0 ? _main.WorkingDraft.CellTypes[0].Id : -1;
         _main.MarkDirty();
-        RebuildList();
+        RebuildList(_typeId);
     }
 
     private void RebuildCard()

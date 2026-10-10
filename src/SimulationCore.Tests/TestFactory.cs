@@ -105,4 +105,7 @@ internal static class TestFactory
 
     public static GeneEffectConfig Divide(double rate) =>
         new() { Kind = "Divide", Rate = rate };
+
+    public static GeneEffectConfig Divide(int? childTypeId, double rate) =>
+        new() { Kind = "Divide", Rate = rate, ChildTypeId = childTypeId };
 }

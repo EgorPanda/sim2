@@ -7,11 +7,14 @@ namespace Sim2;
 /// <summary>
 /// Experiment settings tab: world size, solver resolution, initial population,
 /// RNG seed, founder phenotype and the division-gradient morphogen. These map
-/// directly onto SimulationConfig; they are applied on the next run.
+/// directly onto SimulationConfig; they are applied on the next run. Dropdowns
+/// referencing phenotypes/morphogens are rebuilt by <see cref="RefreshData"/>
+/// so newly added or removed objects stay in sync.
 /// </summary>
 public partial class ExperimentEditor : VBoxContainer
 {
     private readonly Main _main;
+    private VBoxContainer? _pickers;
 
     public ExperimentEditor(Main main)
     {
@@ -43,16 +46,9 @@ public partial class ExperimentEditor : VBoxContainer
         AddChild(Ui.Field("Сид генератора:",
             Ui.Sp(0, 999999, 1, s.RngSeed, v => { s.RngSeed = (int)v; _main.MarkDirty(); })));
 
-        AddChild(Ui.Field("Тип клетки-основателя:",
-            Ui.Opt(
-                _main.WorkingDraft.CellTypes.Select(t => (t.Id, $"{t.Id}: {Localization.CellTypeName(t)}")),
-                s.FounderTypeId,
-                id => { s.FounderTypeId = id; _main.MarkDirty(); }, 220)));
-        AddChild(Ui.Field("Морфоген для деления:",
-            Ui.Opt(
-                _main.WorkingDraft.Morphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
-                s.DivisionGradientMorphogen,
-                id => { s.DivisionGradientMorphogen = id; _main.MarkDirty(); }, 220)));
+        _pickers = new VBoxContainer();
+        AddChild(_pickers);
+        BuildPickers(_pickers);
 
         AddChild(new HSeparator());
 
@@ -62,5 +58,31 @@ public partial class ExperimentEditor : VBoxContainer
             Modulate = new Color(1f, 0.85f, 0.4f)
         };
         AddChild(warn);
+    }
+
+    /// <summary>Rebuilds the phenotype/morphogen dropdowns after the draft changed.</summary>
+    public void RefreshData()
+    {
+        if (_pickers == null) return;
+        Ui.Clear(_pickers);
+        BuildPickers(_pickers);
+    }
+
+    private void BuildPickers(VBoxContainer into)
+    {
+        var s = _main.WorkingDraft.Simulation;
+
+        into.AddChild(Ui.Field("Тип клетки-основателя:",
+            Ui.Opt(
+                _main.WorkingDraft.CellTypes.Select(t => (t.Id, $"{t.Id}: {Localization.CellTypeName(t)}")),
+                s.FounderTypeId >= 0 ? s.FounderTypeId : (_main.WorkingDraft.CellTypes.Length > 0 ? _main.WorkingDraft.CellTypes[0].Id : 0),
+                id => { s.FounderTypeId = id; _main.MarkDirty(); }, 220)));
+        into.AddChild(Ui.Field("Морфоген для деления:",
+            Ui.Opt(
+                new[] { (-1, "(не использовать)") }
+                    .Concat(_main.WorkingDraft.Morphogens
+                        .Select(m => ((int)m.Id, $"{m.Id}: {Localization.MorphogenName(m)}"))),
+                s.DivisionGradientMorphogen,
+                id => { s.DivisionGradientMorphogen = id; _main.MarkDirty(); }, 220)));
     }
 }

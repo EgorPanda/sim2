@@ -70,7 +70,9 @@ public partial class WorldLayersPanel : VBoxContainer
     private OptionButton geneSelector(string selected)
     {
         var names = new List<string>();
-        foreach (var genome in _main.WorkingDraft.Genomes)
+        var live = _main.LiveSetup;
+        var genomes = live != null ? live.Genomes : _main.WorkingDraft.Genomes;
+        foreach (var genome in genomes)
         {
             foreach (var gene in genome.Genes)
                 names.Add(gene.Key);
@@ -97,11 +99,21 @@ public partial class WorldLayersPanel : VBoxContainer
         {
             case WorldLayer.Morphogen:
             case WorldLayer.Gradient:
+                var live = _main.LiveSetup;
+                var morphogens = (live != null ? live.Morphogens : _main.WorkingDraft.Morphogens)
+                    .OrderBy(m => m.Id)
+                    .ToList();
+                int currentMorphogen = world.MorphogenId;
+                if (morphogens.Count == 0)
+                    currentMorphogen = -1;
+                else if (!morphogens.Any(m => m.Id == currentMorphogen))
+                    currentMorphogen = morphogens[0].Id;
+
                 var morphRow = new HBoxContainer();
                 morphRow.AddChild(Ui.Lbl("Морфоген:", 100));
                 morphRow.AddChild(Ui.Opt(
-                    _main.WorkingDraft.Morphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
-                    world.MorphogenId,
+                    morphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
+                    currentMorphogen,
                     id =>
                     {
                         world.MorphogenId = id;

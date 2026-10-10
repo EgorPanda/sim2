@@ -1,6 +1,26 @@
 namespace SimulationCore;
 
 /// <summary>
+/// Diagnostic record of a single division: who divided, what the daughter
+/// became and which gene/rule produced the daughter phenotype. Kept only for
+/// diagnostics and tests — it does not influence the simulation.
+/// </summary>
+public readonly record struct DivisionDiagnostic(
+    long Sequence,
+    int ParentId,
+    int ParentTypeId,
+    int ChildId,
+    int ChildTypeId,
+    int GenomeId,
+    string? RuleGeneId,
+    bool Inherited)
+{
+    public override string ToString()
+        => $"#{Sequence} родитель {ParentId} ({ParentTypeId}) → потомок {ChildId} ({ChildTypeId})" +
+           (Inherited ? " (наследование)" : $", правило «{RuleGeneId}»");
+}
+
+/// <summary>
 /// Owns the cell population: metabolism, apoptosis and division. Division is
 /// data-driven — a cell divides when its DivisionProgress reaches 1 (set by the
 /// "Divide" gene effect) and it has enough energy and free space. A
@@ -8,13 +28,21 @@ namespace SimulationCore;
 /// </summary>
 public sealed class CellSystem
 {
+    /// <summary>Keep only the most recent divisions so the log stays bounded.</summary>
+    private const int MaxDivisionLog = 64;
+
     private readonly List<Cell> _cells;
     private readonly List<int> _queryScratch = new();
+    private readonly List<DivisionDiagnostic> _divisionLog = new(MaxDivisionLog);
+    private long _divisionSeq;
 
     public CellSystem(List<Cell> cells)
     {
         _cells = cells;
     }
+
+    /// <summary>Recent divisions (most recent last). Read-only for consumers.</summary>
+    public IReadOnlyList<DivisionDiagnostic> DivisionLog => _divisionLog;
 
     /// <summary>Applies maintenance cost and ages cells; marks starved cells for death.</summary>
     public void Metabolism(double dt, IReadOnlyDictionary<int, CellTypeConfig> types)
@@ -73,9 +101,12 @@ public sealed class CellSystem
 
     /// <summary>
     /// Attempts division for every cell whose division progress completed.
-    /// Daughters inherit the parent's phenotype, genome and regulation state, and
-    /// split the parent's energy. Division is blocked when the cell is too
-    /// crowded, or when a "BlockDivision" gene effect is active. When a
+    /// Daughters inherit the parent's genome and regulation state, and split the
+    /// parent's energy. The daughter phenotype comes from the "Divide" effect's
+    /// <see cref="GeneEffectConfig.ChildTypeId"/> (<see cref="Cell.PendingChildTypeId"/>)
+    /// when one was set during the last genome evaluation, otherwise it inherits
+    /// the parent's phenotype. Division is blocked when the cell is too crowded,
+    /// or when a "BlockDivision" gene effect is active. When a
     /// <paramref name="gradient"/> is supplied, the split axis is biased along
     /// the local morphogen gradient, so cells grow towards the signal.
     /// </summary>
@@ -102,6 +133,11 @@ public sealed class CellSystem
             if (!FindFreeDirection(cell, type, hash, rng, maxQueryRadius, gradient, out double dx, out double dy))
                 continue;
 
+            int childTypeId = cell.PendingChildTypeId ?? cell.TypeId;
+            if (!types.ContainsKey(childTypeId)) childTypeId = cell.TypeId;
+            bool inherited = childTypeId == cell.TypeId;
+            string? ruleGene = cell.PendingDivideGene;
+
             double cost = type.DivisionEnergyCost;
             double remaining = Math.Max(0.0, cell.Energy - cost);
             double half = remaining * 0.5;
@@ -115,9 +151,11 @@ public sealed class CellSystem
             cell.Energy = half;
             cell.DivisionProgress = 0.0;
             cell.Age = 0.0;
+            cell.PendingChildTypeId = null;
+            cell.PendingDivideGene = null;
 
             var child = createCell();
-            child.TypeId = cell.TypeId;
+            child.TypeId = childTypeId;
             child.GenomeId = cell.GenomeId;
             child.X = cell.X + dx * radius * 2.0;
             child.Y = cell.Y + dy * radius * 2.0;
@@ -127,10 +165,26 @@ public sealed class CellSystem
             child.State = CellState.Alive;
             cell.CopyRegulationStateTo(child);
             _cells.Add(child);
+            RecordDivision(cell, child, ruleGene, inherited);
             divisions++;
         }
 
         return divisions;
+    }
+
+    private void RecordDivision(Cell parent, Cell child, string? ruleGene, bool inherited)
+    {
+        _divisionLog.Add(new DivisionDiagnostic(
+            ++_divisionSeq,
+            parent.Id,
+            parent.TypeId,
+            child.Id,
+            child.TypeId,
+            child.GenomeId,
+            ruleGene,
+            inherited));
+        if (_divisionLog.Count > MaxDivisionLog)
+            _divisionLog.RemoveAt(0);
     }
 
     private bool FindFreeDirection(

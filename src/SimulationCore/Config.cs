@@ -187,6 +187,15 @@ public sealed class GeneEffectConfig
     /// <summary>Target cell type id for "SetCellType".</summary>
     public int TypeId { get; set; } = -1;
 
+    /// <summary>
+    /// Child phenotype for "Divide". Null means "inherit the parent's phenotype"
+    /// (legacy behaviour); when set, the daughter is created with this phenotype
+    /// while the parent keeps its own. Not serialized when null so old JSON
+    /// configs load without manual edits.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? ChildTypeId { get; set; }
+
     /// <summary>Timer name for "StartTimer" and the "Timer" regulator.</summary>
     public string Timer { get; set; } = "";
 

@@ -58,10 +58,13 @@ godot -e --path E:\sim23
 > If `godot` is not on PATH in a fresh shell, restart the terminal (winget adds
 > the alias on install) or call the full path shown above.
 
-> Verification status (2026-10): `dotnet build Sim2.slnx` clean; 91 NUnit tests
+> Verification status (2026-10): `dotnet build Sim2.slnx` clean; 116 NUnit tests
 > pass; `--selftest` and `--uitest` pass both headless and in a real window on
-> Windows (no resource-leak messages on exit). Interactive-only flows (mouse
-> gestures, message boxes in the save/load dialogs) still need a human click.
+> Windows (no resource-leak messages on exit). The bundled `differentiation`
+> demo experiment (config/experiments/differentiation/) is covered by tests and
+> can be opened from the «Настройки эксперимента» → «Загрузить…». Interactive-only
+> flows (mouse gestures, message boxes in the save/load dialogs) still need a
+> human click.
 
 ## Controls
 
@@ -94,8 +97,11 @@ godot -e --path E:\sim23
   - *Геном*: create/copy/delete genes, edit display data, AND/OR groups with NOT,
     thresholds (≥ / ≤ / range / = automatically derived from the stored interval),
     and the list of effects (emit/absorb/grow/divide/type switch/timers/silencing/
-    apoptosis/division block);
-  - *Морфогены*: diffusion, decay, colour, display name, dependencies guard;
+    apoptosis/division block); the «Деление» effect can set the **child phenotype**
+    — daughters are then born as that type instead of inheriting the parent's;
+  - *Морфогены*: searchable list, copy, delete with automatic cleanup of every
+    reference (effects, regulators, gradient selector), diffusion, decay, colour,
+    display name;
   - *Типы клеток*: all phenotype parameters + colour + linked genome;
   - *Настройки эксперимента*: world size, solver resolution, seed, founders;
   - *Справочник*: Russian help browser with search and cross-links.
@@ -109,7 +115,8 @@ godot -e --path E:\sim23
 project.godot, Sim2.csproj   Godot app (rendering + UI only)
 Sim2.slnx                   .NET solution (app + core + tests)
 config/                     simulation / genomes / morphogens / celltypes / adhesion (JSON)
-config/experiments/         named experiment profiles (e.g. multicellular)
+config/experiments/         named experiment profiles (multicellular.json, differentiation.json)
+config/experiments/differentiation/   demo «дифференцировка при делении» (directory form)
 scripts/                    Godot front-end (Main, Hud, WorldView, UiKit, ui/… editors)
 src/SimulationCore/         pure C# simulation core (+ Localization, HelpCatalog, ConfigValidator, ConfigWriter, ConfigDraft)
 src/SimulationCore.Tests/   NUnit tests

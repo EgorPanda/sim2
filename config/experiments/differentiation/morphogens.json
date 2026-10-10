@@ -1,0 +1,26 @@
+[
+  {
+    "id": 0,
+    "name": "nutrient",
+    "displayName": "Питание",
+    "diffusion": 90.0,
+    "decay": 0.3,
+    "color": "#4ea8de"
+  },
+  {
+    "id": 1,
+    "name": "signalA",
+    "displayName": "Позиционный сигнал",
+    "diffusion": 40.0,
+    "decay": 0.15,
+    "color": "#ff9f43"
+  },
+  {
+    "id": 2,
+    "name": "signalB",
+    "displayName": "Сигнал рабочих клеток",
+    "diffusion": 25.0,
+    "decay": 0.08,
+    "color": "#c56cf0"
+  }
+]

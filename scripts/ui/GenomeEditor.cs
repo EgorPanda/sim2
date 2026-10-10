@@ -415,6 +415,7 @@ public partial class GenomeEditor : VBoxContainer
             Size = new Vector2I(540, 340)
         };
         dialog.Confirmed += () => dialog.QueueFree();
+        dialog.Canceled += () => dialog.QueueFree();
         dialog.CloseRequested += () => dialog.QueueFree();
         dialog.GetOkButton().Pressed += () => dialog.QueueFree();
 
@@ -579,7 +580,7 @@ public partial class GenomeEditor : VBoxContainer
             row.AddChild(Ui.Lbl(EffectLabel(effect)));
             row.AddChild(Ui.Btn("×", () =>
             {
-                gene.Effects.RemoveAt(i);
+                gene.Effects.Remove(effect);
                 _main.MarkDirty();
                 RebuildCard();
             }, 30));
@@ -590,7 +591,28 @@ public partial class GenomeEditor : VBoxContainer
             cbox.AddChild(Ui.Lbl("Эффектов нет — ген ничего не делает."));
 
         into.AddChild(crate);
-        into.AddChild(Ui.Btn("Добавить эффект", () => EditEffect(gene, new GeneEffectConfig { Kind = "EmitMorphogen" })));
+        into.AddChild(Ui.Btn("Добавить эффект", () => EditNewEffect(gene, "EmitMorphogen")));
+    }
+
+    /// <summary>Creates a new effect with valid defaults so it can be saved as-is.</summary>
+    private void EditNewEffect(GeneConfig gene, string kind)
+    {
+        var effect = new GeneEffectConfig { Kind = kind };
+        var draft = _main.WorkingDraft;
+        switch (kind)
+        {
+            case "EmitMorphogen":
+            case "Absorb":
+                effect.Morphogen = draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : -1;
+                break;
+            case "SetCellType":
+                effect.TypeId = draft.CellTypes.Length > 0 ? draft.CellTypes[0].Id : -1;
+                break;
+            case "Divide":
+                effect.Rate = 1.0;
+                break;
+        }
+        EditEffect(gene, effect);
     }
 
     private static string EffectLabel(GeneEffectConfig e)
@@ -601,7 +623,9 @@ public partial class GenomeEditor : VBoxContainer
             "EmitMorphogen" => $"{baseText}: морфоген #{e.Morphogen}, {Num.Fmt(e.Rate)}/с",
             "Absorb" => $"{baseText}: морфоген #{e.Morphogen}, {Num.Fmt(e.Rate)}·конц/с",
             "Grow" => $"{baseText}: {Num.Fmt(e.Rate)} ед./с",
-            "Divide" => $"{baseText}: {Num.Fmt(e.Rate)} ед./с",
+            "Divide" => e.ChildTypeId is int cid
+                ? $"{baseText}: {Num.Fmt(e.Rate)} ед./с, потомок → тип #{cid}"
+                : $"{baseText}: {Num.Fmt(e.Rate)} ед./с, потомок → как родитель",
             "SetCellType" => $"{baseText}: тип #{e.TypeId}",
             "StartTimer" => $"{baseText}: «{e.Timer}» {Num.Fmt(e.Duration)} с",
             "SilenceGene" => $"{baseText}: «{e.Gene}»",
@@ -620,6 +644,7 @@ public partial class GenomeEditor : VBoxContainer
             Size = new Vector2I(540, 280)
         };
         dialog.Confirmed += () => dialog.QueueFree();
+        dialog.Canceled += () => dialog.QueueFree();
         dialog.CloseRequested += () => dialog.QueueFree();
         dialog.GetOkButton().Pressed += () => dialog.QueueFree();
 
@@ -665,7 +690,8 @@ public partial class GenomeEditor : VBoxContainer
                 into.AddChild(Ui.Field("Морфоген:",
                     Ui.Opt(
                         draft.Morphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
-                        effect.Morphogen, id => { effect.Morphogen = id; _main.MarkDirty(); }, 220)));
+                        effect.Morphogen >= 0 ? effect.Morphogen : (draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : 0),
+                        id => { effect.Morphogen = id; _main.MarkDirty(); }, 220)));
                 into.AddChild(Ui.Field("Скорость, ед./с:",
                     Ui.Sp(0, 1000, 0.1, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
                 break;
@@ -674,22 +700,35 @@ public partial class GenomeEditor : VBoxContainer
                 into.AddChild(Ui.Field("Морфоген:",
                     Ui.Opt(
                         draft.Morphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
-                        effect.Morphogen, id => { effect.Morphogen = id; _main.MarkDirty(); }, 220)));
+                        effect.Morphogen >= 0 ? effect.Morphogen : (draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : 0),
+                        id => { effect.Morphogen = id; _main.MarkDirty(); }, 220)));
                 into.AddChild(Ui.Field("Коэффициент поглощения:",
                     Ui.Sp(0, 1000, 0.1, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
                 break;
 
             case "Grow":
+                into.AddChild(Ui.Field("Скорость, ед./с:",
+                    Ui.Sp(0, 1000, 0.05, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
+                break;
+
             case "Divide":
                 into.AddChild(Ui.Field("Скорость, ед./с:",
                     Ui.Sp(0, 1000, 0.05, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
+                into.AddChild(Ui.Field("Фенотип дочерней клетки:",
+                    Ui.Opt(
+                        new[] { (-1, "Как у родителя (по умолчанию)") }
+                            .Concat(draft.CellTypes.Select(t => ((int)t.Id, $"{t.Id}: {Localization.CellTypeName(t)}"))),
+                        effect.ChildTypeId ?? -1,
+                        id => { effect.ChildTypeId = id < 0 ? null : id; _main.MarkDirty(); }, 260)));
+                into.AddChild(Ui.Lbl("Дочерняя клетка создаётся с этим фенотипом; родитель сохраняет свой.", 0, 0));
                 break;
 
             case "SetCellType":
                 into.AddChild(Ui.Field("Новый тип клетки:",
                     Ui.Opt(
                         draft.CellTypes.Select(t => (t.Id, $"{t.Id}: {Localization.CellTypeName(t)}")),
-                        effect.TypeId, id => { effect.TypeId = id; _main.MarkDirty(); }, 220)));
+                        effect.TypeId >= 0 ? effect.TypeId : (draft.CellTypes.Length > 0 ? draft.CellTypes[0].Id : 0),
+                        id => { effect.TypeId = id; _main.MarkDirty(); }, 220)));
                 break;
 
             case "StartTimer":

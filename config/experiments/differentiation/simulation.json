@@ -1,0 +1,12 @@
+{
+  "worldWidth": 800.0,
+  "worldHeight": 800.0,
+  "morphogenResolution": 4.0,
+  "fixedTimeStep": 0.05,
+  "defaultSpeed": 1.0,
+  "cellRadius": 7.0,
+  "initialCells": 4,
+  "rngSeed": 2026,
+  "founderTypeId": 0,
+  "divisionGradientMorphogen": 1
+}

@@ -54,8 +54,14 @@ headless and independently from the interface.
   named `Timers`, a `SilencedGenes` set and a `DivisionBlocked` flag.
 - Division: a cell divides when its `DivisionProgress` reaches 1 (driven by the
   `Divide` gene effect) with enough energy, free space and no active `BlockDivision`.
-  Daughters inherit the parent's phenotype, genome and regulation state
-  (`CopyRegulationStateTo`: active genes, timers, silenced genes).
+  The daughter's phenotype is a **birth decision**: the last active `Divide` effect
+  writes a per-step `PendingChildTypeId` intent (deterministic genome order); an
+  explicit `ChildTypeId` produces a daughter of that type while the parent keeps its
+  own, and `null` falls back to the legacy "inherit the parent's phenotype" rule.
+  The intent is cleared after the division is resolved; every birth is recorded in a
+  bounded `DivisionLog` (`DivisionDiagnostic`: parent/child id, phenotypes, rule gene,
+  inherited flag) used by tests and the demo. Daughters inherit the parent's genome
+  and regulation state (`CopyRegulationStateTo`: active genes, timers, silenced genes).
 - Apoptosis: starvation (energy below zero for a grace period) or the `Apoptosis` effect.
 - Differentiation: the `SetCellType` effect switches a cell's `TypeId`; the genome
   stays shared.
@@ -69,7 +75,8 @@ headless and independently from the interface.
   `Phenotype`, `State`, `Timer` — each optionable with `invert` (negation).
 - Effects: `EmitMorphogen`, `Absorb`, `Grow`, `Divide`, `SetCellType`, `StartTimer`,
   `Apoptosis`, `SilenceGene`, `BlockDivision`. Effects may be `once` (run only on the
-  step a gene activates). Timers are not restarted while running. Probabilistic
+  step a gene activates). `Divide` optionally carries `ChildTypeId` (birth phenotype;
+  `null` = inherit parent). Timers are not restarted while running. Probabilistic
   apoptosis is dt-invariant (`1 - exp(-p·dt)`).
 - Genes are data, not code: adding genes / morphogens / cell types is a JSON change.
 
@@ -128,9 +135,15 @@ headless and independently from the interface.
   `regulator.*`, `effect.*`, `property.*`, `param.*`, `experiment.*`, `celltype.*`,
   `timer`) with search and related-key resolution.
 - `ConfigValidator` — returns `ConfigIssue[]` (severity, section, file location,
-  message, fix hint); used by the panel before applying. `ConfigWriter` serialises a
-  setup to experiment profile files. `ConfigDraft` — unique gene ids, gene copy, and
-  reference discovery for guarded deletes. All live in the core so coverage is testable.
+  message, fix hint); used by the panel before applying. Besides schema checks it
+  rejects NaN numeric parameters and a `Divide` effect whose `ChildTypeId` references
+  a missing phenotype or conflicts with another active `Divide` in the same gene.
+  `ConfigWriter` serialises a setup to experiment profile files (`childTypeId` is
+  omitted when null, keeping legacy configs byte-compatible). `ConfigDraft` — unique
+  ids (genes/morphogens/types), gene and morphogen copy, morphogen-only removal with
+  full reference cleanup (effect references, regulator conditions, empty group drop,
+  division-gradient reset), and reference discovery for guarded deletes. All live in
+  the core so coverage is testable.
 
 ### SaveSystem
 - Versioned JSON DTO (v2) capturing cells (with `GenomeId`, gene state, timers, silenced
@@ -143,9 +156,12 @@ headless and independently from the interface.
   (inversion, AND/OR groups, timers, silencing, apoptosis, division blocking), tissue mechanics
   (adhesion, directed division, inheritance) and deterministic reproducibility, plus the
   multicellular experiment profile. M1.5 adds coverage for regulator groups,
-  configuration validation, serialization round-trips, localization completeness and
+  configuration validation, serialization round-trips, localization completeness,
   help-catalog completeness (every regulator/effect/property has an article; related
-  links resolve).
+  links resolve), morphogen management (copy, reference-guarded removal) and
+  birth-differentiation (`ChildTypeId`, last-applies-wins, intent lifecycle, gradient
+  demo), and the `differentiation` demo experiment (both birth phenotypes realised,
+  differentiated cells never divide, fixed seed reproducible).
 - `Main` also exposes two headless/runnable checks. `--selftest` steps a fresh world
   for 4000 ticks and verifies reproducibility. `--uitest` drives the real UI in a
   process: opens the Laboratory via the button-equivalent, L and F1 keys, checks the
@@ -200,7 +216,8 @@ project.godot            Godot 4 (.NET) project file
 Sim2.csproj              Godot C# assembly (references SimulationCore)
 Sim2.slnx                .NET solution (app + core + tests)
 config/                  simulation, morphogens, genomes, celltypes, adhesion
-config/experiments/      named experiment profiles (e.g. multicellular)
+config/experiments/      named experiment profiles (multicellular.json,
+                         differentiation.json + differentiation/ — directory form)
 scripts/                 Godot front-end (Main, WorldView, Hud, UiKit, ui/* editors)
 scenes/                  Main.tscn
 src/SimulationCore/      pure C# simulation library (+ Localization, HelpCatalog,

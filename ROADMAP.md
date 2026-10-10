@@ -51,6 +51,17 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Tests: regulator groups, validator, writer, localization, help catalog coverage
 - [x] Automated UI checks (`--selftest`, `--uitest`) — headless and in a real window,
       clean exit without resource leaks (verified 2026-10)
+- [x] Birth differentiation: `Divide.ChildTypeId` (daughter born as an explicit
+      phenotype while the parent stays; legacy `null` inherits; last-applies-wins;
+      per-step intent cleared after division; bounded `DivisionLog` diagnostics)
+- [x] Morphogen editor: searchable list, copy with unique id, delete with
+      reference-confirmation dialog and full cleanup (effects, regulator conditions,
+      empty groups, division-gradient selector); empty morphogen list is a valid state
+- [x] Validator: NaN guards, missing `ChildTypeId`, conflicting active Divides in one gene
+- [x] Demo experiment `config/experiments/differentiation/` (birth-differentiation colony:
+      signal decides worker vs skin at birth; workers/skin never divide; fixed seed)
+- [x] Tests: `CellDifferentiationTests`, `MorphogenManagementTests`, demo experiment
+      (116 NUnit tests total)
 
 ## M2 — Persistence and experimentation
 

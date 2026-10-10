@@ -91,10 +91,10 @@ public static class ConfigValidator
                 issues.Add(Err("Морфогены", loc, "Повторяющийся идентификатор морфогена.", "Идентификаторы должны быть уникальны."));
             if (m.Id < 0)
                 issues.Add(Err("Морфогены", loc, "Идентификатор морфогена не может быть отрицательным.", ""));
-            if (m.Diffusion < 0)
-                issues.Add(Err("Морфогены", loc, "Коэффициент диффузии не может быть отрицательным.", "Обычно 0–200."));
-            if (m.Decay < 0)
-                issues.Add(Err("Морфогены", loc, "Скорость затухания не может быть отрицательной.", "Обычно 0–5."));
+            if (m.Diffusion < 0 || double.IsNaN(m.Diffusion))
+                issues.Add(Err("Морфогены", loc, "Коэффициент диффузии должен быть числом ≥ 0.", "Обычно 0–200."));
+            if (m.Decay < 0 || double.IsNaN(m.Decay))
+                issues.Add(Err("Морфогены", loc, "Скорость затухания должна быть числом ≥ 0.", "Обычно 0–5."));
             if (!IsHexColor(m.Color))
                 issues.Add(Warn("Морфогены", loc, $"Цвет «{m.Color}» не распознан.", "Используйте HEX, например #4ea8de."));
         }
@@ -110,16 +110,18 @@ public static class ConfigValidator
                 issues.Add(Err("Типы клеток", loc, "Повторяющийся идентификатор типа клеток.", "Идентификаторы должны быть уникальны."));
             if (!genomeIds.Contains(t.GenomeId) && genomeIds.Count > 0)
                 issues.Add(Err("Типы клеток", loc, $"Ссылка на несуществующий геном {t.GenomeId}.", "Выберите существующий геном."));
-            if (t.BaseRadius <= 0)
-                issues.Add(Err("Типы клеток", loc, "Базовый радиус должен быть положительным.", ""));
-            if (t.MaxRadius < t.BaseRadius)
-                issues.Add(Err("Типы клеток", loc, "Максимальный радиус меньше базового.", "MaxRadius ≥ BaseRadius."));
-            if (t.MaxEnergy <= 0)
-                issues.Add(Err("Типы клеток", loc, "Максимальная энергия должна быть положительной.", ""));
-            if (t.MaintenanceCost < 0)
-                issues.Add(Err("Типы клеток", loc, "Расход на поддержание не может быть отрицательным.", ""));
-            if (t.GrowEnergyCostPerRadius < 0)
-                issues.Add(Err("Типы клеток", loc, "Стоимость роста не может быть отрицательной.", ""));
+            if (t.BaseRadius <= 0 || double.IsNaN(t.BaseRadius))
+                issues.Add(Err("Типы клеток", loc, "Базовый радиус должен быть положительным числом.", ""));
+            if (t.MaxRadius < t.BaseRadius || double.IsNaN(t.MaxRadius))
+                issues.Add(Err("Типы клеток", loc, "Максимальный радиус меньше базового или некорректен.", "MaxRadius ≥ BaseRadius."));
+            if (t.MaxEnergy <= 0 || double.IsNaN(t.MaxEnergy))
+                issues.Add(Err("Типы клеток", loc, "Максимальная энергия должна быть положительным числом.", ""));
+            if (t.MaintenanceCost < 0 || double.IsNaN(t.MaintenanceCost))
+                issues.Add(Err("Типы клеток", loc, "Расход на поддержание должен быть числом ≥ 0.", ""));
+            if (t.GrowEnergyCostPerRadius < 0 || double.IsNaN(t.GrowEnergyCostPerRadius))
+                issues.Add(Err("Типы клеток", loc, "Стоимость роста должна быть числом ≥ 0.", ""));
+            if (t.DivisionEnergyCost < 0 || double.IsNaN(t.DivisionEnergyCost))
+                issues.Add(Err("Типы клеток", loc, "Стоимость деления должна быть числом ≥ 0.", ""));
             if (!IsHexColor(t.Color))
                 issues.Add(Warn("Типы клеток", loc, $"Цвет «{t.Color}» не распознан.", "HEX, например #7bd88f."));
         }
@@ -174,6 +176,21 @@ public static class ConfigValidator
 
                 foreach (var effect in gene.Effects)
                     ValidateEffect(issues, loc, effect, morphogenIds, typeIds, keys);
+
+                // M1.5+: conflicting simultaneously-active Divide effects in one gene.
+                // Multiple Divide effects are legal (they accumulate progress), but
+                // they must not disagree about the child phenotype: mixing "inherit"
+                // (null) with an explicit phenotype, or two different phenotypes,
+                // makes the outcome depend on effect order.
+                var divideEffects = gene.Effects.Where(e => Eq(e.Kind, "Divide")).ToList();
+                if (divideEffects.Count > 1)
+                {
+                    var distinct = divideEffects.Select(e => e.ChildTypeId).Distinct().ToList();
+                    if (distinct.Count > 1)
+                        issues.Add(Err("Геномы", loc,
+                            $"Ген содержит {divideEffects.Count} эффекта деления с разными фенотипами потомка.",
+                            "Задайте одинаковый фенотип потомка во всех эффектах деления (или везде «как у родителя»)."));
+                }
             }
 
             // Second pass: silence references to genes that must exist.
@@ -199,6 +216,8 @@ public static class ConfigValidator
 
         if (reg.Min > reg.Max)
             issues.Add(Err("Геномы", loc, "Минимум условия больше максимума.", "Убедитесь, что min ≤ max."));
+        if (double.IsNaN(reg.Min) || double.IsNaN(reg.Max))
+            issues.Add(Err("Геномы", loc, "Границы условия не могут быть NaN.", "Задайте конечные числа."));
 
         switch (reg.Kind)
         {
@@ -240,20 +259,22 @@ public static class ConfigValidator
             case "EmitMorphogen":
                 if (!morphogenIds.Contains(e.Morphogen))
                     issues.Add(Err("Геномы", loc, $"Выделение: несуществующий морфоген {e.Morphogen}.", "Выберите морфоген."));
-                if (e.Rate < 0)
-                    issues.Add(Err("Геномы", loc, "Интенсивность выделения не может быть отрицательной.", ""));
+                if (e.Rate < 0 || double.IsNaN(e.Rate))
+                    issues.Add(Err("Геномы", loc, "Интенсивность выделения должна быть числом ≥ 0.", ""));
                 break;
             case "Absorb":
                 if (!morphogenIds.Contains(e.Morphogen))
                     issues.Add(Err("Геномы", loc, $"Поглощение: несуществующий морфоген {e.Morphogen}.", "Выберите морфоген."));
                 break;
             case "Grow":
-                if (e.Rate < 0)
-                    issues.Add(Err("Геномы", loc, "Прирост размера не может быть отрицательным.", ""));
+                if (e.Rate < 0 || double.IsNaN(e.Rate))
+                    issues.Add(Err("Геномы", loc, "Прирост размера должен быть числом ≥ 0.", ""));
                 break;
             case "Divide":
-                if (e.Rate < 0)
-                    issues.Add(Err("Геномы", loc, "Скорость деления не может быть отрицательной.", ""));
+                if (e.Rate < 0 || double.IsNaN(e.Rate))
+                    issues.Add(Err("Геномы", loc, "Скорость деления должна быть числом ≥ 0.", ""));
+                if (e.ChildTypeId is { } childId && !typeIds.Contains(childId))
+                    issues.Add(Err("Геномы", loc, $"Деление: несуществующий фенотип потомка {childId}.", "Выберите существующий тип клеток или оставьте «как у родителя»."));
                 break;
             case "SetCellType":
                 if (!typeIds.Contains(e.TypeId))
@@ -262,12 +283,12 @@ public static class ConfigValidator
             case "StartTimer":
                 if (string.IsNullOrWhiteSpace(e.Timer))
                     issues.Add(Err("Геномы", loc, "Запуск таймера без имени таймера.", "Задайте имя таймера."));
-                if (e.Duration < 0)
-                    issues.Add(Err("Геномы", loc, "Длительность таймера не может быть отрицательной.", ""));
+                if (e.Duration < 0 || double.IsNaN(e.Duration))
+                    issues.Add(Err("Геномы", loc, "Длительность таймера должна быть числом ≥ 0.", ""));
                 break;
             case "Apoptosis":
-                if (e.Probability < 0)
-                    issues.Add(Err("Геномы", loc, "Вероятность апоптоза не может быть отрицательной.", ""));
+                if (e.Probability < 0 || double.IsNaN(e.Probability))
+                    issues.Add(Err("Геномы", loc, "Вероятность апоптоза должна быть числом ≥ 0.", ""));
                 break;
             case "SilenceGene":
                 if (string.IsNullOrWhiteSpace(e.Gene))
