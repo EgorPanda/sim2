@@ -1,0 +1,16 @@
+# .NET / Visual Studio
+bin/
+obj/
+*.user
+.vs/
+*.DotSettings.user
+
+# Godot
+.godot/
+*.translation
+export.cfg
+export_presets.cfg
+
+# OS
+Thumbs.db
+.DS_Store

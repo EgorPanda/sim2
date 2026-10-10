@@ -1,0 +1,178 @@
+namespace SimulationCore;
+
+/// <summary>
+/// Owns the cell population: metabolism, apoptosis and division. Division is
+/// data-driven — a cell divides when its DivisionProgress reaches 1 (set by the
+/// "Divide" gene effect) and it has enough energy and free space.
+/// </summary>
+public sealed class CellSystem
+{
+    private readonly List<Cell> _cells;
+    private readonly List<int> _queryScratch = new();
+
+    public CellSystem(List<Cell> cells)
+    {
+        _cells = cells;
+    }
+
+    /// <summary>Applies maintenance cost and ages cells; marks starved cells for death.</summary>
+    public void Metabolism(double dt, IReadOnlyDictionary<int, CellTypeConfig> types)
+    {
+        for (int i = 0; i < _cells.Count; i++)
+        {
+            var cell = _cells[i];
+            if (cell.State == CellState.Dying) continue;
+
+            types.TryGetValue(cell.TypeId, out var type);
+            double maintenance = type?.MaintenanceCost ?? 0.0;
+
+            cell.Energy -= maintenance * dt;
+            cell.Age += dt;
+
+            if (cell.Energy <= 0.0)
+            {
+                cell.Energy = 0.0;
+                cell.StarveTimer += dt;
+                double grace = type?.StarveGracePeriod ?? 1.0;
+                if (cell.StarveTimer >= grace)
+                    Kill(cell);
+            }
+            else
+            {
+                cell.StarveTimer = 0.0;
+            }
+        }
+    }
+
+    public static void Kill(Cell cell)
+    {
+        if (cell.State == CellState.Dying) return;
+        cell.State = CellState.Dying;
+        cell.DeathTimer = 0.0;
+    }
+
+    /// <summary>Removes cells that finished dying. Returns number removed.</summary>
+    public int Cleanup(double dt)
+    {
+        int removed = 0;
+        for (int i = _cells.Count - 1; i >= 0; i--)
+        {
+            var cell = _cells[i];
+            if (cell.State != CellState.Dying) continue;
+
+            cell.DeathTimer += dt;
+            if (cell.DeathTimer >= 0.6)
+            {
+                _cells.RemoveAt(i);
+                removed++;
+            }
+        }
+        return removed;
+    }
+
+    /// <summary>
+    /// Attempts division for every cell whose division progress completed.
+    /// Daughters inherit the genome/type and split the parent's energy.
+    /// Division is blocked when the cell is too crowded to find free space,
+    /// which naturally limits tissue density.
+    /// </summary>
+    public int ResolveDivisions(
+        SpatialHash hash,
+        IReadOnlyDictionary<int, CellTypeConfig> types,
+        Rng rng,
+        Func<Cell> createCell,
+        double maxQueryRadius)
+    {
+        int divisions = 0;
+        int originalCount = _cells.Count;
+
+        for (int i = 0; i < originalCount; i++)
+        {
+            var cell = _cells[i];
+            if (cell.State != CellState.Alive) continue;
+            if (cell.DivisionProgress < 1.0) continue;
+            if (!types.TryGetValue(cell.TypeId, out var type)) continue;
+            if (cell.Energy < type.DivisionEnergyCost) continue;
+
+            if (!FindFreeDirection(cell, type, hash, rng, maxQueryRadius, out double dx, out double dy))
+                continue;
+
+            double cost = type.DivisionEnergyCost;
+            double remaining = Math.Max(0.0, cell.Energy - cost);
+            double half = remaining * 0.5;
+
+            double radius = type.BaseRadius;
+
+            // Parent moves back along the split axis, child goes forward.
+            cell.X -= dx * radius;
+            cell.Y -= dy * radius;
+            cell.Radius = radius;
+            cell.Energy = half;
+            cell.DivisionProgress = 0.0;
+            cell.Age = 0.0;
+
+            var child = createCell();
+            child.TypeId = cell.TypeId;
+            child.X = cell.X + dx * radius * 2.0;
+            child.Y = cell.Y + dy * radius * 2.0;
+            child.Radius = radius;
+            child.Energy = half;
+            child.Age = 0.0;
+            child.State = CellState.Alive;
+            child.EnsureGeneState(type.Genome.Count);
+            _cells.Add(child);
+            divisions++;
+        }
+
+        return divisions;
+    }
+
+    private bool FindFreeDirection(
+        Cell cell, CellTypeConfig type, SpatialHash hash, Rng rng,
+        double maxQueryRadius, out double dx, out double dy)
+    {
+        const int attempts = 16;
+        // Random start angle so division orientation depends on the seeded RNG.
+        double phase = rng.Range(0.0, Math.PI * 2.0);
+
+        for (int a = 0; a < attempts; a++)
+        {
+            double angle = phase + a * (Math.PI * 2.0 / attempts);
+            double cdx = Math.Cos(angle);
+            double cdy = Math.Sin(angle);
+
+            // Candidate position for the child.
+            double px = cell.X + cdx * type.BaseRadius * 2.0;
+            double py = cell.Y + cdy * type.BaseRadius * 2.0;
+
+            if (IsSpaceFree(cell.Id, px, py, type.BaseRadius, hash))
+            {
+                dx = cdx;
+                dy = cdy;
+                return true;
+            }
+        }
+
+        dx = 0;
+        dy = 0;
+        return false;
+    }
+
+    private bool IsSpaceFree(int ignoreId, double x, double y, double radius, SpatialHash hash)
+    {
+        hash.QueryCircle(x, y, radius * 1.6 + 0.001, _queryScratch);
+        for (int k = 0; k < _queryScratch.Count; k++)
+        {
+            var other = _cells[_queryScratch[k]];
+            if (other.Id == ignoreId) continue;
+            if (other.State == CellState.Dying) continue;
+
+            double ddx = other.X - x;
+            double ddy = other.Y - y;
+            double minDist = radius + other.Radius;
+            if (ddx * ddx + ddy * ddy < minDist * minDist)
+                return false;
+        }
+        return true;
+    }
+}

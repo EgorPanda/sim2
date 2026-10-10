@@ -1,0 +1,57 @@
+[
+  {
+    "id": 0,
+    "name": "stem",
+    "color": "#7bd88f",
+    "baseRadius": 12.0,
+    "maxRadius": 20.0,
+    "maxEnergy": 120.0,
+    "maintenanceCost": 1.5,
+    "divisionEnergyCost": 50.0,
+    "growEnergyCostPerRadius": 1.0,
+    "starveGracePeriod": 2.0,
+    "genome": [
+      {
+        "name": "secretor",
+        "activationDelay": 0.0,
+        "regulators": [
+          { "kind": "Morphogen", "morphogen": 0, "min": 0.0, "max": 0.4 }
+        ],
+        "effects": [
+          { "kind": "EmitMorphogen", "morphogen": 0, "rate": 30.0 }
+        ]
+      },
+      {
+        "name": "uptake",
+        "activationDelay": 0.2,
+        "regulators": [
+          { "kind": "Morphogen", "morphogen": 0, "min": 0.02, "max": 1e9 }
+        ],
+        "effects": [
+          { "kind": "Absorb", "morphogen": 0, "rate": 25.0 }
+        ]
+      },
+      {
+        "name": "grow",
+        "activationDelay": 0.3,
+        "regulators": [
+          { "kind": "Property", "property": "energy", "min": 30.0, "max": 1e9 }
+        ],
+        "effects": [
+          { "kind": "Grow", "rate": 1.2 }
+        ]
+      },
+      {
+        "name": "divide",
+        "activationDelay": 0.5,
+        "regulators": [
+          { "kind": "Property", "property": "energy", "min": 55.0, "max": 1e9 },
+          { "kind": "Property", "property": "radius", "min": 17.0, "max": 1e9 }
+        ],
+        "effects": [
+          { "kind": "Divide", "rate": 0.5 }
+        ]
+      }
+    ]
+  }
+]

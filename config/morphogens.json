@@ -1,0 +1,9 @@
+[
+  {
+    "id": 0,
+    "name": "nutrient",
+    "diffusion": 120.0,
+    "decay": 0.25,
+    "color": "#4ea8de"
+  }
+]

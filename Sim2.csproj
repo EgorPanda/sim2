@@ -1,0 +1,18 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Sim2</RootNamespace>
+    <AssemblyName>Sim2</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="src\SimulationCore\SimulationCore.csproj" />
+    <!-- src/ is a separate C# solution part (core + tests), not part of the Godot assembly. -->
+    <Compile Remove="src\**" />
+  </ItemGroup>
+
+</Project>
