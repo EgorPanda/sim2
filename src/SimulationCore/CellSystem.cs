@@ -164,6 +164,7 @@ public sealed class CellSystem
             child.Age = 0.0;
             child.State = CellState.Alive;
             cell.CopyRegulationStateTo(child);
+            cell.CopyInternalMorphogensTo(child);
             _cells.Add(child);
             RecordDivision(cell, child, ruleGene, inherited);
             divisions++;

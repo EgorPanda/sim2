@@ -1,0 +1,32 @@
+[
+  {
+    "id": 0,
+    "name": "stem",
+    "displayName": "Стволовая",
+    "description": "Начальный фенотип. Может делиться и получать внешний сигнал A.",
+    "color": "#7bd88f",
+    "genomeId": 0,
+    "baseRadius": 6.0,
+    "maxRadius": 6.0,
+    "maxEnergy": 200.0,
+    "maintenanceCost": 0.0,
+    "divisionEnergyCost": 0.0,
+    "growEnergyCostPerRadius": 0.0,
+    "starveGracePeriod": 10.0
+  },
+  {
+    "id": 1,
+    "name": "memory",
+    "displayName": "Память",
+    "description": "Клетка, запомнившая внешний сигнал через внутренний морфоген B. Больше не делится.",
+    "color": "#c56cf0",
+    "genomeId": 0,
+    "baseRadius": 6.0,
+    "maxRadius": 6.0,
+    "maxEnergy": 200.0,
+    "maintenanceCost": 0.0,
+    "divisionEnergyCost": 999.0,
+    "growEnergyCostPerRadius": 0.0,
+    "starveGracePeriod": 10.0
+  }
+]

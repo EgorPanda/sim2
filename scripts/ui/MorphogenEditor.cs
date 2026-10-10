@@ -33,22 +33,9 @@ public partial class MorphogenEditor : VBoxContainer
 
     private void Build()
     {
-        var actions = new HBoxContainer();
-        actions.AddChild(Ui.Btn("Добавить морфоген", AddMorphogen));
-        actions.AddChild(Ui.Btn("Копировать", CopyMorphogen));
-        actions.AddChild(Ui.Btn("Удалить", DeleteMorphogen));
-        actions.AddChild(Ui.Btn("Применить изменения", () => _main.ApplyDraft()));
-        actions.AddChild(Ui.Btn("Сохранить конфигурацию", () => _main.SaveExperimentUi()));
-        actions.AddChild(Ui.Btn("Отменить изменения", () =>
-        {
-            _main.RevertDraft();
-            RefreshData();
-        }));
-        AddChild(actions);
-
         var layout = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 
-        var left = new VBoxContainer { CustomMinimumSize = new Vector2(240, 0) };
+        var left = new VBoxContainer { CustomMinimumSize = new Vector2(260, 0) };
         _search = new LineEdit { PlaceholderText = "Поиск по имени или ид…" };
         _search.TextChanged += t =>
         {
@@ -60,12 +47,19 @@ public partial class MorphogenEditor : VBoxContainer
         _listBox = new VBoxContainer();
         var listScroll = new ScrollContainer
         {
-            CustomMinimumSize = new Vector2(240, 320),
+            CustomMinimumSize = new Vector2(260, 320),
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
         listScroll.AddChild(_listBox);
         left.AddChild(listScroll);
+
+        var actionRow = new HBoxContainer();
+        actionRow.AddChild(Ui.Btn("+ морфоген", AddMorphogen));
+        actionRow.AddChild(Ui.Btn("копия", CopyMorphogen));
+        actionRow.AddChild(Ui.Btn("удалить", DeleteMorphogen));
+        left.AddChild(actionRow);
+        left.AddChild(Ui.Lbl("Клик по морфогену — карточка справа."));
         layout.AddChild(left);
 
         var cardScroll = new ScrollContainer
@@ -109,6 +103,7 @@ public partial class MorphogenEditor : VBoxContainer
             Name = "morphogen",
             DisplayName = "Новый морфоген",
             Description = "Опишите назначение этого морфогена.",
+            Type = "External",
             Diffusion = 0.1,
             Decay = 0.1,
             Color = "#4ea8de"
@@ -212,11 +207,11 @@ public partial class MorphogenEditor : VBoxContainer
             bool isSelected = m.Id == keep;
             var button = new Button
             {
-                Text = $"{(isSelected ? "▸ " : "  ")}{m.Id}: {Localization.MorphogenName(m)}",
+                Text = $"{(isSelected ? "▸ " : "  ")}{m.Id}: {Localization.MorphogenName(m)} [{Localization.MorphogenType(m.Type)}]",
                 ToggleMode = true,
                 ButtonPressed = isSelected,
                 Alignment = HorizontalAlignment.Left,
-                TooltipText = $"ид {m.Id}\n{m.Description}"
+                TooltipText = $"ид {m.Id}\nТип: {Localization.MorphogenType(m.Type)}\n{m.Description}"
             };
             button.SetPressedNoSignal(isSelected);
             button.Toggled += on =>
@@ -250,7 +245,7 @@ public partial class MorphogenEditor : VBoxContainer
         foreach (var (btn, entryId) in _entries)
         {
             if (entryId == id)
-                btn.Text = $"{(id == _morphogenId ? "▸ " : "  ")}{id}: {Localization.MorphogenName(m)}";
+                btn.Text = $"{(id == _morphogenId ? "▸ " : "  ")}{id}: {Localization.MorphogenName(m)} [{Localization.MorphogenType(m.Type)}]";
         }
     }
 
@@ -295,10 +290,39 @@ public partial class MorphogenEditor : VBoxContainer
                 te.TextChanged += () => { m.Description = te.Text; _main.MarkDirty(); UpdateEntryText(m.Id); };
             }));
 
-        _card.AddChild(Ui.Field("Диффузия, 1/с:",
-            Ui.Sp(0, 500, 0.05, m.Diffusion, v => { m.Diffusion = v; _main.MarkDirty(); })));
-        _card.AddChild(Ui.Field("Распад, 1/с:",
-            Ui.Sp(0, 20, 0.05, m.Decay, v => { m.Decay = v; _main.MarkDirty(); })));
+        var typeRow = new HBoxContainer();
+        typeRow.AddChild(Ui.Lbl("Тип:", 160));
+        typeRow.AddChild(Ui.Opt(
+            Localization.MorphogenTypes.Select((t, i) => (i, Localization.MorphogenType(t))),
+            Localization.MorphogenTypes.ToList().FindIndex(t => string.Equals(t, m.Type, StringComparison.OrdinalIgnoreCase)),
+            idx =>
+            {
+                string newType = Localization.MorphogenTypes[idx];
+                bool changed = !string.Equals(m.Type, newType, StringComparison.OrdinalIgnoreCase);
+                m.Type = newType;
+                if (changed && m.IsInternal) m.Diffusion = 0.0;
+                _main.MarkDirty();
+                UpdateEntryText(m.Id);
+                RebuildCard();
+            }, 220));
+        typeRow.AddChild(Ui.Btn("?", () => _main.OpenHelp("param.morphogenType")));
+        _card.AddChild(typeRow);
+
+        if (m.IsInternal)
+        {
+            _card.AddChild(Ui.Field("Распад, 1/с:",
+                Ui.Sp(0, 20, 0.05, m.Decay, v => { m.Decay = v; _main.MarkDirty(); })));
+            _card.AddChild(Ui.Field("Начальная концентрация для основателей:",
+                Ui.Sp(0, 1e6, 0.01, m.InitialConcentration, v => { m.InitialConcentration = v; _main.MarkDirty(); })));
+            _card.AddChild(Ui.Lbl("Внутренний морфоген не диффундирует в среде. Его концентрация хранится в каждой клетке отдельно.", 0, 0));
+        }
+        else
+        {
+            _card.AddChild(Ui.Field("Диффузия, 1/с:",
+                Ui.Sp(0, 500, 0.05, m.Diffusion, v => { m.Diffusion = v; _main.MarkDirty(); })));
+            _card.AddChild(Ui.Field("Распад, 1/с:",
+                Ui.Sp(0, 20, 0.05, m.Decay, v => { m.Decay = v; _main.MarkDirty(); })));
+        }
 
         var color = new ColorPickerButton
         {

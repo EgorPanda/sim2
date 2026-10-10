@@ -41,11 +41,25 @@ public sealed class Cell
     /// <summary>Gene regulation state keyed by gene id. One entry per gene.</summary>
     public readonly Dictionary<string, GeneState> GeneStates = new();
 
+    /// <summary>Internal morphogen concentrations keyed by morphogen id (cellular memory).</summary>
+    public readonly Dictionary<int, double> InternalMorphogenConcentrations = new();
+
     /// <summary>Genes silenced by a "SilenceGene" effect (never reactivate).</summary>
     public readonly HashSet<string> SilencedGenes = new();
 
-    /// <summary>Named timers started by "StartTimer"; values count down to 0.</summary>
+    /// <summary>
+    /// Named timers started by "StartTimer"; values count down to 0. A finished
+    /// timer stays at 0 (it is not removed) so <see cref="TimerElapsed"/> keeps
+    /// reporting the full duration after expiry.
+    /// </summary>
     public readonly Dictionary<string, double> Timers = new();
+
+    /// <summary>
+    /// Original duration of each named timer, set together with <see cref="Timers"/>.
+    /// Used to derive the elapsed time <c>duration - remaining</c>. Missing for
+    /// legacy saves, in which case elapsed is reported as 0.
+    /// </summary>
+    public readonly Dictionary<string, double> TimerTotals = new();
 
     /// <summary>Set by the "BlockDivision" effect; prevents division this step.</summary>
     public bool DivisionBlocked;
@@ -81,6 +95,19 @@ public sealed class Cell
 
     public double TimerRemaining(string name) => Timers.TryGetValue(name, out double t) ? t : 0.0;
 
+    /// <summary>
+    /// Seconds elapsed since the named timer was last started. Returns 0 when the
+    /// timer was never started (or for a legacy save without a recorded duration).
+    /// After expiry the elapsed time saturates at the timer's full duration.
+    /// </summary>
+    public double TimerElapsed(string name)
+    {
+        if (!Timers.TryGetValue(name, out double remaining)) return 0.0;
+        double total = TimerTotals.TryGetValue(name, out double t) ? t : 0.0;
+        double elapsed = total - remaining;
+        return elapsed > 0.0 ? elapsed : 0.0;
+    }
+
     /// <summary>Copies per-gene state, silenced set and timers onto another cell.</summary>
     public void CopyRegulationStateTo(Cell other)
     {
@@ -93,5 +120,16 @@ public sealed class Cell
 
         other.Timers.Clear();
         foreach (var kv in Timers) other.Timers[kv.Key] = kv.Value;
+
+        other.TimerTotals.Clear();
+        foreach (var kv in TimerTotals) other.TimerTotals[kv.Key] = kv.Value;
+    }
+
+    /// <summary>Copies internal morphogen concentrations onto another cell (division inheritance).</summary>
+    public void CopyInternalMorphogensTo(Cell other)
+    {
+        other.InternalMorphogenConcentrations.Clear();
+        foreach (var kv in InternalMorphogenConcentrations)
+            other.InternalMorphogenConcentrations[kv.Key] = kv.Value;
     }
 }

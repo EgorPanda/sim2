@@ -19,7 +19,7 @@ public static class Localization
     public static readonly string[] EffectKinds =
     {
         "EmitMorphogen", "Absorb", "Grow", "Divide", "SetCellType",
-        "StartTimer", "Apoptosis", "SilenceGene", "BlockDivision"
+        "StartTimer", "Apoptosis", "SilenceGene", "BlockDivision", "Move"
     };
 
     /// <summary>Known cell properties usable by the "Property" regulator.</summary>
@@ -27,6 +27,9 @@ public static class Localization
     {
         "energy", "radius", "age", "neighbours"
     };
+
+    /// <summary>Known morphogen types.</summary>
+    public static readonly string[] MorphogenTypes = { "External", "Internal" };
 
     private static readonly Dictionary<string, string> RegulatorNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -48,6 +51,7 @@ public static class Localization
         ["Apoptosis"] = "Апоптоз (программируемая гибель)",
         ["SilenceGene"] = "Подавление гена",
         ["BlockDivision"] = "Блокировка деления",
+        ["Move"] = "Движение по градиенту",
     };
 
     private static readonly Dictionary<string, string> EffectShort = new(StringComparer.OrdinalIgnoreCase)
@@ -61,6 +65,7 @@ public static class Localization
         ["Apoptosis"] = "запускает гибель клетки",
         ["SilenceGene"] = "навсегда подавляет другой ген в этой клетке",
         ["BlockDivision"] = "запрещает деление, пока ген активен",
+        ["Move"] = "смещает клетку вдоль (или против) градиента морфогена",
     };
 
     private static readonly Dictionary<string, string> PropertyNamesRu = new(StringComparer.OrdinalIgnoreCase)
@@ -76,6 +81,22 @@ public static class Localization
         ["Alive"] = "Живая",
         ["Dividing"] = "Делится",
         ["Dying"] = "Отмирает",
+    };
+
+    private static readonly Dictionary<string, string> MorphogenTypeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["External"] = "Внешний",
+        ["Internal"] = "Внутренний",
+    };
+
+    private static readonly Dictionary<string, string> GeneStatusNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["notConfigured"] = "Не настроен",
+        ["morphogenMissing"] = "Не найден морфоген",
+        ["belowThreshold"] = "Концентрация ниже порога",
+        ["waitingConditions"] = "Обязательный сигнал присутствует, ожидаются дополнительные условия",
+        ["active"] = "Ген активен",
+        ["suppressed"] = "Ген подавлен",
     };
 
     /// <summary>Russian name of a regulator kind, or a safe fallback.</summary>
@@ -107,6 +128,16 @@ public static class Localization
     /// <summary>True when the property is supported by the engine.</summary>
     public static bool IsKnownProperty(string property)
         => !string.IsNullOrEmpty(property) && PropertyNames.Contains(property, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Russian name of a morphogen type.</summary>
+    public static string MorphogenType(string type) => Lookup(MorphogenTypeNames, type, "Тип морфогена");
+
+    /// <summary>True when the morphogen type is supported.</summary>
+    public static bool IsKnownMorphogenType(string type)
+        => !string.IsNullOrEmpty(type) && MorphogenTypes.Any(t => string.Equals(t, type, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Russian status text for a gene card.</summary>
+    public static string GeneStatus(string key) => Lookup(GeneStatusNames, key, "Состояние гена");
 
     /// <summary>
     /// Human-readable gene name: the explicit display name, otherwise a name

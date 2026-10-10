@@ -25,6 +25,7 @@ public partial class Main : Node2D
     private WorldView _world = null!;
     private Hud _hud = null!;
     private ResearchPanel _lab = null!;
+    private Window? _labWindow;
 
     private bool _paused;
     private bool _deleteMode;
@@ -91,18 +92,37 @@ public partial class Main : Node2D
         _camera.MakeCurrent();
 
         _world = new WorldView { Sim = _sim };
-        int morphogenId = _setup.Morphogens.Length > 0 ? _setup.Morphogens[0].Id : 0;
+        int morphogenId = _setup.Morphogens.FirstOrDefault(m => m.IsExternal)?.Id ?? 0;
         _world.MorphogenId = morphogenId;
         _world.SetCellColors(_setup.CellTypes, morphogenId);
+        _world.SetMorphogenColors(_setup.Morphogens);
         ApplyMorphogenStyle(morphogenId);
+        foreach (var m in _setup.Morphogens.Where(m => m.IsExternal))
+            _world.VisibleMorphogenIds.Add(m.Id);
         AddChild(_world);
 
         _hud = new Hud(this);
         AddChild(_hud);
+        _hud.RefreshMorphogenFilters();
 
         _lab = new ResearchPanel(this);
-        _lab.Visible = false;
-        _hud.AddChild(_lab);
+        _lab.Visible = true;
+        _lab.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+
+        _labWindow = new Window
+        {
+            Title = "Лаборатория",
+            Size = new Vector2I(1120, 760),
+            MinSize = new Vector2I(720, 480),
+            InitialPosition = Window.WindowInitialPosition.CenterPrimaryScreen,
+            Visible = false,
+            Unresizable = false,
+            WrapControls = true
+        };
+        _labWindow.CloseRequested += OnLabWindowCloseRequested;
+        _labWindow.WindowInput += OnLabWindowInput;
+        _labWindow.AddChild(_lab);
+        AddChild(_labWindow);
 
         RefreshLayer();
 
@@ -143,7 +163,7 @@ public partial class Main : Node2D
 
         HandleKeyboardPan(delta);
 
-        if (CurrentLayer == WorldLayer.Morphogen && Engine.GetFramesPerSecond() > 0)
+        if ((CurrentLayer == WorldLayer.Morphogen || CurrentLayer == WorldLayer.MultiMorphogen) && Engine.GetFramesPerSecond() > 0)
         {
             if (++_overlayCounter % 3 == 0) RefreshLayer();
         }
@@ -213,12 +233,17 @@ public partial class Main : Node2D
         _accumulator = 0.0;
         _selectedCellId = null;
         _world.Sim = _sim;
-        int mid = _setup.Morphogens.Length > 0 ? _setup.Morphogens[0].Id : 0;
+        int mid = _setup.Morphogens.FirstOrDefault(m => m.IsExternal)?.Id ?? 0;
         _world.SetCellColors(_setup.CellTypes, mid);
+        _world.SetMorphogenColors(_setup.Morphogens);
         _world.MorphogenId = mid;
         ApplyMorphogenStyle(mid);
+        _world.VisibleMorphogenIds.Clear();
+        foreach (var m in _setup.Morphogens.Where(m => m.IsExternal))
+            _world.VisibleMorphogenIds.Add(m.Id);
         RefreshLayer();
         _hud.SetLayer(CurrentLayer);
+        _hud.RefreshMorphogenFilters();
     }
 
     // --- Saving / loading experiment profiles -------------------------------
@@ -244,7 +269,7 @@ public partial class Main : Node2D
             SaveExperimentTo(path);
         };
         dialog.Canceled += () => dialog.QueueFree();
-        _hud.AddChild(dialog);
+        GetTree().Root.AddChild(dialog);
         dialog.PopupCentered(new Vector2I(760, 480));
     }
 
@@ -303,7 +328,7 @@ public partial class Main : Node2D
             }
         };
         dialog.Canceled += () => dialog.QueueFree();
-        _hud.AddChild(dialog);
+        GetTree().Root.AddChild(dialog);
         dialog.PopupCentered(new Vector2I(760, 480));
     }
 
@@ -340,12 +365,54 @@ public partial class Main : Node2D
         Notify("Симуляция перезапущена");
     }
 
+    private void OnLabWindowCloseRequested()
+    {
+        if (_labWindow != null && _labWindow.Visible)
+            ToggleLaboratory();
+    }
+
+    private void OnLabWindowInput(InputEvent @event)
+    {
+        if (@event is InputEventKey { Pressed: true } key && !key.Echo && !IsTextFieldFocused())
+        {
+            switch (key.Keycode)
+            {
+                case Key.L:
+                    ToggleLaboratory();
+                    break;
+                case Key.Escape:
+                    if (_labWindow != null && _labWindow.Visible)
+                        ToggleLaboratory();
+                    break;
+                case Key.F1:
+                    OpenHelp("concept.gene_regulation");
+                    break;
+            }
+        }
+    }
+
+    private bool IsTextFieldFocused()
+    {
+        var mainFocus = GetViewport()?.GuiGetFocusOwner();
+        var labFocus = _labWindow?.GuiGetFocusOwner();
+        return mainFocus is LineEdit or TextEdit || labFocus is LineEdit or TextEdit;
+    }
+
     public void ToggleLaboratory()
     {
-        if (!_lab.Visible) EnsureWorkingDraftFresh();
-        _lab.Visible = !_lab.Visible;
-        _hud.SetLabOpen(_lab.Visible);
-        if (_lab.Visible) _lab.RefreshData();
+        if (_labWindow == null) return;
+        bool opening = !_labWindow.Visible;
+        if (opening) EnsureWorkingDraftFresh();
+        if (opening)
+        {
+            _labWindow.Popup();
+            _lab.RefreshData();
+        }
+        else
+        {
+            _labWindow.Hide();
+        }
+        _hud.SetLabOpen(_labWindow.Visible);
     }
 
     private void EnsureWorkingDraftFresh()
@@ -357,9 +424,10 @@ public partial class Main : Node2D
     /// <summary>Makes the laboratory visible (without toggling it closed).</summary>
     private void ShowLaboratorySync()
     {
-        if (!_lab.Visible)
+        if (_labWindow == null) return;
+        if (!_labWindow.Visible)
         {
-            _lab.Visible = true;
+            _labWindow.Popup();
             _hud.SetLabOpen(true);
         }
         _lab.RefreshData();
@@ -485,7 +553,7 @@ public partial class Main : Node2D
 
     private void HandleKey(InputEventKey key)
     {
-        if (_sim == null || key.Echo) return;
+        if (_sim == null || key.Echo || IsTextFieldFocused()) return;
         switch (key.Keycode)
         {
             case Key.Space:
@@ -514,7 +582,7 @@ public partial class Main : Node2D
                 ToggleLaboratory();
                 break;
             case Key.Escape:
-                if (_lab.Visible) ToggleLaboratory();
+                if (_labWindow != null && _labWindow.Visible) ToggleLaboratory();
                 break;
             case Key.F1:
                 OpenHelp("concept.gene_regulation");
@@ -610,7 +678,8 @@ public partial class Main : Node2D
         _paused = true;
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
-        Expect(!_lab.Visible, "laboratory hidden initially");
+        bool labWindowVisible = _labWindow != null && _labWindow.Visible;
+        Expect(!labWindowVisible, "laboratory hidden initially");
         Expect(_lab.Size.X > 0 && _lab.Size.Y > 0, "laboratory has nonzero planned size while hidden");
 
         // 1. Open via the same method the «Лаборатория» button invokes.
@@ -621,11 +690,13 @@ public partial class Main : Node2D
         // 2. Real key route: L toggles closed and open again.
         SendKey(Key.L);
         await Frame();
-        Expect(!_lab.Visible, "L key closes laboratory");
+        labWindowVisible = _labWindow != null && _labWindow.Visible;
+        Expect(!labWindowVisible, "L key closes laboratory");
         Expect(_hud.LabButtonText == "Лаборатория…", "lab button text reflects closed state");
         SendKey(Key.L);
         await Frame();
-        Expect(_lab.Visible, "L key opens laboratory");
+        labWindowVisible = _labWindow != null && _labWindow.Visible;
+        Expect(labWindowVisible, "L key opens laboratory");
 
         // 3. Reopen reuses the same panel — no copies are created.
         ulong labId = _lab.GetInstanceId();
@@ -638,10 +709,12 @@ public partial class Main : Node2D
         // 4. F1 (real key route) opens help directly from the hidden state.
         ToggleLaboratory();
         await Frame();
-        Expect(!_lab.Visible, "lab closed before F1 test");
+        labWindowVisible = _labWindow != null && _labWindow.Visible;
+        Expect(!labWindowVisible, "lab closed before F1 test");
         SendKey(Key.F1);
         await Frame();
-        Expect(_lab.Visible, "F1 opens laboratory");
+        labWindowVisible = _labWindow != null && _labWindow.Visible;
+        Expect(labWindowVisible, "F1 opens laboratory");
         Expect(_lab.ActiveSection == ResearchPanel.TabHelp, "F1 selects help tab");
         Expect(_lab.ActiveHelpKey == "concept.gene_regulation", "F1 shows gene-regulation article");
 
@@ -728,13 +801,17 @@ public partial class Main : Node2D
 
     private void ExpectedVisibleAndGeometry(string what, int expectedTab)
     {
-        Expect(_lab.Visible, what + " (visible)");
-        var rect = _lab.GetGlobalRect();
-        var viewport = GetViewport().GetVisibleRect();
-        Expect(rect.Size.X > 0 && rect.Size.Y > 0, what + " (nonzero size)");
-        Expect(rect.Position.X >= -1 && rect.Position.Y >= -1 &&
-               rect.End.X <= viewport.Size.X + 1 && rect.End.Y <= viewport.Size.Y + 1,
-            what + " (within viewport)");
+        bool visible = _labWindow != null && _labWindow.Visible;
+        Expect(visible, what + " (visible)");
+        Expect(_labWindow != null && _labWindow.Size.X > 0 && _labWindow.Size.Y > 0, what + " (nonzero size)");
+        if (_labWindow != null)
+        {
+            var rect = _lab.GetGlobalRect();
+            var winSize = new Vector2(_labWindow.Size.X, _labWindow.Size.Y);
+            Expect(rect.Position.X >= -1 && rect.Position.Y >= -1 &&
+                   rect.End.X <= winSize.X + 1 && rect.End.Y <= winSize.Y + 1,
+                what + " (within window)");
+        }
         if (expectedTab >= 0)
             Expect(_lab.ActiveSection == expectedTab, what + " (tab = " + expectedTab + ")");
     }

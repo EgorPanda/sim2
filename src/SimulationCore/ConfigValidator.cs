@@ -79,6 +79,36 @@ public static class ConfigValidator
         if (s.DivisionGradientMorphogen >= 0 && !morphogenIds.Contains(s.DivisionGradientMorphogen))
             issues.Add(Err("Эксперимент", "divisionGradientMorphogen", $"Морфоген {s.DivisionGradientMorphogen} не существует.",
                 "Выберите существующий морфоген или -1."));
+
+        ValidateInitialSignals(setup, issues, morphogenIds);
+    }
+
+    private static void ValidateInitialSignals(SimulationSetup setup, List<ConfigIssue> issues, HashSet<int> morphogenIds)
+    {
+        var s = setup.Simulation;
+        foreach (var src in s.InitialExternalSources)
+        {
+            string loc = $"начальный источник ({src.MorphogenId})";
+            if (!morphogenIds.Contains(src.MorphogenId))
+                issues.Add(Err("Эксперимент", loc, $"Морфоген источника {src.MorphogenId} не существует.", "Выберите существующий морфоген."));
+            else if (setup.Morphogens.FirstOrDefault(m => m.Id == src.MorphogenId)?.IsInternal == true)
+                issues.Add(Err("Эксперимент", loc, $"Морфоген {src.MorphogenId} — внутренний, его нельзя задать внешним источником.", "Выберите внешний морфоген."));
+            if (src.Radius < 0.0 || double.IsNaN(src.Radius))
+                issues.Add(Err("Эксперимент", loc, "Радиус источника должен быть ≥ 0.", ""));
+            if (src.Concentration < 0.0 || double.IsNaN(src.Concentration))
+                issues.Add(Err("Эксперимент", loc, "Концентрация источника должна быть ≥ 0.", ""));
+        }
+
+        foreach (var kv in s.InitialInternalMorphogens)
+        {
+            string loc = $"начальный внутренний морфоген ({kv.Key})";
+            if (!morphogenIds.Contains(kv.Key))
+                issues.Add(Err("Эксперимент", loc, $"Морфоген {kv.Key} не существует.", "Выберите существующий морфоген."));
+            else if (setup.Morphogens.FirstOrDefault(m => m.Id == kv.Key)?.IsExternal == true)
+                issues.Add(Err("Эксперимент", loc, $"Морфоген {kv.Key} — внешний, его нельзя задать внутренней концентрацией.", "Выберите внутренний морфоген."));
+            if (kv.Value < 0.0 || double.IsNaN(kv.Value))
+                issues.Add(Err("Эксперимент", loc, "Начальная концентрация должна быть ≥ 0.", ""));
+        }
     }
 
     private static void ValidateMorphogens(SimulationSetup setup, List<ConfigIssue> issues)
@@ -97,7 +127,20 @@ public static class ConfigValidator
                 issues.Add(Err("Морфогены", loc, "Скорость затухания должна быть числом ≥ 0.", "Обычно 0–5."));
             if (!IsHexColor(m.Color))
                 issues.Add(Warn("Морфогены", loc, $"Цвет «{m.Color}» не распознан.", "Используйте HEX, например #4ea8de."));
+            if (!IsValidMorphogenType(m.Type))
+                issues.Add(Err("Морфогены", loc, $"Неизвестный тип морфогена «{m.Type}».", "Используйте External или Internal."));
+            if (m.IsInternal && m.Diffusion > 0.0)
+                issues.Add(Warn("Морфогены", loc, "Внутренний морфоген не диффундирует; коэффициент диффузии будет проигнорирован.", "Задайте diffusion = 0."));
+            if (m.InitialConcentration < 0.0 || double.IsNaN(m.InitialConcentration))
+                issues.Add(Err("Морфогены", loc, "Начальная концентрация внутреннего морфогена должна быть ≥ 0.", ""));
         }
+    }
+
+    private static bool IsValidMorphogenType(string? type)
+    {
+        if (string.IsNullOrWhiteSpace(type)) return true; // defaults to External
+        return string.Equals(type, "External", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(type, "Internal", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ValidateCellTypes(SimulationSetup setup, List<ConfigIssue> issues, HashSet<int> genomeIds)
@@ -160,6 +203,18 @@ public static class ConfigValidator
                     issues.Add(Warn("Геномы", loc, "У гена нет понятного названия и описания.",
                         "Заполните название и назначение, чтобы ген был понятен."));
 
+                if (gene.RequireMorphogenTrigger)
+                {
+                    if (!morphogenIds.Contains(gene.RequiredMorphogenId))
+                        issues.Add(Err("Геномы", loc, $"Обязательный морфоген {gene.RequiredMorphogenId} не существует.",
+                            "Выберите существующий морфоген или отключите обязательный триггер."));
+                    else if (setup.Morphogens.FirstOrDefault(m => m.Id == gene.RequiredMorphogenId)?.IsInternal == true &&
+                             gene.RequiredMorphogenThreshold < 0.0)
+                        issues.Add(Err("Геномы", loc, "Порог внутреннего обязательного морфогена должен быть ≥ 0.", ""));
+                    else if (double.IsNaN(gene.RequiredMorphogenThreshold))
+                        issues.Add(Err("Геномы", loc, "Порог обязательного морфогена не может быть NaN.", ""));
+                }
+
                 var groups = gene.EffectiveGroups();
                 for (int gi = 0; gi < groups.Count; gi++)
                 {
@@ -175,7 +230,7 @@ public static class ConfigValidator
                 }
 
                 foreach (var effect in gene.Effects)
-                    ValidateEffect(issues, loc, effect, morphogenIds, typeIds, keys);
+                    ValidateEffect(issues, loc, effect, setup, morphogenIds, typeIds, keys);
 
                 // M1.5+: conflicting simultaneously-active Divide effects in one gene.
                 // Multiple Divide effects are legal (they accumulate progress), but
@@ -246,7 +301,7 @@ public static class ConfigValidator
 
     private static void ValidateEffect(
         List<ConfigIssue> issues, string loc, GeneEffectConfig e,
-        HashSet<int> morphogenIds, HashSet<int> typeIds, HashSet<string> geneKeys)
+        SimulationSetup setup, HashSet<int> morphogenIds, HashSet<int> typeIds, HashSet<string> geneKeys)
     {
         if (!Localization.IsKnownEffect(e.Kind))
         {
@@ -265,6 +320,8 @@ public static class ConfigValidator
             case "Absorb":
                 if (!morphogenIds.Contains(e.Morphogen))
                     issues.Add(Err("Геномы", loc, $"Поглощение: несуществующий морфоген {e.Morphogen}.", "Выберите морфоген."));
+                else if (setup.Morphogens.FirstOrDefault(m => m.Id == e.Morphogen)?.IsInternal == true)
+                    issues.Add(Err("Геномы", loc, "Поглощение внутреннего морфогена не поддерживается.", "Используйте внешний морфоген или эффект выделения."));
                 break;
             case "Grow":
                 if (e.Rate < 0 || double.IsNaN(e.Rate))
@@ -295,6 +352,14 @@ public static class ConfigValidator
                     issues.Add(Err("Геномы", loc, "Подавление гена без указания гена.", "Задайте ген."));
                 break;
             case "BlockDivision":
+                break;
+            case "Move":
+                if (!morphogenIds.Contains(e.Morphogen))
+                    issues.Add(Err("Геномы", loc, $"Движение: несуществующий морфоген {e.Morphogen}.", "Выберите морфоген."));
+                else if (setup.Morphogens.FirstOrDefault(m => m.Id == e.Morphogen)?.IsInternal == true)
+                    issues.Add(Err("Геномы", loc, "Движение по градиенту внутреннего морфогена не поддерживается.", "Используйте внешний морфоген."));
+                if (e.Rate < 0 || double.IsNaN(e.Rate))
+                    issues.Add(Err("Геномы", loc, "Скорость движения должна быть числом ≥ 0.", ""));
                 break;
         }
     }

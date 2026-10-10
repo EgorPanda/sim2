@@ -1,0 +1,57 @@
+[
+  {
+    "id": 0,
+    "name": "cell_memory",
+    "description": "Геном эксперимента «Клеточная память»: внешний сигнал A включает производство внутреннего B; B сохраняется и переключает фенотип на memory.",
+    "genes": [
+      {
+        "id": "senseA",
+        "name": "Чувствовать внешний A",
+        "displayName": "Чувствовать внешний A",
+        "description": "Активируется в зоне внешнего сигнала A и производит внутренний морфоген B.",
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 0,
+        "requiredMorphogenThreshold": 0.5,
+        "effects": [
+          { "kind": "EmitMorphogen", "morphogen": 1, "rate": 50.0 }
+        ]
+      },
+      {
+        "id": "actFromB",
+        "name": "Активироваться от B",
+        "displayName": "Активироваться от внутренней памяти B",
+        "description": "Переключает клетку в фенотип «память», пока внутренняя концентрация B достаточна.",
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 1,
+        "requiredMorphogenThreshold": 1.0,
+        "effects": [
+          { "kind": "SetCellType", "typeId": 1, "once": true }
+        ]
+      },
+      {
+        "id": "divideStem",
+        "name": "Деление стволовой",
+        "displayName": "Деление стволовой клетки",
+        "description": "Стволовые клетки медленно делятся, пока не получили сигнал памяти.",
+        "regulators": [
+          { "kind": "Phenotype", "typeId": 0 }
+        ],
+        "effects": [
+          { "kind": "Divide", "rate": 0.2 }
+        ]
+      },
+      {
+        "id": "blockMemory",
+        "name": "Блокировать деление памяти",
+        "displayName": "Блокировать деление памяти",
+        "description": "Клетки памяти больше не делятся.",
+        "regulators": [
+          { "kind": "Phenotype", "typeId": 1 }
+        ],
+        "effects": [
+          { "kind": "BlockDivision" }
+        ]
+      }
+    ]
+  }
+]

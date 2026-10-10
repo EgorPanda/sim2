@@ -64,7 +64,11 @@ public sealed class Simulation : GeneContext
         CellTypesById = types;
 
         int morphCount = 0;
-        foreach (var id in morphogens.Keys) morphCount = Math.Max(morphCount, id + 1);
+        foreach (var id in morphogens.Keys)
+        {
+            if (!morphogens[id].IsInternal)
+                morphCount = Math.Max(morphCount, id + 1);
+        }
 
         Morphogens = new MorphogenSystem(
             Config.WorldWidth, Config.WorldHeight,
@@ -135,14 +139,94 @@ public sealed class Simulation : GeneContext
                 Energy = type.MaxEnergy * 0.6,
                 State = CellState.Alive
             };
+            ApplyInitialInternalMorphogens(cell);
             Cells.Add(cell);
         }
+
+        SeedInitialExternalMorphogens();
     }
 
     public GenomeConfig? GenomeOf(int genomeId)
     {
         GenomesById.TryGetValue(genomeId, out var genome);
         return genome;
+    }
+
+    private void ApplyInitialInternalMorphogens(Cell cell)
+    {
+        foreach (var kv in Config.InitialInternalMorphogens)
+        {
+            if (!MorphogensById.TryGetValue(kv.Key, out var cfg)) continue;
+            if (!cfg.IsInternal) continue;
+            double v = kv.Value;
+            if (double.IsNaN(v) || v < 0.0) v = 0.0;
+            cell.InternalMorphogenConcentrations[kv.Key] = v;
+        }
+
+        foreach (var cfg in MorphogensById.Values)
+        {
+            if (!cfg.IsInternal) continue;
+            if (cfg.InitialConcentration > 0.0)
+                cell.InternalMorphogenConcentrations[cfg.Id] = cfg.InitialConcentration;
+        }
+    }
+
+    private void SeedInitialExternalMorphogens()
+    {
+        foreach (var source in Config.InitialExternalSources)
+        {
+            if (source.MorphogenId < 0) continue;
+            if (!MorphogensById.TryGetValue(source.MorphogenId, out var cfg)) continue;
+            if (cfg.IsInternal) continue;
+
+            double r2 = source.Radius * source.Radius;
+            double cx = source.X;
+            double cy = source.Y;
+            double res = Morphogens.Resolution;
+            int gw = Morphogens.GridWidth;
+            int gh = Morphogens.GridHeight;
+
+            for (int gy = 0; gy < gh; gy++)
+            {
+                double y = (gy + 0.5) * res;
+                double dy = y - cy;
+                for (int gx = 0; gx < gw; gx++)
+                {
+                    double x = (gx + 0.5) * res;
+                    double dx = x - cx;
+                    double d2 = dx * dx + dy * dy;
+                    if (d2 > r2) continue;
+
+                    double value = source.Concentration;
+                    if (string.Equals(source.Profile, "gaussian", StringComparison.OrdinalIgnoreCase))
+                    {
+                        double sigma = source.Radius / 3.0;
+                        value *= Math.Exp(-d2 / (2.0 * sigma * sigma));
+                    }
+                    Morphogens.SetField(source.MorphogenId, gx, gy, value);
+                }
+            }
+        }
+    }
+
+    private void ApplyInternalDecay(double dt)
+    {
+        foreach (var cell in Cells)
+        {
+            if (cell.InternalMorphogenConcentrations.Count == 0) continue;
+            foreach (var id in cell.InternalMorphogenConcentrations.Keys.ToArray())
+            {
+                if (!MorphogensById.TryGetValue(id, out var cfg)) continue;
+                if (!cfg.IsInternal) continue;
+
+                double v = cell.InternalMorphogenConcentrations[id];
+                v *= Math.Exp(-cfg.Decay * dt);
+                if (v <= 1e-12 || double.IsNaN(v))
+                    cell.InternalMorphogenConcentrations.Remove(id);
+                else
+                    cell.InternalMorphogenConcentrations[id] = v;
+            }
+        }
     }
 
     private int FirstTypeId()
@@ -179,8 +263,9 @@ public sealed class Simulation : GeneContext
             GenomeSystem.Evaluate(cell, type, genome, this, dt);
         }
 
-        // 4. Morphogen dynamics.
+        // 4. Morphogen dynamics (external field + per-cell internal decay).
         Morphogens.Update(dt, MorphogensById);
+        ApplyInternalDecay(dt);
 
         // 5. Mechanics.
         Mechanics.Resolve(Cells, SpatialHash, _maxRadius);
@@ -313,10 +398,29 @@ public sealed class Simulation : GeneContext
     public double SampleMorphogen(int morphogen, double x, double y)
         => morphogen < 0 || morphogen >= Morphogens.MorphogenCount ? 0.0 : Morphogens.Sample(morphogen, x, y);
 
+    public (double Dx, double Dy) MorphogenGradient(int morphogen, double x, double y)
+    {
+        if (morphogen < 0 || morphogen >= Morphogens.MorphogenCount) return (0.0, 0.0);
+        return Morphogens.Gradient(morphogen, x, y);
+    }
+
     public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond)
     {
         if (morphogen < 0 || morphogen >= Morphogens.MorphogenCount) return;
         Morphogens.Emit(morphogen, x, y, amountPerSecond);
+    }
+
+    public bool IsMorphogenInternal(int morphogen)
+        => MorphogensById.TryGetValue(morphogen, out var cfg) && cfg.IsInternal;
+
+    public double SampleInternalMorphogen(Cell cell, int morphogen)
+        => cell.InternalMorphogenConcentrations.TryGetValue(morphogen, out double v) ? v : 0.0;
+
+    public void EmitInternalMorphogen(Cell cell, int morphogen, double amountPerSecond, double dt)
+    {
+        double current = cell.InternalMorphogenConcentrations.TryGetValue(morphogen, out double v) ? v : 0.0;
+        double next = Num.Clamp(current + amountPerSecond * dt, 0.0, 1e12);
+        cell.InternalMorphogenConcentrations[morphogen] = next;
     }
 
     public void Kill(Cell cell) => CellSystem.Kill(cell);

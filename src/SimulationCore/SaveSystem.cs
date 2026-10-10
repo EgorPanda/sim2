@@ -34,13 +34,15 @@ public static class SaveSystem
         public bool DivisionBlocked { get; set; }
         public Dictionary<string, bool> GeneStates { get; set; } = new();
         public Dictionary<string, double> GeneTimers { get; set; } = new();
+        public Dictionary<int, double> InternalMorphogenConcentrations { get; set; } = new();
         public List<string> SilencedGenes { get; set; } = new();
         public Dictionary<string, double> Timers { get; set; } = new();
+        public Dictionary<string, double> TimerTotals { get; set; } = new();
     }
 
     public sealed class WorldDto
     {
-        public int Version { get; set; } = 2;
+        public int Version { get; set; } = 3;
         public double Time { get; set; }
         public long Tick { get; set; }
         public int NextId { get; set; }
@@ -90,8 +92,11 @@ public static class SaveSystem
                 cellDto.GeneStates[kv.Key] = kv.Value.Active;
                 cellDto.GeneTimers[kv.Key] = kv.Value.ActivationTimer;
             }
+            foreach (var kv in c.InternalMorphogenConcentrations)
+                cellDto.InternalMorphogenConcentrations[kv.Key] = kv.Value;
             foreach (var id in c.SilencedGenes) cellDto.SilencedGenes.Add(id);
             foreach (var kv in c.Timers) cellDto.Timers[kv.Key] = kv.Value;
+            foreach (var kv in c.TimerTotals) cellDto.TimerTotals[kv.Key] = kv.Value;
             dto.Cells.Add(cellDto);
         }
 
@@ -135,8 +140,11 @@ public static class SaveSystem
             foreach (var kv in d.GeneTimers)
                 if (cell.GeneStates.TryGetValue(kv.Key, out var state))
                     state.ActivationTimer = kv.Value;
+            foreach (var kv in d.InternalMorphogenConcentrations)
+                cell.InternalMorphogenConcentrations[kv.Key] = kv.Value;
             foreach (var id in d.SilencedGenes) cell.SilencedGenes.Add(id);
             foreach (var kv in d.Timers) cell.Timers[kv.Key] = kv.Value;
+            foreach (var kv in d.TimerTotals) cell.TimerTotals[kv.Key] = kv.Value;
             sim.Cells.Add(cell);
         }
 

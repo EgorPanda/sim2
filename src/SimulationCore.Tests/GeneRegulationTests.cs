@@ -197,8 +197,78 @@ public class GeneRegulationTests
         cell.Timers["life"] = 0.5; // just under one step
 
         GenomeSystem.Evaluate(cell, Type(), GenomeOf(gate), ctx, 1.0);
-        Assert.That(cell.TimerRemaining("life"), Is.EqualTo(0.0).Within(1e-9), "Timer must be removed after expiry.");
+        Assert.That(cell.TimerRemaining("life"), Is.EqualTo(0.0).Within(1e-9), "Timer remaining must be 0 after expiry.");
         Assert.That(cell.StateOf("postmortem").Active, Is.True, "Inverted timer regulator satisfied once expired.");
+    }
+
+    [Test]
+    public void TimerRegulator_WithTimeWindow_IsMetAfterElapsed()
+    {
+        // The gene fires only after 5 seconds have elapsed since the timer started.
+        var gate = new GeneConfig
+        {
+            Id = "g",
+            Regulators = { new RegulatorConfig { Kind = "Timer", Timer = "life", Min = 5.0 } },
+            Effects = { TestFactory.Emit(0, 1) }
+        };
+        var ctx = new Context { Sample = 1.0 };
+        var cell = Cell0();
+        cell.Timers["life"] = 10.0;
+        cell.TimerTotals["life"] = 10.0;
+
+        // 0 s elapsed -> not yet.
+        GenomeSystem.Evaluate(cell, Type(), GenomeOf(gate), ctx, 0.0);
+        Assert.That(cell.StateOf("g").Active, Is.False, "Should wait for 5 seconds.");
+
+        // Advance 5 s -> elapsed 5.0, condition met.
+        GenomeSystem.Evaluate(cell, Type(), GenomeOf(gate), ctx, 5.0);
+        Assert.That(cell.TimerElapsed("life"), Is.EqualTo(5.0).Within(1e-9));
+        Assert.That(cell.StateOf("g").Active, Is.True);
+    }
+
+    [Test]
+    public void TimerRegulator_TimeWindow_HasUpperBound()
+    {
+        var gate = new GeneConfig
+        {
+            Id = "g",
+            Regulators = { new RegulatorConfig { Kind = "Timer", Timer = "life", Min = 2.0, Max = 4.0 } },
+            Effects = { TestFactory.Emit(0, 1) }
+        };
+        var ctx = new Context { Sample = 1.0 };
+        var cell = Cell0();
+        cell.Timers["life"] = 10.0;
+        cell.TimerTotals["life"] = 10.0;
+
+        GenomeSystem.Evaluate(cell, Type(), GenomeOf(gate), ctx, 3.0); // elapsed 3 -> inside
+        Assert.That(cell.StateOf("g").Active, Is.True);
+
+        GenomeSystem.Evaluate(cell, Type(), GenomeOf(gate), ctx, 2.0); // elapsed 5 -> above max
+        Assert.That(cell.StateOf("g").Active, Is.False);
+    }
+
+    [Test]
+    public void StartTimer_RecordsElapsed_AndKeepsFullDurationAfterExpiry()
+    {
+        var start = new GeneConfig
+        {
+            Id = "start",
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Effects = { new GeneEffectConfig { Kind = "StartTimer", Timer = "life", Duration = 2.0, Once = true } }
+        };
+        var cell = Cell0();
+        var ctx = new Context();
+
+        GenomeSystem.Evaluate(cell, Type(), GenomeOf(start), ctx, 1.0);
+        Assert.That(cell.TimerElapsed("life"), Is.EqualTo(0.0).Within(1e-9), "Just started: no time elapsed.");
+
+        GenomeSystem.Evaluate(cell, Type(), GenomeOf(start), ctx, 1.0);
+        Assert.That(cell.TimerElapsed("life"), Is.EqualTo(1.0).Within(1e-9));
+
+        // Cross expiry: remaining is clamped to 0, elapsed stays at the full duration.
+        GenomeSystem.Evaluate(cell, Type(), GenomeOf(start), ctx, 5.0);
+        Assert.That(cell.TimerRemaining("life"), Is.EqualTo(0.0).Within(1e-9));
+        Assert.That(cell.TimerElapsed("life"), Is.EqualTo(2.0).Within(1e-9));
     }
 
     // --- SilenceGene --------------------------------------------------------

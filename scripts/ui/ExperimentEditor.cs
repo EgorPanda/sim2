@@ -15,6 +15,7 @@ public partial class ExperimentEditor : VBoxContainer
 {
     private readonly Main _main;
     private VBoxContainer? _pickers;
+    private VBoxContainer? _initialSignalsBox;
 
     public ExperimentEditor(Main main)
     {
@@ -52,6 +53,17 @@ public partial class ExperimentEditor : VBoxContainer
 
         AddChild(new HSeparator());
 
+        var signalsHeader = new HBoxContainer();
+        signalsHeader.AddChild(Ui.Title("Начальные сигналы"));
+        signalsHeader.AddChild(Ui.Btn("?", () => _main.OpenHelp("experiment.initialSignals")));
+        AddChild(signalsHeader);
+
+        _initialSignalsBox = new VBoxContainer();
+        AddChild(_initialSignalsBox);
+        BuildInitialSignals();
+
+        AddChild(new HSeparator());
+
         var warn = new Label
         {
             Text = "Изменения размеров мира или разрешения требуют перезапуска.",
@@ -66,6 +78,88 @@ public partial class ExperimentEditor : VBoxContainer
         if (_pickers == null) return;
         Ui.Clear(_pickers);
         BuildPickers(_pickers);
+        if (_initialSignalsBox != null)
+        {
+            Ui.Clear(_initialSignalsBox);
+            BuildInitialSignals();
+        }
+    }
+
+    private void BuildInitialSignals()
+    {
+        if (_initialSignalsBox == null) return;
+        var draft = _main.WorkingDraft;
+        var s = draft.Simulation;
+
+        var internalMorphogens = draft.Morphogens.Where(m => m.IsInternal).ToList();
+        if (internalMorphogens.Count > 0)
+        {
+            _initialSignalsBox.AddChild(Ui.Lbl("Начальные внутренние концентрации основателей:", 0, 0));
+            foreach (var m in internalMorphogens)
+            {
+                int id = m.Id;
+                double value = s.InitialInternalMorphogens.TryGetValue(id, out double v) ? v : 0.0;
+                _initialSignalsBox.AddChild(Ui.Field($"{Localization.MorphogenName(m)}:",
+                    Ui.Sp(0, 1e6, 0.01, value, v =>
+                    {
+                        s.InitialInternalMorphogens[id] = v;
+                        _main.MarkDirty();
+                    }), 180));
+            }
+        }
+        else
+        {
+            _initialSignalsBox.AddChild(Ui.Lbl("Нет внутренних морфогенов.", 0, 0));
+        }
+
+        _initialSignalsBox.AddChild(Ui.Lbl("Локальные внешние источники:", 0, 0));
+        for (int i = 0; i < s.InitialExternalSources.Count; i++)
+        {
+            int idx = i;
+            var source = s.InitialExternalSources[i];
+            var row = new HBoxContainer();
+            row.AddChild(Ui.Opt(
+                draft.Morphogens.Where(m => m.IsExternal).Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
+                source.MorphogenId,
+                id => { source.MorphogenId = id; _main.MarkDirty(); }, 140));
+            row.AddChild(Ui.Sp(-1e6, 1e6, 1, source.X, v => { source.X = v; _main.MarkDirty(); }, 80));
+            row.AddChild(Ui.Sp(-1e6, 1e6, 1, source.Y, v => { source.Y = v; _main.MarkDirty(); }, 80));
+            row.AddChild(Ui.Sp(0, 1e6, 0.5, source.Radius, v => { source.Radius = v; _main.MarkDirty(); }, 70));
+            row.AddChild(Ui.Sp(0, 1e6, 0.01, source.Concentration, v => { source.Concentration = v; _main.MarkDirty(); }, 80));
+            var profileOpt = new OptionButton();
+            profileOpt.AddItem("равномерно", 0);
+            profileOpt.AddItem("гаусс", 1);
+            profileOpt.Selected = string.Equals(source.Profile, "gaussian", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            profileOpt.ItemSelected += id =>
+            {
+                source.Profile = id == 1 ? "gaussian" : "uniform";
+                _main.MarkDirty();
+            };
+            row.AddChild(profileOpt);
+            row.AddChild(Ui.Btn("×", () =>
+            {
+                s.InitialExternalSources.RemoveAt(idx);
+                _main.MarkDirty();
+                RefreshData();
+            }, 36));
+            _initialSignalsBox.AddChild(row);
+        }
+
+        _initialSignalsBox.AddChild(Ui.Btn("Добавить внешний источник", () =>
+        {
+            var external = draft.Morphogens.FirstOrDefault(m => m.IsExternal);
+            s.InitialExternalSources.Add(new MorphogenSourceConfig
+            {
+                MorphogenId = external?.Id ?? 0,
+                X = s.WorldWidth * 0.5,
+                Y = s.WorldHeight * 0.5,
+                Radius = 40.0,
+                Concentration = 1.0,
+                Profile = "uniform"
+            });
+            _main.MarkDirty();
+            RefreshData();
+        }));
     }
 
     private void BuildPickers(VBoxContainer into)

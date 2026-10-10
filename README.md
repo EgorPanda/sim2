@@ -8,7 +8,7 @@ morphogen signalling, cell division, differentiation, death and regeneration.
   the pure C# library `src/SimulationCore` and runs headless.
 - Genes, morphogens and cell types are described in JSON under `config/`.
 - The **Laboratory** (research panel, `L`) lets you visualise the world across
-  seven analytical layers and edit the live configuration: gene logic (AND/OR/NOT
+  eight analytical layers and edit the live configuration: gene logic (AND/OR/NOT
   groups), morphogens, cell phenotypes and experiment settings — all in Russian.
 
 ## Prerequisites (Windows)
@@ -45,7 +45,7 @@ godot --path E:\sim23 --headless -- --selftest
 godot --path E:\sim23 --headless -- --selftest --experiment res://config/experiments/multicellular.json
 
 :: automated UI smoke test -- opens the Laboratory, help (F1), routes
-:: OpenHelp/OpenGene/OpenMorphogen, switches all 7 layers, applies a draft,
+:: OpenHelp/OpenGene/OpenMorphogen, switches all 8 layers, applies a draft,
 :: saves an experiment profile with an unusual name, then quits:
 :: exit code 0 = all checks passed.
 godot --path E:\sim23 --headless -- --uitest
@@ -58,13 +58,13 @@ godot -e --path E:\sim23
 > If `godot` is not on PATH in a fresh shell, restart the terminal (winget adds
 > the alias on install) or call the full path shown above.
 
-> Verification status (2026-10): `dotnet build Sim2.slnx` clean; 116 NUnit tests
+> Verification status (2026-10): `dotnet build Sim2.slnx` clean; 167 NUnit tests
 > pass; `--selftest` and `--uitest` pass both headless and in a real window on
 > Windows (no resource-leak messages on exit). The bundled `differentiation`
-> demo experiment (config/experiments/differentiation/) is covered by tests and
-> can be opened from the «Настройки эксперимента» → «Загрузить…». Interactive-only
-> flows (mouse gestures, message boxes in the save/load dialogs) still need a
-> human click.
+> and new `cell_memory` demo experiments are covered by tests and can be opened
+> from the «Настройки эксперимента» → «Загрузить…». Interactive-only flows
+> (mouse gestures, message boxes in the save/load dialogs) still need a human
+> click.
 
 ## Controls
 
@@ -85,26 +85,33 @@ godot -e --path E:\sim23
 
 ## What you can do
 
-- **Analytical layers** (left panel or «Мир» tab): cell types, morphogen
-  concentration (auto-normalised heat map + legend), gradient vectors, active
-  gene, silenced genes, energy, neighbour density.
+- **Analytical layers** (left panel or «Мир» tab): cell types, external morphogen
+  concentration (auto-normalised heat map + legend), gradient vectors, internal
+  morphogen concentration per cell, active gene, silenced genes, energy, neighbour
+  density.
 - **Phenotypes** (right panel) lists live population counts per cell type.
 - **Selected cell** (right panel) shows state, energy, radius, age, neighbours,
   active/silenced genes (clickable — opens the genome editor), timers and local
-  morphogen levels.
-- **Laboratory** (`L`) — six tabs:
+  external/internal morphogen levels.
+- **Laboratory** (`L`) — opens as a **separate resizable window** so it never covers
+  the simulation. Six tabs:
   - *Мир*: display layer and its options;
-  - *Геном*: create/copy/delete genes, edit display data, AND/OR groups with NOT,
-    thresholds (≥ / ≤ / range / = automatically derived from the stored interval),
-    and the list of effects (emit/absorb/grow/divide/type switch/timers/silencing/
-    apoptosis/division block); the «Деление» effect can set the **child phenotype**
-    — daughters are then born as that type instead of inheriting the parent's;
+  - *Геном*: create/copy/delete genes, edit display data, mandatory morphogen trigger,
+    AND/OR groups with NOT, thresholds (≥ / ≤ / range / = automatically derived from
+    the stored interval), and the list of effects (emit/absorb/grow/divide/move/
+    type switch/timers/silencing/apoptosis/division block); the «Деление» effect can set
+    the **child phenotype** — daughters are then born as that type instead of
+    inheriting the parent's;
   - *Морфогены*: searchable list, copy, delete with automatic cleanup of every
-    reference (effects, regulators, gradient selector), diffusion, decay, colour,
-    display name;
+    reference (effects, regulators, triggers, gradient selector), type (External/
+    Internal), diffusion, decay, initial concentration, colour, display name;
   - *Типы клеток*: all phenotype parameters + colour + linked genome;
-  - *Настройки эксперимента*: world size, solver resolution, seed, founders;
+  - *Настройки эксперимента*: world size, solver resolution, seed, founders,
+    initial external sources and founder internal morphogen concentrations;
   - *Справочник*: Russian help browser with search and cross-links.
+- **Morphogen filters** (bottom-left HUD panel): while the simulation is running,
+  toggle individual external morphogens on/off for the *Смесь морфогенов* layer.
+  The overlay blends the selected signals in real time.
 - **Apply / Проверить / Восстановить / Сохранить / Загрузить…** in the panel
   toolbar: changes live in a working draft until validated and applied; the world
   rebuilds; experiments can be saved to an experiment profile JSON and reloaded.

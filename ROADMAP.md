@@ -32,7 +32,29 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Full world save/load, versioned DTO (SaveSystem v2)
 - [x] Research UI: morphogen field selector, per-phenotype stats, cell inspector
 
-## M1.5 — Genetic Lab (current release)
+## M1.6 — Morphogen-triggered genes and cellular memory (current release)
+
+- [x] Mandatory morphogen trigger for newly-created genes (`RequireMorphogenTrigger`,
+      `RequiredMorphogenId`, `RequiredMorphogenThreshold`)
+- [x] Trigger works for external (field sample) and internal (per-cell) morphogens
+- [x] Legacy genes without the trigger field keep historical always-on behaviour
+- [x] Continuous morphogen production while a gene is active; `once` mode for single
+      impulse effects
+- [x] Internal vs external morphogen types (`MorphogenConfig.Type`)
+- [x] Per-cell internal morphogen concentrations (`Cell.InternalMorphogenConcentrations`)
+- [x] Local internal production, decay and inheritance on division
+- [x] Initial external sources and founder internal concentrations (`SimulationConfig`)
+- [x] Save/load internal concentrations (SaveSystem v3); old v2 saves load with empty state
+- [x] Genome editor: mandatory trigger section, status text, gene filter, morphogen link
+- [x] Morphogen editor: type selector, conditional fields, type display in list
+- [x] New analytical layer: internal morphogen concentration per cell
+- [x] Experiment editor: initial signal sources and founder internal concentrations
+- [x] Demo experiment `config/experiments/cell_memory/` (external signal → internal
+      memory → persistent gene activation after signal fades; fixed seed)
+- [x] Tests: trigger behaviour, internal morphogens, production/decay, cell memory,
+      initialization, type migration, config validation (167 NUnit tests total)
+
+## M1.5 — Genetic Lab
 
 - [x] Russian-language interface and help catalog (`Localization`, `HelpCatalog` in core)
 - [x] Analytical layers: morphogen concentration, gradient vectors, gene activity,
@@ -61,7 +83,7 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Demo experiment `config/experiments/differentiation/` (birth-differentiation colony:
       signal decides worker vs skin at birth; workers/skin never divide; fixed seed)
 - [x] Tests: `CellDifferentiationTests`, `MorphogenManagementTests`, demo experiment
-      (116 NUnit tests total)
+      (116 NUnit tests total at release)
 
 ## M2 — Persistence and experimentation
 

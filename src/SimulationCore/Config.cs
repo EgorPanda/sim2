@@ -19,6 +19,12 @@ public sealed class SimulationConfig
 
     /// <summary>Morphogen whose gradient biases division direction. -1 disables it.</summary>
     public int DivisionGradientMorphogen { get; set; } = 0;
+
+    /// <summary>Initial local sources of external morphogens (seeded on reset).</summary>
+    public List<MorphogenSourceConfig> InitialExternalSources { get; set; } = new();
+
+    /// <summary>Initial per-cell concentrations of internal morphogens in founder cells.</summary>
+    public Dictionary<int, double> InitialInternalMorphogens { get; set; } = new();
 }
 
 /// <summary>Definition of a single morphogen (config/morphogens.json).</summary>
@@ -33,9 +39,36 @@ public sealed class MorphogenConfig
     /// <summary>Optional human-readable purpose/description shown in the UI.</summary>
     public string Description { get; set; } = "";
 
+    /// <summary>
+    /// "External" (default) — diffuses through the extracellular field;
+    /// "Internal" — stored per-cell, no diffusion, provides cellular memory.
+    /// </summary>
+    public string Type { get; set; } = "External";
+
+    public bool IsExternal => !IsInternal;
+
+    public bool IsInternal =>
+        string.Equals(Type, "Internal", StringComparison.OrdinalIgnoreCase);
+
     public double Diffusion { get; set; } = 0.0;
     public double Decay { get; set; } = 0.0;
     public string Color { get; set; } = "#ffffff";
+
+    /// <summary>Initial concentration for internal morphogens in founder cells (units).</summary>
+    public double InitialConcentration { get; set; } = 0.0;
+}
+
+/// <summary>A local initial source of an external morphogen.</summary>
+public sealed class MorphogenSourceConfig
+{
+    public int MorphogenId { get; set; } = -1;
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Radius { get; set; }
+    public double Concentration { get; set; }
+
+    /// <summary>"uniform" or "gaussian".</summary>
+    public string Profile { get; set; } = "uniform";
 }
 
 /// <summary>
@@ -97,6 +130,20 @@ public sealed class GeneConfig
     public string Role { get; set; } = "";
 
     public double ActivationDelay { get; set; } = 0.0;
+
+    /// <summary>
+    /// When true, the gene can only activate if the required morphogen concentration
+    /// reaches the threshold. The trigger is checked in addition to the regulator groups.
+    /// For newly-created genes this is enabled automatically; legacy genes without the
+    /// field keep the historical always-on behaviour.
+    /// </summary>
+    public bool RequireMorphogenTrigger { get; set; } = false;
+
+    /// <summary>Morphogen id for the required trigger (-1 = not configured).</summary>
+    public int RequiredMorphogenId { get; set; } = -1;
+
+    /// <summary>Concentration threshold the required morphogen must reach.</summary>
+    public double RequiredMorphogenThreshold { get; set; } = 0.0;
 
     /// <summary>
     /// Legacy, single AND-group of regulators. Kept for backward compatibility:
@@ -202,7 +249,7 @@ public sealed class GeneEffectConfig
     /// <summary>Gene id silenced by "SilenceGene".</summary>
     public string Gene { get; set; } = "";
 
-    /// <summary>Rate: emission/absorb/grow/divide amount, or timer duration.</summary>
+    /// <summary>Rate: emission/absorb/grow/divide/move amount, or timer duration.</summary>
     public double Rate { get; set; } = 0.0;
 
     /// <summary>Duration for "StartTimer" (seconds).</summary>
@@ -210,6 +257,9 @@ public sealed class GeneEffectConfig
 
     /// <summary>Per-second apoptosis probability; 0 or less kills deterministically.</summary>
     public double Probability { get; set; } = 0.0;
+
+    /// <summary>For "Move": when true, move opposite to the morphogen gradient (repel).</summary>
+    public bool Repel { get; set; } = false;
 }
 
 /// <summary>

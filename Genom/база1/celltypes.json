@@ -1,0 +1,17 @@
+[
+  {
+    "id": 0,
+    "name": "stem",
+    "displayName": "\u0421\u0442\u0432\u043E\u043B\u043E\u0432\u0430\u044F",
+    "description": "",
+    "color": "ffffffff",
+    "genomeId": 0,
+    "baseRadius": 10,
+    "maxRadius": 10,
+    "maxEnergy": 100,
+    "maintenanceCost": 1,
+    "divisionEnergyCost": 50,
+    "growEnergyCostPerRadius": 1,
+    "starveGracePeriod": 2
+  }
+]

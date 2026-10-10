@@ -157,4 +157,64 @@ public class ExperimentTests
         var countsB = b.Cells.GroupBy(c => c.TypeId).ToDictionary(g => g.Key, g => g.Count());
         Assert.That(countsA, Is.EquivalentTo(countsB), "Fixed RNG seed reproduces identical colonies.");
     }
+
+    private static string FindCellMemoryDir()
+    {
+        var dir = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+        while (dir != null)
+        {
+            string candidate = Path.Combine(dir.FullName, "config", "experiments", "cell_memory");
+            if (File.Exists(Path.Combine(candidate, "simulation.json")))
+                return candidate;
+            dir = dir.Parent;
+        }
+        throw new DirectoryNotFoundException("Could not locate 'config/experiments/cell_memory'.");
+    }
+
+    [Test]
+    public void CellMemoryExperiment_IsShippedAndValid()
+    {
+        var setup = ConfigLoader.LoadFromDirectory(FindCellMemoryDir());
+
+        Assert.That(setup.Morphogens.Any(m => m.IsInternal), Is.True, "Demo must contain an internal morphogen.");
+        Assert.That(setup.Morphogens.Any(m => m.IsExternal), Is.True, "Demo must contain an external morphogen.");
+        Assert.That(setup.Genomes[0].Genes.Any(g => g.RequireMorphogenTrigger), Is.True,
+            "Demo must use the mandatory morphogen trigger.");
+        Assert.That(ConfigValidator.HasErrors(ConfigValidator.Validate(setup)), Is.False,
+            "The shipped cell_memory experiment must validate without errors.");
+    }
+
+    [Test]
+    public void CellMemoryExperiment_ProducesMemoryCellsAfterExternalSignalFades()
+    {
+        var setup = ConfigLoader.LoadFromDirectory(FindCellMemoryDir());
+        var sim = new Simulation(setup);
+
+        for (int i = 0; i < 600; i++)
+            sim.Step(setup.Simulation.FixedTimeStep);
+
+        var memory = sim.Cells.Where(c => c.TypeId == 1).ToList();
+        Assert.That(memory.Count, Is.GreaterThan(0), "Some cells must switch to the memory phenotype.");
+
+        foreach (var cell in memory)
+        {
+            Assert.That(cell.InternalMorphogenConcentrations.GetValueOrDefault(1), Is.GreaterThan(0.0),
+                "Memory cells must retain the internal morphogen.");
+        }
+    }
+
+    [Test]
+    public void CellMemoryExperiment_IsReproducible()
+    {
+        var setup = ConfigLoader.LoadFromDirectory(FindCellMemoryDir());
+
+        var a = new Simulation(setup);
+        var b = new Simulation(setup);
+        for (int i = 0; i < 600; i++) { a.Step(setup.Simulation.FixedTimeStep); b.Step(setup.Simulation.FixedTimeStep); }
+
+        Assert.That(a.Cells.Count, Is.EqualTo(b.Cells.Count));
+        var countsA = a.Cells.GroupBy(c => c.TypeId).ToDictionary(g => g.Key, g => g.Count());
+        var countsB = b.Cells.GroupBy(c => c.TypeId).ToDictionary(g => g.Key, g => g.Count());
+        Assert.That(countsA, Is.EquivalentTo(countsB), "Fixed RNG seed reproduces identical cell_memory colonies.");
+    }
 }

@@ -14,7 +14,9 @@ public enum WorldLayer
 {
     CellTypes,
     Morphogen,
+    MultiMorphogen,
     Gradient,
+    InternalMorphogen,
     GeneActivity,
     GeneState,
     Energy,
@@ -34,10 +36,16 @@ public partial class WorldView : Node2D
     public WorldLayer Layer { get; set; } = WorldLayer.CellTypes;
     public bool ShowCells { get; set; } = true;
 
-    /// <summary>Heat-map on top when Layer == Morphogen; gradient/analysis otherwise.</summary>
-    public bool ShowField => Layer == WorldLayer.Morphogen;
+    /// <summary>Heat-map on top when Layer == Morphogen or MultiMorphogen.</summary>
+    public bool ShowField => Layer == WorldLayer.Morphogen || Layer == WorldLayer.MultiMorphogen;
 
     public int MorphogenId { get; set; }
+
+    /// <summary>Ids of external morphogens shown in the multi-morphogen overlay.</summary>
+    public HashSet<int> VisibleMorphogenIds { get; } = new();
+
+    /// <summary>Normalize each morphogen channel to its own peak in the multi overlay.</summary>
+    public bool MultiMorphogenNormalize { get; set; } = true;
 
     /// <summary>Gene id highlighted by GeneActivity / GeneState layers.</summary>
     public string GeneId { get; set; } = "";
@@ -67,6 +75,7 @@ public partial class WorldView : Node2D
     private Dictionary<int, double> _maxEnergyByType = new();
     private Color _morphogenColor = Colors.DeepSkyBlue;
     public Color MorphogenUiColor => _morphogenColor;
+    private Dictionary<int, Color> _morphogenColors = new();
     private Image? _morphogenImage;
     private ImageTexture? _morphogenTexture;
     private double _morphogenScale = 1.0;
@@ -109,6 +118,13 @@ public partial class WorldView : Node2D
         _morphogenScale = scale > 0 ? scale : 1.0;
     }
 
+    public void SetMorphogenColors(IEnumerable<MorphogenConfig> morphogens)
+    {
+        _morphogenColors = new Dictionary<int, Color>();
+        foreach (var m in morphogens)
+            _morphogenColors[m.Id] = ParseColor(m.Color);
+    }
+
     private static Color ParseColor(string hex)
     {
         var c = Color.FromHtml(hex);
@@ -130,6 +146,12 @@ public partial class WorldView : Node2D
     {
         var m = Sim?.Morphogens;
         if (m == null) return (0, 1, true);
+
+        if (Layer == WorldLayer.InternalMorphogen)
+            return RefreshInternalOverlay();
+
+        if (Layer == WorldLayer.MultiMorphogen)
+            return RefreshMultiMorphogenOverlay();
 
         int mid = MorphogenId >= 0 && MorphogenId < m.MorphogenCount ? MorphogenId : 0;
 
@@ -156,15 +178,7 @@ public partial class WorldView : Node2D
         LegendTitle = $"Концентрация «{Localization.MorphogenName(MorphogenOf(mid))}»";
         LegendNote = relative ? "относительная шкала (нормировка к максимуму)" : "абсолютная шкала";
 
-        if ((Layer == WorldLayer.Morphogen) && (_morphogenImage == null
-            || _morphogenImage.GetWidth() != m.GridWidth
-            || _morphogenImage.GetHeight() != m.GridHeight))
-        {
-            ReleaseFieldTexture();
-            _morphogenImage = Image.CreateEmpty(m.GridWidth, m.GridHeight, false, Image.Format.Rgba8);
-            _morphogenTexture = ImageTexture.CreateFromImage(_morphogenImage);
-        }
-
+        EnsureFieldTexture(m.GridWidth, m.GridHeight);
         if (Layer == WorldLayer.Morphogen && _morphogenImage != null)
         {
             for (int gy = 0; gy < m.GridHeight; gy++)
@@ -184,6 +198,121 @@ public partial class WorldView : Node2D
         return (scaleMin, scaleMax, relative);
     }
 
+    private void EnsureFieldTexture(int width, int height)
+    {
+        if (_morphogenImage == null
+            || _morphogenImage.GetWidth() != width
+            || _morphogenImage.GetHeight() != height)
+        {
+            ReleaseFieldTexture();
+            _morphogenImage = Image.CreateEmpty(width, height, false, Image.Format.Rgba8);
+            _morphogenTexture = ImageTexture.CreateFromImage(_morphogenImage);
+        }
+    }
+
+    private (double Min, double Max, bool Relative) RefreshMultiMorphogenOverlay()
+    {
+        var m = Sim!.Morphogens;
+        var active = Sim.MorphogensById.Values
+            .Where(cfg => cfg.IsExternal && VisibleMorphogenIds.Contains(cfg.Id))
+            .OrderBy(cfg => cfg.Id)
+            .ToList();
+
+        EnsureFieldTexture(m.GridWidth, m.GridHeight);
+
+        if (active.Count == 0)
+        {
+            LegendMin = 0;
+            LegendMax = 1;
+            LegendTitle = "Смесь морфогенов";
+            LegendNote = "нет выбранных морфогенов";
+            if (_morphogenImage != null)
+            {
+                for (int gy = 0; gy < m.GridHeight; gy++)
+                    for (int gx = 0; gx < m.GridWidth; gx++)
+                        _morphogenImage.SetPixel(gx, gy, new Color(0, 0, 0, 0));
+                _morphogenTexture?.Update(_morphogenImage);
+            }
+            QueueRedraw();
+            return (0, 1, true);
+        }
+
+        var scales = new Dictionary<int, double>();
+        foreach (var cfg in active)
+        {
+            double peak = 0.0;
+            for (int gy = 0; gy < m.GridHeight; gy++)
+                for (int gx = 0; gx < m.GridWidth; gx++)
+                {
+                    double v = m.GetField(cfg.Id, gx, gy);
+                    if (v > peak) peak = v;
+                }
+            scales[cfg.Id] = MultiMorphogenNormalize
+                ? (peak > 1e-9 ? peak : 1.0)
+                : (FixedMax > FixedMin ? FixedMax : 1.0);
+        }
+
+        LegendMin = 0;
+        LegendMax = 1;
+        LegendTitle = "Смесь морфогенов";
+        LegendNote = string.Join("  ", active.Select(cfg => $"● {Localization.MorphogenName(cfg)}"));
+
+        if (_morphogenImage != null)
+        {
+            for (int gy = 0; gy < m.GridHeight; gy++)
+            {
+                for (int gx = 0; gx < m.GridWidth; gx++)
+                {
+                    float r = 0, g = 0, b = 0, a = 0;
+                    foreach (var cfg in active)
+                    {
+                        double v = m.GetField(cfg.Id, gx, gy) / scales[cfg.Id];
+                        if (v < 0.0) v = 0.0;
+                        if (v > 1.0) v = 1.0;
+                        var c = _morphogenColors.TryGetValue(cfg.Id, out var col) ? col : _morphogenColor;
+                        r += c.R * (float)v;
+                        g += c.G * (float)v;
+                        b += c.B * (float)v;
+                        a += (float)v * 0.45f;
+                    }
+                    r = Mathf.Clamp(r, 0, 1);
+                    g = Mathf.Clamp(g, 0, 1);
+                    b = Mathf.Clamp(b, 0, 1);
+                    a = Mathf.Clamp(a, 0, 0.75f);
+                    _morphogenImage.SetPixel(gx, gy, new Color(r, g, b, a));
+                }
+            }
+            _morphogenTexture?.Update(_morphogenImage);
+        }
+
+        QueueRedraw();
+        return (0, 1, true);
+    }
+
+    private (double Min, double Max, bool Relative) RefreshInternalOverlay()
+    {
+        if (Sim == null) return (0, 1, true);
+
+        double peak = 0.0;
+        foreach (var cell in Sim.Cells)
+        {
+            double v = cell.InternalMorphogenConcentrations.TryGetValue(MorphogenId, out double c) ? c : 0.0;
+            if (v > peak) peak = v;
+        }
+
+        double scaleMax = NormalizeConcentration ? (peak > 1e-9 ? peak : 1.0) : FixedMax;
+        double scaleMin = NormalizeConcentration ? 0.0 : FixedMin;
+        if (scaleMax <= scaleMin) scaleMax = scaleMin + 1e-9;
+
+        LegendMin = scaleMin;
+        LegendMax = scaleMax;
+        LegendTitle = $"Внутриклеточная «{Localization.MorphogenName(MorphogenOf(MorphogenId))}»";
+        LegendNote = NormalizeConcentration ? "относительная шкала" : "абсолютная шкала";
+
+        QueueRedraw();
+        return (scaleMin, scaleMax, NormalizeConcentration);
+    }
+
     private MorphogenConfig MorphogenOf(int id)
     {
         if (Sim?.MorphogensById.TryGetValue(id, out var cfg) == true) return cfg;
@@ -194,7 +323,7 @@ public partial class WorldView : Node2D
     {
         if (Sim == null) return;
 
-        if (Layer == WorldLayer.Morphogen && _morphogenTexture != null)
+        if ((Layer == WorldLayer.Morphogen || Layer == WorldLayer.MultiMorphogen) && _morphogenTexture != null)
         {
             var rect = new Rect2(0, 0, (float)Sim.Morphogens.WorldWidth, (float)Sim.Morphogens.WorldHeight);
             DrawTextureRect(_morphogenTexture, rect, false);
@@ -284,6 +413,14 @@ public partial class WorldView : Node2D
                 }
                 analysis = true;
                 break;
+            case WorldLayer.InternalMorphogen:
+            {
+                double v = cell.InternalMorphogenConcentrations.TryGetValue(MorphogenId, out double c) ? c : 0.0;
+                double t = Math.Clamp((v - LegendMin) / (LegendMax - LegendMin), 0.0, 1.0);
+                fill = typeColor.Lerp(Colors.White, (float)t * 0.55f);
+                analysis = true;
+                break;
+            }
         }
 
         if (!ShowCells && Layer != WorldLayer.Morphogen) return;

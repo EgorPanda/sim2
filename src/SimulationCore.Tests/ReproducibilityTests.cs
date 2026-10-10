@@ -119,4 +119,30 @@ public class ReproducibilityTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Test]
+    public void SaveLoad_PreservesNamedTimerElapsedTime()
+    {
+        var sim = BuildSimulation(7);
+        var cell = sim.Cells[0];
+        cell.Timers["life"] = 7.0;
+        cell.TimerTotals["life"] = 10.0;
+
+        string path = Path.Combine(Path.GetTempPath(), $"sim2_timer_{Guid.NewGuid():N}.json");
+        try
+        {
+            SaveSystem.Save(path, sim);
+
+            var loaded = BuildSimulation(7);
+            SaveSystem.Load(path, loaded);
+
+            var restored = loaded.Cells[0];
+            Assert.That(restored.TimerRemaining("life"), Is.EqualTo(7.0).Within(1e-9));
+            Assert.That(restored.TimerElapsed("life"), Is.EqualTo(3.0).Within(1e-9));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }

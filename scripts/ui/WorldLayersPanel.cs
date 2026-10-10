@@ -17,7 +17,9 @@ public partial class WorldLayersPanel : VBoxContainer
     {
         (WorldLayer.CellTypes, "Типы клеток"),
         (WorldLayer.Morphogen, "Концентрация морфогена"),
+        (WorldLayer.MultiMorphogen, "Смесь морфогенов"),
         (WorldLayer.Gradient, "Градиент (стрелки)"),
+        (WorldLayer.InternalMorphogen, "Внутриклеточная концентрация"),
         (WorldLayer.GeneActivity, "Активность гена"),
         (WorldLayer.GeneState, "Подавленные гены"),
         (WorldLayer.Energy, "Энергия"),
@@ -99,8 +101,10 @@ public partial class WorldLayersPanel : VBoxContainer
         {
             case WorldLayer.Morphogen:
             case WorldLayer.Gradient:
+            {
                 var live = _main.LiveSetup;
                 var morphogens = (live != null ? live.Morphogens : _main.WorkingDraft.Morphogens)
+                    .Where(m => m.IsExternal)
                     .OrderBy(m => m.Id)
                     .ToList();
                 int currentMorphogen = world.MorphogenId;
@@ -122,6 +126,34 @@ public partial class WorldLayersPanel : VBoxContainer
                     }, 200));
                 _options.AddChild(morphRow);
                 break;
+            }
+
+            case WorldLayer.InternalMorphogen:
+            {
+                var liveInternal = _main.LiveSetup;
+                var internalMorphogens = (liveInternal != null ? liveInternal.Morphogens : _main.WorkingDraft.Morphogens)
+                    .Where(m => m.IsInternal)
+                    .OrderBy(m => m.Id)
+                    .ToList();
+                int currentInternal = world.MorphogenId;
+                if (internalMorphogens.Count == 0)
+                    currentInternal = -1;
+                else if (!internalMorphogens.Any(m => m.Id == currentInternal))
+                    currentInternal = internalMorphogens[0].Id;
+
+                var internalRow = new HBoxContainer();
+                internalRow.AddChild(Ui.Lbl("Морфоген:", 100));
+                internalRow.AddChild(Ui.Opt(
+                    internalMorphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
+                    currentInternal,
+                    id =>
+                    {
+                        world.MorphogenId = id;
+                        _main.RefreshLayer();
+                    }, 200));
+                _options.AddChild(internalRow);
+                break;
+            }
 
             case WorldLayer.GeneActivity:
             case WorldLayer.GeneState:
@@ -150,6 +182,18 @@ public partial class WorldLayersPanel : VBoxContainer
                 minMax.AddChild(Ui.Sp(-1e6, 1e6, 1, world.FixedMin, v => { world.FixedMin = v; _main.RefreshLayer(); }, 90));
                 minMax.AddChild(Ui.Sp(-1e6, 1e6, 1, world.FixedMax, v => { world.FixedMax = v; _main.RefreshLayer(); }, 90));
                 _options.AddChild(minMax);
+                break;
+
+            case WorldLayer.MultiMorphogen:
+                _options.AddChild(Ui.Chk("Нормализовать каждый канал к своему максимуму", world.MultiMorphogenNormalize, on =>
+                {
+                    world.MultiMorphogenNormalize = on;
+                    _main.RefreshLayer();
+                }));
+                var multiMinMax = new HBoxContainer();
+                multiMinMax.AddChild(Ui.Lbl("Абс. макс (на канал):", 150));
+                multiMinMax.AddChild(Ui.Sp(0, 1e6, 1, world.FixedMax, v => { world.FixedMax = v; _main.RefreshLayer(); }, 90));
+                _options.AddChild(multiMinMax);
                 break;
 
             case WorldLayer.Gradient:

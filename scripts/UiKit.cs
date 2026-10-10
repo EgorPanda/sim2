@@ -175,8 +175,9 @@ public static class Ui
     /// <summary>Single-line row wrapped in a fixed-width caption for form labels.</summary>
     public static HBoxContainer Field(string caption, Control control, int captionWidth = 110)
     {
-        var row = new HBoxContainer();
+        var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         row.AddChild(Lbl(caption, captionWidth));
+        control.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         row.AddChild(control);
         return row;
     }

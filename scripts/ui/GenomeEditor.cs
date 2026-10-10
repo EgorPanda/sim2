@@ -17,11 +17,13 @@ public partial class GenomeEditor : VBoxContainer
 {
     private readonly Main _main;
     private OptionButton? _genomeSelect;
+    private OptionButton? _filterSelect;
     private VBoxContainer? _geneList;
     private ScrollContainer? _cardScroll;
     private VBoxContainer? _card;
     private string _selectedGene = "";
     private int _genomeIndex;
+    private string _geneFilter = "all";
 
     private GenomeConfig? CurrentGenome
     {
@@ -53,6 +55,24 @@ public partial class GenomeEditor : VBoxContainer
             RebuildList();
         };
         left.AddChild(_genomeSelect);
+
+        _filterSelect = new OptionButton();
+        _filterSelect.AddItem("Все гены", 0);
+        _filterSelect.AddItem("С обяз. триггером", 1);
+        _filterSelect.AddItem("Без обяз. триггера", 2);
+        _filterSelect.AddItem("Не настроены", 3);
+        _filterSelect.ItemSelected += idx =>
+        {
+            _geneFilter = ((int)idx) switch
+            {
+                1 => "trigger",
+                2 => "noTrigger",
+                3 => "notConfigured",
+                _ => "all"
+            };
+            RebuildList();
+        };
+        left.AddChild(_filterSelect);
 
         _geneList = new VBoxContainer();
         var listScroll = new ScrollContainer
@@ -143,7 +163,7 @@ public partial class GenomeEditor : VBoxContainer
     {
         var genome = CurrentGenome;
         if (genome == null) return;
-        var gene = ConfigDraft.NewGene(genome);
+        var gene = ConfigDraft.NewGene(genome, _main.WorkingDraft.Morphogens);
         genome.Genes.Add(gene);
         _selectedGene = gene.Key;
         _main.MarkDirty();
@@ -206,7 +226,7 @@ public partial class GenomeEditor : VBoxContainer
         if (!genome.Genes.Any(g => g.Key == _selectedGene))
             _selectedGene = genome.Genes[0].Key;
 
-        foreach (var gene in genome.Genes)
+        foreach (var gene in genome.Genes.Where(PassesFilter))
         {
             bool isSelected = gene.Key == _selectedGene;
             var button = new Button
@@ -231,6 +251,27 @@ public partial class GenomeEditor : VBoxContainer
         RebuildCard();
     }
 
+    private bool PassesFilter(GeneConfig gene)
+    {
+        return _geneFilter switch
+        {
+            "trigger" => gene.RequireMorphogenTrigger && gene.RequiredMorphogenId >= 0,
+            "noTrigger" => !gene.RequireMorphogenTrigger,
+            "notConfigured" => gene.RequireMorphogenTrigger && gene.RequiredMorphogenId < 0,
+            _ => true
+        };
+    }
+
+    private static string TriggerStatus(GeneConfig gene, SimulationSetup setup)
+    {
+        if (!gene.RequireMorphogenTrigger) return "обязательный триггер отключён";
+        if (gene.RequiredMorphogenId < 0) return "❗ не настроен: морфоген не выбран";
+        var m = setup.Morphogens.FirstOrDefault(x => x.Id == gene.RequiredMorphogenId);
+        if (m == null) return $"❗ не настроен: морфоген {gene.RequiredMorphogenId} не найден";
+        string type = Localization.MorphogenType(m.Type);
+        return $"триггер: {type.ToLowerInvariant()} «{Localization.MorphogenName(m)}» ≥ {Num.Fmt(gene.RequiredMorphogenThreshold)}";
+    }
+
     private static string Brief(GeneConfig gene)
     {
         var parts = new List<string>();
@@ -240,11 +281,14 @@ public partial class GenomeEditor : VBoxContainer
             string op = Localization.GroupOperator(group.Operator);
             parts.Add($"{string.Join(" | ", group.Regulators.Select(ConditionText))} ({op})");
         }
-        string conditions = parts.Count > 0 ? string.Join(" || ", parts) : "условий нет (всегда активен)";
+        string conditions = parts.Count > 0 ? string.Join(" || ", parts) : "условий нет";
         string effects = gene.Effects.Count > 0
             ? string.Join(", ", gene.Effects.Select(e => Localization.Effect(e.Kind)))
             : "нет";
-        return $"{conditions}\nЭффекты: {effects}";
+        string trigger = gene.RequireMorphogenTrigger
+            ? $"триггер: морфоген {gene.RequiredMorphogenId} ≥ {Num.Fmt(gene.RequiredMorphogenThreshold)}"
+            : "без обязательного триггера";
+        return $"{trigger}\n{conditions}\nЭффекты: {effects}";
     }
 
     private static string ConditionText(RegulatorConfig r)
@@ -261,6 +305,8 @@ public partial class GenomeEditor : VBoxContainer
             case "State":
                 return inv + $"состояние = {Localization.StateByValue(r.TypeId)}";
             case "Timer":
+                if (!double.IsNegativeInfinity(r.Min) || !double.IsPositiveInfinity(r.Max))
+                    return inv + $"таймер «{r.Timer}»: прошло {Localization.DescribeRange(r.Min, r.Max)} с";
                 return inv + $"таймер «{r.Timer}» идёт";
             default:
                 return inv + $"«{r.Kind}»";
@@ -329,8 +375,84 @@ public partial class GenomeEditor : VBoxContainer
             _main.MarkDirty();
         };
 
+        BuildRequiredTriggerEditor(_card, gene);
         BuildGroupsEditor(_card, gene);
         BuildEffectsEditor(_card, gene);
+    }
+
+    private void BuildRequiredTriggerEditor(VBoxContainer into, GeneConfig gene)
+    {
+        var draft = _main.WorkingDraft;
+        var header = new HBoxContainer();
+        header.AddChild(Ui.Title("Обязательный сигнал активации"));
+        header.AddChild(Ui.Btn("?", () => _main.OpenHelp("param.requiredTrigger")));
+        into.AddChild(header);
+
+        var status = Ui.Lbl(TriggerStatus(gene, draft), 0, 0);
+        status.Name = "triggerStatus";
+        into.AddChild(status);
+
+        var chk = Ui.Chk("Включить обязательный морфогенный триггер", gene.RequireMorphogenTrigger, on =>
+        {
+            gene.RequireMorphogenTrigger = on;
+            if (on && gene.RequiredMorphogenId < 0 && draft.Morphogens.Length > 0)
+            {
+                var first = draft.Morphogens.FirstOrDefault(m => m.IsExternal) ?? draft.Morphogens[0];
+                gene.RequiredMorphogenId = first.Id;
+                gene.RequiredMorphogenThreshold = 0.5;
+            }
+            _main.MarkDirty();
+            RebuildCard();
+        });
+        into.AddChild(chk);
+
+        if (!gene.RequireMorphogenTrigger)
+        {
+            into.AddChild(Ui.Lbl("Ген активируется только по условиям ниже (старый режим).", 0, 0));
+            return;
+        }
+
+        var morphOptions = draft.Morphogens
+            .Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)} ({Localization.MorphogenType(m.Type).ToLowerInvariant()})"))
+            .ToList();
+        if (morphOptions.Count == 0)
+        {
+            into.AddChild(Ui.Lbl("Морфогены не заданы — создайте морфоген и выберите его.", 0, 0));
+            return;
+        }
+
+        var morphRow = new HBoxContainer();
+        morphRow.AddChild(Ui.Lbl("Морфоген:", 100));
+        morphRow.AddChild(Ui.Opt(
+            morphOptions,
+            gene.RequiredMorphogenId,
+            id =>
+            {
+                gene.RequiredMorphogenId = id;
+                _main.MarkDirty();
+                RebuildCard();
+            }, 240));
+        morphRow.AddChild(Ui.Btn("→", () => _main.OpenMorphogen(gene.RequiredMorphogenId), 40));
+        into.AddChild(morphRow);
+
+        var thresholdRow = new HBoxContainer();
+        thresholdRow.AddChild(Ui.Lbl("Порог концентрации:", 140));
+        thresholdRow.AddChild(Ui.Sp(0, 1e6, 0.01, gene.RequiredMorphogenThreshold, v =>
+        {
+            gene.RequiredMorphogenThreshold = v;
+            _main.MarkDirty();
+            RebuildCard();
+        }, 120));
+        into.AddChild(thresholdRow);
+
+        var m = draft.Morphogens.FirstOrDefault(x => x.Id == gene.RequiredMorphogenId);
+        if (m != null)
+        {
+            string sentence = gene.RequiredMorphogenId < 0
+                ? "❗ Этот ген неактивен: морфоген не выбран."
+                : $"Этот ген активируется, когда концентрация морфогена «{Localization.MorphogenName(m)}» достигает {Num.Fmt(gene.RequiredMorphogenThreshold)}, при условии выполнения остальных правил.";
+            into.AddChild(Ui.Lbl(sentence, 0, 0));
+        }
     }
 
     // --- Groups ------------------------------------------------------------
@@ -504,11 +626,49 @@ public partial class GenomeEditor : VBoxContainer
                 break;
 
             case "Timer":
-                var trow = new HBoxContainer();
+            {
                 var timerEdit = new LineEdit { Text = reg.Timer, PlaceholderText = "имя таймера" };
                 timerEdit.TextChanged += t => { reg.Timer = t; _main.MarkDirty(); };
                 into.AddChild(Ui.Field("Таймер:", timerEdit, 110));
+
+                bool timed = !double.IsNegativeInfinity(reg.Min) || !double.IsPositiveInfinity(reg.Max);
+                into.AddChild(Ui.Chk("Условие по времени от запуска (сек)", timed, on =>
+                {
+                    reg.Min = on ? 1.0 : double.NegativeInfinity;
+                    reg.Max = double.PositiveInfinity;
+                    _main.MarkDirty();
+                    Rebind();
+                }));
+
+                if (timed)
+                {
+                    into.AddChild(Ui.Field("Не раньше, с:",
+                        Ui.Sp(0, 1e6, 0.1, reg.Min, v => { reg.Min = v; _main.MarkDirty(); })));
+
+                    bool hasUpper = !double.IsPositiveInfinity(reg.Max);
+                    var upperChk = Ui.Chk("", hasUpper, on =>
+                    {
+                        reg.Max = on ? Math.Max(reg.Min, 1.0) : double.PositiveInfinity;
+                        _main.MarkDirty();
+                        Rebind();
+                    });
+                    var upperSpin = Ui.Sp(0, 1e6, 0.1, hasUpper ? reg.Max : 0.0, v => { reg.Max = v; _main.MarkDirty(); });
+                    upperSpin.Editable = hasUpper;
+                    upperSpin.GetLineEdit().PlaceholderText = "не ограничено";
+                    into.AddChild(Ui.Field("Не позже, с:", new HBoxContainer().Also(h =>
+                    {
+                        h.AddChild(upperChk);
+                        h.AddChild(upperSpin);
+                    }), 160));
+
+                    into.AddChild(Ui.Lbl("Условие истинно, пока таймер идёт и с момента запуска прошло не меньше «Не раньше» (и не больше «Не позже», если задано).", 0, 0));
+                }
+                else
+                {
+                    into.AddChild(Ui.Lbl("Без ограничения по времени условие истинно, пока таймер идёт (осталось время > 0).", 0, 0));
+                }
                 break;
+            }
         }
 
         into.AddChild(Ui.Chk("Отрицание (НЕ)", reg.Invert, on => { reg.Invert = on; _main.MarkDirty(); }));
@@ -611,6 +771,11 @@ public partial class GenomeEditor : VBoxContainer
             case "Divide":
                 effect.Rate = 1.0;
                 break;
+            case "Move":
+                effect.Morphogen = draft.Morphogens.FirstOrDefault(m => m.IsExternal)?.Id
+                    ?? (draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : -1);
+                effect.Rate = 10.0;
+                break;
         }
         EditEffect(gene, effect);
     }
@@ -630,6 +795,7 @@ public partial class GenomeEditor : VBoxContainer
             "StartTimer" => $"{baseText}: «{e.Timer}» {Num.Fmt(e.Duration)} с",
             "SilenceGene" => $"{baseText}: «{e.Gene}»",
             "Apoptosis" => $"{baseText}: P={Num.Fmt(e.Probability)}/с",
+            "Move" => $"{baseText}: морфоген #{e.Morphogen}{(e.Repel ? " (отталкивание)" : "")}, {Num.Fmt(e.Rate)} ед./с",
             _ => baseText
         };
     }
@@ -758,6 +924,25 @@ public partial class GenomeEditor : VBoxContainer
             case "BlockDivision":
                 into.AddChild(Ui.Lbl("Пока ген активен, клетка не делится. Дополнительных параметров нет.", 0, 0));
                 break;
+
+            case "Move":
+            {
+                var external = draft.Morphogens.Where(m => m.IsExternal).ToList();
+                into.AddChild(Ui.Field("Морфоген-направитель:",
+                    Ui.Opt(
+                        external.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
+                        external.Any(m => m.Id == effect.Morphogen) ? effect.Morphogen : (external.Count > 0 ? external[0].Id : 0),
+                        id => { effect.Morphogen = id; _main.MarkDirty(); }, 220)));
+                into.AddChild(Ui.Field("Скорость, ед./с:",
+                    Ui.Sp(0, 1000, 0.1, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
+                into.AddChild(Ui.Chk("Отталкиваться (двигаться против градиента)", effect.Repel, on =>
+                {
+                    effect.Repel = on;
+                    _main.MarkDirty();
+                }));
+                into.AddChild(Ui.Lbl("Клетка смещается вдоль градиента выбранного внешнего морфогена каждый шаг, пока ген активен.", 0, 0));
+                break;
+            }
         }
     }
 

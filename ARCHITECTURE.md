@@ -28,9 +28,12 @@ headless and independently from the interface.
 |  Simulation (world state + step orchestration)                 |
 |    |-- CellSystem          cells, division, differentiation,   |
 |    |                       apoptosis                            |
-|    |-- GenomeSystem        genes, regulatory conditions,        |
+|    |-- GenomeSystem        genes, mandatory morphogen          |
+|    |                       triggers, regulatory conditions,    |
 |    |                       activation delay, effects            |
-|    |-- MorphogenSystem     emission, diffusion, decay, sampling |
+|    |-- MorphogenSystem     external emission, diffusion, decay,|
+|    |                       sampling; internal morphogens live  |
+|    |                       per-cell in `Cell`                  |
 |    |-- CellMechanicsSystem overlap resolution, tissue cohesion  |
 |    |-- SpatialHash         neighbour lookup (no O(n^2))         |
 |    |-- ConfigLoader        JSON -> typed config                |
@@ -51,7 +54,8 @@ headless and independently from the interface.
 ### CellSystem
 - `Cell`: id, continuous position, radius, type, energy, state (Alive / Dying),
   age, neighbour count, per-gene state (`GeneState`: active flag + activation timer),
-  named `Timers`, a `SilencedGenes` set and a `DivisionBlocked` flag.
+  named `Timers`, a `SilencedGenes` set, a `DivisionBlocked` flag and
+  `InternalMorphogenConcentrations` (morphogen id → concentration) for cellular memory.
 - Division: a cell divides when its `DivisionProgress` reaches 1 (driven by the
   `Divide` gene effect) with enough energy, free space and no active `BlockDivision`.
   The daughter's phenotype is a **birth decision**: the last active `Divide` effect
@@ -60,8 +64,9 @@ headless and independently from the interface.
   own, and `null` falls back to the legacy "inherit the parent's phenotype" rule.
   The intent is cleared after the division is resolved; every birth is recorded in a
   bounded `DivisionLog` (`DivisionDiagnostic`: parent/child id, phenotypes, rule gene,
-  inherited flag) used by tests and the demo. Daughters inherit the parent's genome
-  and regulation state (`CopyRegulationStateTo`: active genes, timers, silenced genes).
+  inherited flag) used by tests and the demo. Daughters inherit the parent's genome,
+  regulation state (`CopyRegulationStateTo`: active genes, timers, silenced genes) and
+  internal morphogen concentrations (`CopyInternalMorphogensTo`).
 - Apoptosis: starvation (energy below zero for a grace period) or the `Apoptosis` effect.
 - Differentiation: the `SetCellType` effect switches a cell's `TypeId`; the genome
   stays shared.
@@ -69,26 +74,39 @@ headless and independently from the interface.
 ### GenomeSystem
 - `GenomeConfig` = ordered list of `GeneConfig`; a `CellTypeConfig` (phenotype) only
   references a genome via `GenomeId`, so many phenotypes share one genome.
-- `GeneConfig`: `Key` (stable id/name), regulators (AND-combined), activation `Delay`,
-  and effects. Per-gene state is keyed by `Key`, so gene order is not significant.
+- `GeneConfig`: `Key` (stable id/name), mandatory morphogen trigger, regulators
+  (AND-combined), activation `Delay`, and effects. Per-gene state is keyed by `Key`,
+  so gene order is not significant.
+- Mandatory trigger: an optional additional morphogen threshold a gene must meet
+  before it can activate. It is checked independently of the regulator groups and
+  works for both external (field sample) and internal (per-cell concentration)
+  morphogens. Newly-created genes have the trigger enabled; legacy genes without
+  the field keep the historical always-on behaviour.
 - Regulators: `Morphogen`, `Property` (`energy`, `radius`, `age`, `neighbours`),
   `Phenotype`, `State`, `Timer` — each optionable with `invert` (negation).
-- Effects: `EmitMorphogen`, `Absorb`, `Grow`, `Divide`, `SetCellType`, `StartTimer`,
-  `Apoptosis`, `SilenceGene`, `BlockDivision`. Effects may be `once` (run only on the
-  step a gene activates). `Divide` optionally carries `ChildTypeId` (birth phenotype;
-  `null` = inherit parent). Timers are not restarted while running. Probabilistic
-  apoptosis is dt-invariant (`1 - exp(-p·dt)`).
+- Effects: `EmitMorphogen`, `Absorb`, `Grow`, `Divide`, `Move`, `SetCellType`,
+  `StartTimer`, `Apoptosis`, `SilenceGene`, `BlockDivision`. Effects may be `once`
+  (run only on the step a gene activates); otherwise they run every step while the
+  gene is active. `EmitMorphogen` writes to the external field for external
+  morphogens and to the cell's internal store for internal morphogens. `Absorb` is
+  only supported for external morphogens. `Move` displaces the cell along (or
+  against, with `Repel`) the gradient of an external morphogen. `Divide` optionally
+  carries `ChildTypeId` (birth phenotype; `null` = inherit parent). Timers are not
+  restarted while running. Probabilistic apoptosis is dt-invariant (`1 - exp(-p·dt)`).
 - Genes are data, not code: adding genes / morphogens / cell types is a JSON change.
 
 ### MorphogenSystem
-- A **separate** uniform grid (world rect + resolution) that does not constrain cell
-  positions. Each morphogen has its own scalar field.
-- Update: explicit diffusion (`D * laplacian`) + exponential decay + accumulated emission.
-  The number of sub-steps is chosen automatically for stability
-  (`D*dt/dx^2 <= 0.25`).
-- `Sample(x, y)` gives smooth bilinear concentration; `Gradient(x, y)` gives a
-  central-difference vector (used to bias division direction), never NaN.
-- The field count spans up to the largest configured morphogen id (ready for ~12).
+- A **separate** uniform grid (world rect + resolution) for **external** morphogens;
+  it does not constrain cell positions. Each external morphogen has its own scalar
+  field. **Internal** morphogens have no field; their concentrations live inside
+  `Cell.InternalMorphogenConcentrations` and decay locally per cell.
+- Update: explicit diffusion (`D * laplacian`) + exponential decay + accumulated
+  emission. The number of sub-steps is chosen automatically for stability
+  (`D*dt/dx^2 <= 0.25`). Internal morphogens skip the spatial solver entirely.
+- `Sample(x, y)` gives smooth bilinear concentration for external fields;
+  `Gradient(x, y)` gives a central-difference vector (used to bias division
+  direction), never NaN.
+- The field count spans up to the largest configured **external** morphogen id.
 
 ### CellMechanicsSystem
 - Prevents overlaps: pairwise, position-based separation of overlapping circles using the
@@ -106,19 +124,22 @@ headless and independently from the interface.
   Loads the base world from `res://config` or an experiment via `--experiment <path>`.
   Holds a **working draft** (`SimulationSetup` deep clone) edited by the Laboratory;
   «Применить» validates it and rebuilds the world. `WorldView` and `Hud` stay read-only.
-- `WorldView` — draws cells (circle per cell, colour by type/state) plus **seven
-  analytical layers**: cell types, morphogen concentration (auto-normalised heat map,
-  legend, optional cell tinting, absolute scale override), gradient vectors, gene
-  activity, silenced genes, energy, neighbour density. Read-only.
+- `WorldView` — draws cells (circle per cell, colour by type/state) plus **eight
+  analytical layers**: cell types, external morphogen concentration (auto-normalised heat map,
+  legend, optional cell tinting, absolute scale override), **multi-morphogen blend**
+  (toggle individual external signals in real time), gradient vectors, internal
+  morphogen concentration per cell, gene activity, silenced genes, energy, neighbour
+  density. Read-only.
 - `Hud` (Russian) — transport (pause / step / reset), speed, layer selector, delete tool,
   laboratory toggle, help button; per-**phenotype statistics**, a **selected-cell
   inspector** (clickable genes open the editor), a legend strip and notifications.
 - `ui/ResearchPanel` — the **Laboratory** (`L`): tabs «Мир», «Геном», «Морфогены»,
   «Типы клеток», «Настройки эксперимента», «Справочник»; toolbar Применить / Проверить /
-  Восстановить / Сохранить / Загрузить…; closes with `L` or `Esc`. `L`/`F1`, the
-  «Справочник» button and the «?» context buttons route through `Main.OpenHelp`,
-  `Main.OpenGene` and `Main.OpenMorphogen`, which make the panel visible and select
-  the requested tab/article/row.
+  Восстановить / Сохранить / Загрузить…; hosted in a separate `Window` so the
+  simulation view stays unobstructed; closes with `L` or `Esc` or the window close
+  button. `L`/`F1`, the «Справочник» button and the «?» context buttons route through
+  `Main.OpenHelp`, `Main.OpenGene` and `Main.OpenMorphogen`, which make the panel
+  visible and select the requested tab/article/row.
 - `ui/GenomeEditor` — gene list + card: display data, AND/OR **groups** (OR between
   groups, AND inside, NOT per condition), thresholds ≥ / ≤ / range / = (derived from
   the stored `[min, max]`), effects list. `ui/MorphogenEditor`, `ui/CellTypeEditor`,
@@ -146,9 +167,10 @@ headless and independently from the interface.
   the core so coverage is testable.
 
 ### SaveSystem
-- Versioned JSON DTO (v2) capturing cells (with `GenomeId`, gene state, timers, silenced
-  genes, `DivisionBlocked`), the morphogen fields, the RNG state and world time. A load
-  continues bit-for-bit identically to the saved run.
+- Versioned JSON DTO (v3) capturing cells (with `GenomeId`, gene state, timers,
+  internal morphogen concentrations, silenced genes, `DivisionBlocked`), the external
+  morphogen fields, the RNG state and world time. A load continues bit-for-bit
+  identically to the saved run. Old v2 saves load with empty internal concentrations.
 
 ### Tests
 - `SimulationCore.Tests` (NUnit) validates diffusion stability & conservation properties,
@@ -168,7 +190,7 @@ headless and independently from the interface.
   panel is visible/on-screen and the help tab is selected, verifies
   OpenHelp/OpenGene/OpenMorphogen routing and fallback for unknown keys, applies a
   valid draft (invalid draft is rejected and leaves the world untouched), switches
-  all seven layers without mutating the sim, and round-trips an experiment profile
+  all eight layers without mutating the sim, and round-trips an experiment profile
   whose name contains quotes/backslashes/newlines/unicode. It prints `[uitest] ok …`
   per check and `[uitest] DONE failures=N`, exiting with 0 on success. Both checks
   run headless and in a real window, where exit is clean with no leak messages.
@@ -185,8 +207,9 @@ Simulation.Reset(founder) --init--> cells + morphogen field
 each frame: Main accumulates dt*speed -> Simulation.Step(dt)
 Simulation.Step:  SpatialHash.Rebuild + neighbour counts
                   CellSystem.Metabolism  (energy, ageing, starvation)
-                  GenomeSystem.Evaluate  (regulator groups -> active genes -> effects)
-                  MorphogenSystem.Update (emission -> diffusion/decay)
+                  GenomeSystem.Evaluate  (mandatory triggers -> regulator groups -> active genes -> effects)
+                  MorphogenSystem.Update (external emission -> diffusion/decay)
+                  Simulation.ApplyInternalDecay (per-cell internal morphogen decay)
                   CellMechanics.Resolve  (de-overlap with tissue adhesion)
                   CellSystem.ResolveDivisions (energy + free space + gradient bias)
 WorldView._Draw reads Simulation.Cells + MorphogenSystem fields (layer-dependent)
@@ -217,7 +240,8 @@ Sim2.csproj              Godot C# assembly (references SimulationCore)
 Sim2.slnx                .NET solution (app + core + tests)
 config/                  simulation, morphogens, genomes, celltypes, adhesion
 config/experiments/      named experiment profiles (multicellular.json,
-                         differentiation.json + differentiation/ — directory form)
+                         differentiation.json + differentiation/,
+                         cell_memory.json + cell_memory/ — directory form)
 scripts/                 Godot front-end (Main, WorldView, Hud, UiKit, ui/* editors)
 scenes/                  Main.tscn
 src/SimulationCore/      pure C# simulation library (+ Localization, HelpCatalog,
@@ -235,6 +259,8 @@ docs:                    ARCHITECTURE.md, ROADMAP.md, README.md, USER_GUIDE_RU.m
 | a phenotype       | add an entry to `config/celltypes.json` (set its `genomeId`)       |
 | an adhesion pair  | add it to `config/adhesion.json`                                   |
 | an experiment     | add a folder + profile under `config/experiments/`, or save from the panel |
+| an internal morphogen | set `MorphogenConfig.Type` to `Internal`; emission then writes to `Cell.InternalMorphogenConcentrations` |
+| a mandatory trigger | set `GeneConfig.RequireMorphogenTrigger` + `RequiredMorphogenId` + `RequiredMorphogenThreshold` |
 | a new effect/rule | handle a new `GeneEffectConfig.Kind` in `GenomeSystem`             |
 | a new regulator   | handle a new `RegulatorConfig.Kind` in `GenomeSystem`              |
 | help content      | add a `HelpArticle` in `HelpCatalog.Data` (+ tests cover search/link resolution) |

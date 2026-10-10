@@ -1,0 +1,22 @@
+[
+  {
+    "id": 0,
+    "name": "signalA",
+    "displayName": "Внешний сигнал A",
+    "description": "Начальный позиционный сигнал, который быстро распадается.",
+    "type": "External",
+    "diffusion": 0.0,
+    "decay": 2.0,
+    "color": "#ff9f43"
+  },
+  {
+    "id": 1,
+    "name": "memoryB",
+    "displayName": "Внутренняя память B",
+    "description": "Внутренний морфоген, медленно распадающийся внутри клетки. Хранит следы от внешнего сигнала A.",
+    "type": "Internal",
+    "diffusion": 0.0,
+    "decay": 0.05,
+    "color": "#c56cf0"
+  }
+]

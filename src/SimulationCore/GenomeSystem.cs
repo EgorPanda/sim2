@@ -40,6 +40,13 @@ public static class GenomeSystem
                 continue;
             }
 
+            if (!RequiredTriggerMet(cell, gene, ctx))
+            {
+                state.Active = false;
+                state.ActivationTimer = 0.0;
+                continue;
+            }
+
             bool conditionMet = RegulatorsMet(cell, gene, ctx);
 
             if (!conditionMet)
@@ -72,8 +79,10 @@ public static class GenomeSystem
     }
 
     /// <summary>
-    /// Advances named timers by one step. Timers count down and are removed when
-    /// they expire; a timer started this step is not decremented until next step.
+    /// Advances named timers by one step. Timers count down; a finished timer is
+    /// clamped to 0 but kept so <see cref="Cell.TimerElapsed"/> keeps reporting the
+    /// full duration (a value-based timer condition stays true after expiry).
+    /// A timer started this step is not decremented until the next step.
     /// </summary>
     private static void TickTimers(Cell cell, double dt)
     {
@@ -81,8 +90,7 @@ public static class GenomeSystem
         foreach (var name in cell.Timers.Keys.ToArray())
         {
             double remaining = cell.Timers[name] - dt;
-            if (remaining <= 0.0) cell.Timers.Remove(name);
-            else cell.Timers[name] = remaining;
+            cell.Timers[name] = remaining > 0.0 ? remaining : 0.0;
         }
     }
 
@@ -100,6 +108,24 @@ public static class GenomeSystem
         // No group met (or no groups at all -> vacuously false for an explicit OR,
         // but EffectiveGroups always returns at least one group for legacy genes).
         return groups.Count == 0;
+    }
+
+    /// <summary>
+    /// M1.6: an optional mandatory morphogen trigger. When enabled, the gene can
+    /// only become active if the chosen morphogen reaches the threshold. The trigger
+    /// is independent of the regulator-group logic and works for both external
+    /// (field) and internal (per-cell) morphogens.
+    /// </summary>
+    private static bool RequiredTriggerMet(Cell cell, GeneConfig gene, GeneContext ctx)
+    {
+        if (!gene.RequireMorphogenTrigger) return true;
+        if (gene.RequiredMorphogenId < 0) return false;
+
+        double concentration = ctx.IsMorphogenInternal(gene.RequiredMorphogenId)
+            ? ctx.SampleInternalMorphogen(cell, gene.RequiredMorphogenId)
+            : ctx.SampleMorphogen(gene.RequiredMorphogenId, cell.X, cell.Y);
+
+        return !double.IsNaN(concentration) && concentration >= gene.RequiredMorphogenThreshold;
     }
 
     private static bool GroupMet(Cell cell, RegulatorGroupConfig group, GeneContext ctx)
@@ -149,7 +175,15 @@ public static class GenomeSystem
                 return (int)cell.State == reg.TypeId;
 
             case "Timer":
+            {
+                // With an explicit time window the condition is checked against the
+                // elapsed time since the timer was started; otherwise it keeps the
+                // legacy meaning "the timer is currently running".
+                bool hasWindow = !double.IsNegativeInfinity(reg.Min) || !double.IsPositiveInfinity(reg.Max);
+                if (hasWindow)
+                    return InRange(cell.TimerElapsed(reg.Timer), reg.Min, reg.Max);
                 return cell.TimerRemaining(reg.Timer) > 0.0;
+            }
 
             default:
                 // Unknown regulators are NOT silently treated as satisfied: a gene
@@ -176,7 +210,10 @@ public static class GenomeSystem
         switch (effect.Kind)
         {
             case "EmitMorphogen":
-                ctx.EmitMorphogen(effect.Morphogen, cell.X, cell.Y, effect.Rate);
+                if (ctx.IsMorphogenInternal(effect.Morphogen))
+                    ctx.EmitInternalMorphogen(cell, effect.Morphogen, effect.Rate, dt);
+                else
+                    ctx.EmitMorphogen(effect.Morphogen, cell.X, cell.Y, effect.Rate);
                 break;
 
             case "Absorb":
@@ -213,9 +250,13 @@ public static class GenomeSystem
 
             case "StartTimer":
                 if (string.IsNullOrEmpty(effect.Timer)) break;
-                // Do not restart a timer that is already running.
+                // Do not restart a timer that is still running.
                 if (cell.TimerRemaining(effect.Timer) <= 0.0)
-                    cell.Timers[effect.Timer] = Math.Max(0.0, effect.Duration);
+                {
+                    double duration = Math.Max(0.0, effect.Duration);
+                    cell.Timers[effect.Timer] = duration;
+                    cell.TimerTotals[effect.Timer] = duration;
+                }
                 break;
 
             case "SilenceGene":
@@ -250,6 +291,18 @@ public static class GenomeSystem
                 }
                 break;
             }
+
+            case "Move":
+            {
+                if (effect.Morphogen < 0) break;
+                var (dx, dy) = ctx.MorphogenGradient(effect.Morphogen, cell.X, cell.Y);
+                if (!double.IsFinite(dx) || !double.IsFinite(dy)) break;
+                double scale = effect.Rate * dt;
+                if (effect.Repel) scale = -scale;
+                cell.X += dx * scale;
+                cell.Y += dy * scale;
+                break;
+            }
         }
     }
 }
@@ -264,4 +317,16 @@ public interface GeneContext
     void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond);
     void Kill(Cell cell);
     Rng Rng { get; }
+
+    /// <summary>True when the morphogen is configured as internal (per-cell).</summary>
+    bool IsMorphogenInternal(int morphogen) => false;
+
+    /// <summary>Current internal concentration of the morphogen inside the cell.</summary>
+    double SampleInternalMorphogen(Cell cell, int morphogen) => 0.0;
+
+    /// <summary>Adds an internal morphogen amount to the cell (rate is per second).</summary>
+    void EmitInternalMorphogen(Cell cell, int morphogen, double amountPerSecond, double dt) { }
+
+    /// <summary>Spatial gradient of the external morphogen at (x, y). Internal morphogens return zero.</summary>
+    (double Dx, double Dy) MorphogenGradient(int morphogen, double x, double y) => (0.0, 0.0);
 }

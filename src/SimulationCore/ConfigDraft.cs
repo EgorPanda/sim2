@@ -20,10 +20,14 @@ public static class ConfigDraft
     public static bool GeneIdExists(GenomeConfig genome, string id)
         => genome.Genes.Any(g => string.Equals(g.Key, id, StringComparison.Ordinal));
 
-    /// <summary>Creates a new, valid gene with a unique id and a placeholder description.</summary>
-    public static GeneConfig NewGene(GenomeConfig genome, string? id = null)
+    /// <summary>
+    /// Creates a new gene. M1.6: genes are inactive by default and carry a
+    /// mandatory morphogen trigger when the draft contains morphogens.
+    /// </summary>
+    public static GeneConfig NewGene(GenomeConfig genome, MorphogenConfig[] morphogens, string? id = null)
     {
         string key = UniqueGeneId(genome, id ?? "новый_ген");
+        var firstMorphogen = morphogens.FirstOrDefault(m => m.IsExternal);
         return new GeneConfig
         {
             Id = key,
@@ -31,7 +35,10 @@ public static class ConfigDraft
             DisplayName = "Новый ген",
             Description = "Опишите назначение этого гена.",
             Regulators = new List<RegulatorConfig>(),
-            Effects = new List<GeneEffectConfig>()
+            Effects = new List<GeneEffectConfig>(),
+            RequireMorphogenTrigger = true,
+            RequiredMorphogenId = firstMorphogen?.Id ?? -1,
+            RequiredMorphogenThreshold = 0.5
         };
     }
 
@@ -71,6 +78,9 @@ public static class ConfigDraft
             Description = source.Description,
             Role = source.Role,
             ActivationDelay = source.ActivationDelay,
+            RequireMorphogenTrigger = source.RequireMorphogenTrigger,
+            RequiredMorphogenId = source.RequiredMorphogenId,
+            RequiredMorphogenThreshold = source.RequiredMorphogenThreshold,
             Regulators = source.Regulators.Select(CloneReg).ToList(),
             Effects = source.Effects.Select(CloneEff).ToList()
         };
@@ -163,6 +173,12 @@ public static class ConfigDraft
                     touched = true;
                 }
 
+                if (gene.RequireMorphogenTrigger && gene.RequiredMorphogenId == morphogenId)
+                {
+                    gene.RequiredMorphogenId = -1;
+                    touched = true;
+                }
+
                 if (touched) affected.Add($"ген «{gene.Key}»");
             }
 
@@ -194,9 +210,11 @@ public static class ConfigDraft
                 ? $"Копия «{source.Name}»"
                 : $"{source.DisplayName} (копия)",
             Description = source.Description,
+            Type = source.Type,
             Diffusion = source.Diffusion,
             Decay = source.Decay,
-            Color = source.Color
+            Color = source.Color,
+            InitialConcentration = source.InitialConcentration
         };
     }
 

@@ -1,0 +1,9 @@
+{
+  "name": "cell_memory",
+  "description": "Клеточная память: локальный внешний сигнал A запускает производство внутреннего сигнала B. После исчезновения A внутренняя концентрация B сохраняется и продолжает активировать другой ген, переключая клетку в тип «память». Клетки, не получившие сигнал, остаются стволовыми.",
+  "simulationFile": "cell_memory/simulation.json",
+  "morphogenFile": "cell_memory/morphogens.json",
+  "genomeFile": "cell_memory/genomes.json",
+  "cellTypeFile": "cell_memory/celltypes.json",
+  "adhesionFile": "cell_memory/adhesion.json"
+}
