@@ -13,32 +13,59 @@ namespace Sim2;
 /// </summary>
 public partial class ResearchPanel : PanelContainer
 {
-    private const int TabWorld = 0;
-    private const int TabGenome = 1;
-    private const int TabMorphogens = 2;
-    private const int TabTypes = 3;
-    private const int TabExperiment = 4;
-    private const int TabHelp = 5;
+    internal const int TabWorld = 0;
+    internal const int TabGenome = 1;
+    internal const int TabMorphogens = 2;
+    internal const int TabTypes = 3;
+    internal const int TabExperiment = 4;
+    internal const int TabHelp = 5;
 
     private readonly Main _main;
     private TabContainer? _tabs;
     private GenomeEditor? _genome;
     private WorldLayersPanel? _worldTab;
+    private MorphogenEditor? _morphogens;
+    private CellTypeEditor? _types;
     private Label? _dirtyLabel;
     private VBoxContainer? _issuesBox;
     private Label? _summary;
 
+    internal int ActiveSection => _tabs?.CurrentTab ?? -1;
+    internal GenomeEditor? GenomeTab => _genome;
+    internal MorphogenEditor? MorphogenTab => _morphogens;
+    internal string ActiveHelpKey => _tabs?.GetChild(TabHelp) is HelpPanel h ? h.CurrentKey : "";
+    internal bool HelpPanelPlaceholderShown => _tabs?.GetChild(TabHelp) is HelpPanel h && h.PlaceholderShown;
+    internal int LastErrorCount { get; private set; }
+
     public ResearchPanel(Main main)
     {
         _main = main;
-        SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight);
+        SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddThemeStyleboxOverride("panel", Ui.PanelStyle(0.94f, 10));
 
-        var root = new VBoxContainer { CustomMinimumSize = new Vector2(940, 600) };
-        AddChild(root);
+        // Content is scrollable so the panel stays usable when the window is
+        // smaller than the panel's preferred size.
+        var scroll = new ScrollContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Auto
+        };
+        var root = new VBoxContainer
+        {
+            CustomMinimumSize = new Vector2(940, 540),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
+        scroll.AddChild(root);
+        AddChild(scroll);
         root.AddChild(BuildToolbar());
 
-        _tabs = new TabContainer { CustomMinimumSize = new Vector2(0, 460) };
+        _tabs = new TabContainer
+        {
+            CustomMinimumSize = new Vector2(0, 380),
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
         root.AddChild(_tabs);
 
         _worldTab = new WorldLayersPanel(main);
@@ -49,12 +76,12 @@ public partial class ResearchPanel : PanelContainer
         _tabs.AddChild(_genome);
         _tabs.SetTabTitle(TabGenome, "Геном");
 
-        var morphogenTab = new MorphogenEditor(main);
-        _tabs.AddChild(morphogenTab);
+        _morphogens = new MorphogenEditor(main);
+        _tabs.AddChild(_morphogens);
         _tabs.SetTabTitle(TabMorphogens, "Морфогены");
 
-        var typesTab = new CellTypeEditor(main);
-        _tabs.AddChild(typesTab);
+        _types = new CellTypeEditor(main);
+        _tabs.AddChild(_types);
         _tabs.SetTabTitle(TabTypes, "Типы клеток");
 
         var experimentTab = new ExperimentEditor(main);
@@ -84,6 +111,7 @@ public partial class ResearchPanel : PanelContainer
 
         _dirtyLabel = new Label { Text = "" };
         bar.AddChild(_dirtyLabel);
+        bar.AddChild(Ui.Btn("Закрыть (Esc)", () => _main.ToggleLaboratory(), 110));
         return bar;
     }
 
@@ -107,11 +135,8 @@ public partial class ResearchPanel : PanelContainer
     {
         _worldTab?.RefreshData();
         _genome?.RefreshData();
-        for (int i = TabMorphogens; i <= TabExperiment; i++)
-        {
-            if (_tabs?.GetChild(i) is VBoxContainer tab)
-                tab.QueueRedraw();
-        }
+        _morphogens?.RefreshData();
+        _types?.RefreshData();
         UpdateDirtyLabel();
     }
 
@@ -144,6 +169,8 @@ public partial class ResearchPanel : PanelContainer
     {
         if (_tabs == null) return;
         _tabs.CurrentTab = TabMorphogens;
+        if (_tabs.GetChild(TabMorphogens) is MorphogenEditor m)
+            m.OpenMorphogen(morphogenId);
     }
 
     public void ShowValidation(IReadOnlyCollection<ConfigIssue> issues)
@@ -153,6 +180,7 @@ public partial class ResearchPanel : PanelContainer
 
         int errors = issues.Count(i => i.IsError);
         int warnings = issues.Count - errors;
+        LastErrorCount = errors;
 
         if (issues.Count == 0)
         {

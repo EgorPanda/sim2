@@ -44,12 +44,24 @@ godot --path E:\sim23 -- --experiment res://config/experiments/multicellular.jso
 godot --path E:\sim23 --headless -- --selftest
 godot --path E:\sim23 --headless -- --selftest --experiment res://config/experiments/multicellular.json
 
+:: automated UI smoke test -- opens the Laboratory, help (F1), routes
+:: OpenHelp/OpenGene/OpenMorphogen, switches all 7 layers, applies a draft,
+:: saves an experiment profile with an unusual name, then quits:
+:: exit code 0 = all checks passed.
+godot --path E:\sim23 --headless -- --uitest
+godot --path E:\sim23 -- --uitest          :: same checks in a real window
+
 :: open the Godot editor
 godot -e --path E:\sim23
 ```
 
 > If `godot` is not on PATH in a fresh shell, restart the terminal (winget adds
 > the alias on install) or call the full path shown above.
+
+> Verification status (2026-10): `dotnet build Sim2.slnx` clean; 91 NUnit tests
+> pass; `--selftest` and `--uitest` pass both headless and in a real window on
+> Windows (no resource-leak messages on exit). Interactive-only flows (mouse
+> gestures, message boxes in the save/load dialogs) still need a human click.
 
 ## Controls
 
@@ -65,6 +77,7 @@ godot -e --path E:\sim23
 | E                   | toggle delete mode (left click removes)  |
 | L                   | open / close the Laboratory              |
 | F1                  | open the built-in help browser           |
+| Esc                 | close the Laboratory                     |
 | WASD                | pan camera                               |
 
 ## What you can do

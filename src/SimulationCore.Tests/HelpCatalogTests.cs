@@ -63,6 +63,15 @@ public class HelpCatalogTests
     }
 
     [Test]
+    public void UiButtonsAndF1Keys_Exist()
+    {
+        // The exact keys used by HUD buttons, the F1 route and editor "?" links.
+        string[] keys = { "concept.gene_regulation", "logic.and" };
+        foreach (var key in keys)
+            Assert.That(HelpCatalog.Get(key), Is.Not.Null, $"UI uses help key '{key}' that does not exist.");
+    }
+
+    [Test]
     public void Search_FindsByRussianAndKeyword()
     {
         Assert.That(HelpCatalog.Search("морфоген"), Is.Not.Empty);

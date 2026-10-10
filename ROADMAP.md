@@ -49,6 +49,8 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Save experiment to profile JSON; load experiment from the panel
 - [x] Dependency reference discovery before destructive edits (genes/morphogens/types)
 - [x] Tests: regulator groups, validator, writer, localization, help catalog coverage
+- [x] Automated UI checks (`--selftest`, `--uitest`) — headless and in a real window,
+      clean exit without resource leaks (verified 2026-10)
 
 ## M2 — Persistence and experimentation
 

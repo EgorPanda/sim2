@@ -58,7 +58,14 @@ public partial class CellTypeEditor : VBoxContainer
 
     private CellTypeConfig? Selected => _main.WorkingDraft.CellTypes.FirstOrDefault(t => t.Id == _typeId);
 
-    public void RefreshData() => RebuildList(_typeId);
+    internal int CurrentTypeId => _typeId;
+
+    public void RefreshData()
+    {
+        if (_typeId < 0 && _main.WorkingDraft.CellTypes.Length > 0)
+            _typeId = _main.WorkingDraft.CellTypes[0].Id;
+        RebuildList(_typeId);
+    }
 
     private void RebuildList(int? selectId = null)
     {

@@ -91,8 +91,33 @@ public partial class GenomeEditor : VBoxContainer
 
     public void OpenGene(string geneKey)
     {
+        var draft = _main.WorkingDraft;
+        for (int i = 0; i < draft.Genomes.Length; i++)
+        {
+            if (draft.Genomes[i].Genes.Any(g => g.Key == geneKey))
+            {
+                _genomeIndex = i;
+                break;
+            }
+        }
         _selectedGene = geneKey;
+        RebuildGenomeSelect();
         RebuildList();
+    }
+
+    internal string CurrentGeneKey => _selectedGene;
+
+    internal GenomeConfig? CurrentGenomeInternal => CurrentGenome;
+
+    internal bool GeneCardShows(string geneKey)
+    {
+        if (_card == null) return false;
+        foreach (var child in _card.GetChildren())
+        {
+            if (child is Label label && label.Text.Contains("Ген «" + geneKey + "»", StringComparison.Ordinal))
+                return true;
+        }
+        return false;
     }
 
     private void RebuildGenomeSelect()

@@ -102,4 +102,42 @@ public class ConfigWriterTests
         Assert.That(ConfigDraft.GeneIdExists(genome, copy.Key), Is.True);
         Assert.That(genome.Genes.Select(g => g.Key).Distinct().Count(), Is.EqualTo(genome.Genes.Count));
     }
+
+    [Test]
+    public void SaveExperimentProfile_UnusualName_ProducesValidJson()
+    {
+        string root = TempDir();
+        try
+        {
+            string filesDir = Path.Combine(root, "x");
+            var setup = TestFactory.Setup(morphogenCount: 2, genome: TestFactory.Gene("g", TestFactory.Emit(0, 1)));
+            ConfigWriter.SaveSetupToDirectory(filesDir, setup);
+
+            // Exactly the serialization used by Main.SaveExperimentTo: profile
+            // JSON is produced by the serializer, not by raw string building.
+            string weird = "профиль \"с\" \\кавычками\nи 'переносом' + ☂";
+            string profilePath = Path.Combine(root, "x.json");
+            var profile = new ExperimentConfig
+            {
+                Name = weird,
+                Description = "Сохранено из лаборатории Sim2.",
+                SimulationFile = "x/simulation.json",
+                MorphogenFile = "x/morphogens.json",
+                GenomeFile = "x/genomes.json",
+                CellTypeFile = "x/celltypes.json",
+                AdhesionFile = "x/adhesion.json"
+            };
+            File.WriteAllText(profilePath, ConfigLoader.SerializeExperiment(profile));
+
+            var parsed = ConfigLoader.ParseExperiment(File.ReadAllText(profilePath));
+            Assert.That(parsed.Name, Is.EqualTo(weird),
+                "Name with quotes/backslashes/newlines must survive JSON round-trip.");
+
+            var loaded = ConfigLoader.LoadExperiment(profilePath);
+            Assert.That(loaded.Morphogens.Length, Is.EqualTo(2));
+            Assert.That(loaded.Genomes[0].Genes[0].Key, Is.EqualTo("g"));
+            Assert.That(loaded.CellTypes.Length, Is.EqualTo(setup.CellTypes.Length));
+        }
+        finally { Directory.Delete(root, true); }
+    }
 }

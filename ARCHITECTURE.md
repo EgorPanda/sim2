@@ -108,7 +108,10 @@ headless and independently from the interface.
   inspector** (clickable genes open the editor), a legend strip and notifications.
 - `ui/ResearchPanel` — the **Laboratory** (`L`): tabs «Мир», «Геном», «Морфогены»,
   «Типы клеток», «Настройки эксперимента», «Справочник»; toolbar Применить / Проверить /
-  Восстановить / Сохранить / Загрузить….
+  Восстановить / Сохранить / Загрузить…; closes with `L` or `Esc`. `L`/`F1`, the
+  «Справочник» button and the «?» context buttons route through `Main.OpenHelp`,
+  `Main.OpenGene` and `Main.OpenMorphogen`, which make the panel visible and select
+  the requested tab/article/row.
 - `ui/GenomeEditor` — gene list + card: display data, AND/OR **groups** (OR between
   groups, AND inside, NOT per condition), thresholds ≥ / ≤ / range / = (derived from
   the stored `[min, max]`), effects list. `ui/MorphogenEditor`, `ui/CellTypeEditor`,
@@ -143,6 +146,16 @@ headless and independently from the interface.
   configuration validation, serialization round-trips, localization completeness and
   help-catalog completeness (every regulator/effect/property has an article; related
   links resolve).
+- `Main` also exposes two headless/runnable checks. `--selftest` steps a fresh world
+  for 4000 ticks and verifies reproducibility. `--uitest` drives the real UI in a
+  process: opens the Laboratory via the button-equivalent, L and F1 keys, checks the
+  panel is visible/on-screen and the help tab is selected, verifies
+  OpenHelp/OpenGene/OpenMorphogen routing and fallback for unknown keys, applies a
+  valid draft (invalid draft is rejected and leaves the world untouched), switches
+  all seven layers without mutating the sim, and round-trips an experiment profile
+  whose name contains quotes/backslashes/newlines/unicode. It prints `[uitest] ok …`
+  per check and `[uitest] DONE failures=N`, exiting with 0 on success. Both checks
+  run headless and in a real window, where exit is clean with no leak messages.
 
 ## 4. Data flow
 

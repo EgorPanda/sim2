@@ -114,14 +114,18 @@ public partial class Hud : CanvasLayer
         };
         AddChild(_statsLabel);
         _statsLabel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        _statsLabel.Position = new Vector2(-16, 12);
-        _statsLabel.GrowHorizontal = Control.GrowDirection.Begin;
+        _statsLabel.OffsetLeft = -380;
+        _statsLabel.OffsetTop = 12;
+        _statsLabel.OffsetRight = -16;
+        _statsLabel.OffsetBottom = 96;
 
         var panel = new PanelContainer();
         panel.AddThemeStyleboxOverride("panel", Ui.PanelStyle(0.55f, 8));
         panel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        panel.Position = new Vector2(-16, 52);
-        panel.GrowHorizontal = Control.GrowDirection.Begin;
+        panel.OffsetLeft = -316;
+        panel.OffsetTop = 104;
+        panel.OffsetRight = -16;
+        panel.OffsetBottom = -12;
         AddChild(panel);
 
         var box = new VBoxContainer { CustomMinimumSize = new Vector2(300, 0) };
@@ -148,9 +152,11 @@ public partial class Hud : CanvasLayer
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
         AddChild(_notifyLabel);
-        _notifyLabel.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
-        _notifyLabel.Position = new Vector2(12, -34);
-        _notifyLabel.GrowVertical = Control.GrowDirection.Begin;
+        _notifyLabel.SetAnchorsPreset(Control.LayoutPreset.CenterBottom);
+        _notifyLabel.OffsetTop = -34;
+        _notifyLabel.OffsetBottom = -10;
+        _notifyLabel.OffsetLeft = -720;
+        _notifyLabel.OffsetRight = 720;
     }
 
     // --- Commands from the environment / to Main ---------------------------
@@ -173,6 +179,8 @@ public partial class Hud : CanvasLayer
         if (_labButton == null) return;
         _labButton.Text = open ? "Лаборатория (открыта)" : "Лаборатория…";
     }
+
+    internal string LabButtonText => _labButton?.Text ?? "";
 
     public void SetLayer(WorldLayer layer)
     {
@@ -311,8 +319,11 @@ public partial class LegendBar : Control
     public LegendBar()
     {
         SetAnchorsPreset(Control.LayoutPreset.CenterBottom);
-        Position = new Vector2(-180, -56);
-        CustomMinimumSize = new Vector2(420, 44);
+        OffsetLeft = -220;
+        OffsetTop = -56;
+        OffsetRight = 220;
+        OffsetBottom = -12;
+        CustomMinimumSize = new Vector2(440, 44);
         GrowHorizontal = Control.GrowDirection.Both;
         MouseFilter = Control.MouseFilterEnum.Ignore;
 

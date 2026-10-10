@@ -20,6 +20,13 @@ public partial class HelpPanel : VBoxContainer
     private Label? _noResults;
     private string _currentKey = "";
 
+    internal string CurrentKey => _currentKey;
+
+    /// <summary>True after showing a fallback for a missing key.</summary>
+    internal bool PlaceholderShown { get; private set; }
+
+    internal HelpArticle CurrentArticle { get; private set; } = null!;
+
     public HelpPanel(Main main)
     {
         _main = main;
@@ -48,8 +55,14 @@ public partial class HelpPanel : VBoxContainer
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
         };
         resultsScroll.AddChild(_results);
+        _noResults = new Label
+        {
+            Visible = false,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            Modulate = new Color(1f, 0.85f, 0.4f)
+        };
+        resultsScroll.AddChild(_noResults);
         AddChild(resultsScroll);
-        _noResults = new Label();
 
         _article = new VBoxContainer();
         var articleScroll = new ScrollContainer
@@ -75,17 +88,17 @@ public partial class HelpPanel : VBoxContainer
         Ui.Clear(_results);
         if (string.IsNullOrWhiteSpace(query))
         {
-            if (_noResults.IsInsideTree()) _noResults.QueueFree();
+            _noResults.Visible = false;
             return;
         }
         var hits = HelpCatalog.Search(query).Take(40).ToList();
         if (hits.Count == 0)
         {
             _noResults.Text = $"Ничего не найдено по «{query}». Попробуйте другое слово.";
-            if (!_noResults.IsInsideTree()) AddChild(_noResults);
+            _noResults.Visible = true;
             return;
         }
-        if (_noResults.IsInsideTree()) _noResults.QueueFree();
+        _noResults.Visible = false;
         foreach (var article in hits)
         {
             _results.AddChild(Ui.Btn($"{article.Title}  —  {article.Summary}", () => ShowArticle(article.Key)));
@@ -97,7 +110,22 @@ public partial class HelpPanel : VBoxContainer
         _currentKey = key;
         if (_article == null) return;
         Ui.Clear(_article);
-        var article = HelpCatalog.GetOrFallback(key, "Справочная статья");
+
+        var article = HelpCatalog.Get(key);
+        if (article == null)
+        {
+            PlaceholderShown = true;
+            GD.PushWarning($"[help] статья «{key}» не найдена в каталоге — показан запасной вариант.");
+            article = HelpCatalog.GetOrFallback(key, "Справочная статья");
+            _article.AddChild(new Label
+            {
+                Text = $"Статья «{key}» пока не написана. Показано запасное пояснение.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                Modulate = new Color(1f, 0.7f, 0.3f)
+            });
+        }
+        CurrentArticle = article;
+        if (!article.IsPlaceholder) PlaceholderShown = false;
         var title = Ui.Title(article.Title);
         title.TooltipText = article.Key;
         _article.AddChild(title);

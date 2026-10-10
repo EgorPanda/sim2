@@ -71,6 +71,27 @@ public partial class WorldView : Node2D
     private ImageTexture? _morphogenTexture;
     private double _morphogenScale = 1.0;
 
+    /// <summary>Releases the heat-map Image/ImageTexture owned by this node.</summary>
+    private void ReleaseFieldTexture()
+    {
+        if (_morphogenTexture != null)
+        {
+            _morphogenTexture.Dispose();
+            _morphogenTexture = null;
+        }
+        if (_morphogenImage != null)
+        {
+            _morphogenImage.Dispose();
+            _morphogenImage = null;
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        ReleaseFieldTexture();
+        base._ExitTree();
+    }
+
     public void SetCellColors(IEnumerable<CellTypeConfig> types, int morphogenId)
     {
         _typeColors = new Dictionary<int, Color>();
@@ -139,6 +160,7 @@ public partial class WorldView : Node2D
             || _morphogenImage.GetWidth() != m.GridWidth
             || _morphogenImage.GetHeight() != m.GridHeight))
         {
+            ReleaseFieldTexture();
             _morphogenImage = Image.CreateEmpty(m.GridWidth, m.GridHeight, false, Image.Format.Rgba8);
             _morphogenTexture = ImageTexture.CreateFromImage(_morphogenImage);
         }

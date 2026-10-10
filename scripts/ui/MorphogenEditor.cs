@@ -49,7 +49,20 @@ private readonly Main _main;
 
     private MorphogenConfig? Selected => _main.WorkingDraft.Morphogens.FirstOrDefault(m => m.Id == _morphogenId);
 
-    public void RefreshData() => RebuildList(_morphogenId);
+    internal int CurrentMorphogenId => _morphogenId;
+
+    public void RefreshData()
+    {
+        if (_morphogenId < 0 && _main.WorkingDraft.Morphogens.Length > 0)
+            _morphogenId = _main.WorkingDraft.Morphogens[0].Id;
+        RebuildList(_morphogenId);
+    }
+
+    public void OpenMorphogen(int morphogenId)
+    {
+        _morphogenId = morphogenId;
+        RebuildList(_morphogenId);
+    }
 
     private void RebuildList(int? selectId = null)
     {
