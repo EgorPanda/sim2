@@ -1,0 +1,9 @@
+{
+  "name": "multicellular",
+  "description": "M1 demo: one stem cell grows into a differentiated colony. A French-flag gradient of signal A drives stem -> worker -> skin differentiation, a timer drives temperature/apoptosis, neighbour counts shape the skin layer, and divisions are directional along the signal gradient.",
+  "simulationFile": "multicellular/simulation.json",
+  "morphogenFile": "multicellular/morphogens.json",
+  "genomeFile": "multicellular/genomes.json",
+  "cellTypeFile": "multicellular/celltypes.json",
+  "adhesionFile": "multicellular/adhesion.json"
+}

@@ -1,17 +1,10 @@
 [
   {
     "id": 0,
-    "name": "stem",
-    "color": "#7bd88f",
-    "baseRadius": 12.0,
-    "maxRadius": 20.0,
-    "maxEnergy": 120.0,
-    "maintenanceCost": 1.5,
-    "divisionEnergyCost": 50.0,
-    "growEnergyCostPerRadius": 1.0,
-    "starveGracePeriod": 2.0,
-    "genome": [
+    "name": "genome0",
+    "genes": [
       {
+        "id": "secretor",
         "name": "secretor",
         "activationDelay": 0.0,
         "regulators": [
@@ -22,6 +15,7 @@
         ]
       },
       {
+        "id": "uptake",
         "name": "uptake",
         "activationDelay": 0.2,
         "regulators": [
@@ -32,6 +26,7 @@
         ]
       },
       {
+        "id": "grow",
         "name": "grow",
         "activationDelay": 0.3,
         "regulators": [
@@ -42,6 +37,7 @@
         ]
       },
       {
+        "id": "divide",
         "name": "divide",
         "activationDelay": 0.5,
         "regulators": [

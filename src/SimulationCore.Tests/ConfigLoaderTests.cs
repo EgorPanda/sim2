@@ -27,8 +27,9 @@ public class ConfigLoaderTests
 
         Assert.That(setup.Simulation.WorldWidth, Is.GreaterThan(0));
         Assert.That(setup.Morphogens.Length, Is.GreaterThanOrEqualTo(1));
+        Assert.That(setup.Genomes.Length, Is.GreaterThanOrEqualTo(1));
         Assert.That(setup.CellTypes.Length, Is.GreaterThanOrEqualTo(1));
-        Assert.That(setup.CellTypes[0].Genome.Count, Is.GreaterThan(0));
+        Assert.That(setup.Genomes[0].Genes.Count, Is.GreaterThan(0));
     }
 
     [Test]

@@ -2,7 +2,7 @@
 
 Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 
-## M0 — Runnable prototype (current release)
+## M0 — Runnable prototype
 
 - [x] Environment check (Godot 4.7.2 .NET, .NET SDK, Git)
 - [x] Layered architecture: SimulationCore (pure C#) / Godot front-end / NUnit tests
@@ -15,20 +15,30 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] HUD: pause / step / speed / reset / manual cell deletion, live stats
 - [x] Tests: diffusion, sampling, spatial hash, mechanics, division, reproducibility
 
-## M1 — Multicellularity basics
+## M1 — Multicellularity basics (current release)
 
-- [ ] 2–3 additional cell types (stem / specialised / dead scaffold)
-- [ ] Differentiation: genes can change a cell's type id
-- [ ] Up to 12 morphogens with activation thresholds (French-flag style bands)
-- [ ] Chemotaxis: cells bias division direction towards a morphogen gradient
-- [ ] Tissue cohesion (adhesion strengths per cell type pair)
+- [x] Multiple cell types (stem / worker / skin) sharing one genome
+- [x] Differentiation: genes can change a cell's type id (`SetCellType`)
+- [x] Shared `GenomeConfig` referenced by phenotypes (`CellTypeConfig.GenomeId`)
+- [x] Up to 12 morphogens with activation thresholds (French-flag style bands)
+- [x] Chemotaxis: division biased towards a morphogen gradient
+- [x] Tissue cohesion (adhesion strengths per cell-type pair, controlled overlap)
+- [x] Regulators: Morphogen / Property / Phenotype / State / Timer (+ `invert`, AND-combined)
+- [x] Effects: Emit / Absorb / Grow / Divide / SetCellType / StartTimer / Apoptosis /
+      SilenceGene / BlockDivision, with once-per-activation semantics
+- [x] Named cell timers; probabilistic (dt-invariant) apoptosis
+- [x] Regulation state (active genes, timers, silenced genes) inherited on division
+- [x] Experiment profiles under `config/experiments/` (self-contained file sets)
+- [x] Full world save/load, versioned DTO (SaveSystem v2)
+- [x] Research UI: morphogen field selector, per-phenotype stats, cell inspector
 
 ## M2 — Persistence and experimentation
 
-- [ ] Full save/load of world state (SaveSystem: cells, morphogens, RNG state)
-- [ ] Experiment profiles (named presets loaded from `config/experiments/`)
+- [x] Full save/load of world state (SaveSystem: cells, morphogens, RNG state)
+- [x] Experiment profiles (named presets loaded from `config/experiments/`)
 - [ ] Headless batch runner (run N seeds, export CSV statistics)
 - [ ] Recording/playback of simulation timelines
+- [ ] Save/load and experiment selection exposed in the HUD
 
 ## M3 — Ontogenesis and reproduction
 

@@ -24,17 +24,23 @@ public static class SaveSystem
         public double Y { get; set; }
         public double Radius { get; set; }
         public int TypeId { get; set; }
+        public int GenomeId { get; set; }
         public int State { get; set; }
         public double Energy { get; set; }
         public double Age { get; set; }
         public double DivisionProgress { get; set; }
         public double StarveTimer { get; set; }
         public double DeathTimer { get; set; }
+        public bool DivisionBlocked { get; set; }
+        public Dictionary<string, bool> GeneStates { get; set; } = new();
+        public Dictionary<string, double> GeneTimers { get; set; } = new();
+        public List<string> SilencedGenes { get; set; } = new();
+        public Dictionary<string, double> Timers { get; set; } = new();
     }
 
     public sealed class WorldDto
     {
-        public int Version { get; set; } = 1;
+        public int Version { get; set; } = 2;
         public double Time { get; set; }
         public long Tick { get; set; }
         public int NextId { get; set; }
@@ -63,20 +69,30 @@ public static class SaveSystem
 
         foreach (var c in sim.Cells)
         {
-            dto.Cells.Add(new CellDto
+            var cellDto = new CellDto
             {
                 Id = c.Id,
                 X = c.X,
                 Y = c.Y,
                 Radius = c.Radius,
                 TypeId = c.TypeId,
+                GenomeId = c.GenomeId,
                 State = (int)c.State,
                 Energy = c.Energy,
                 Age = c.Age,
                 DivisionProgress = c.DivisionProgress,
                 StarveTimer = c.StarveTimer,
-                DeathTimer = c.DeathTimer
-            });
+                DeathTimer = c.DeathTimer,
+                DivisionBlocked = c.DivisionBlocked
+            };
+            foreach (var kv in c.GeneStates)
+            {
+                cellDto.GeneStates[kv.Key] = kv.Value.Active;
+                cellDto.GeneTimers[kv.Key] = kv.Value.ActivationTimer;
+            }
+            foreach (var id in c.SilencedGenes) cellDto.SilencedGenes.Add(id);
+            foreach (var kv in c.Timers) cellDto.Timers[kv.Key] = kv.Value;
+            dto.Cells.Add(cellDto);
         }
 
         for (int m = 0; m < sim.Morphogens.MorphogenCount; m++)
@@ -105,15 +121,22 @@ public static class SaveSystem
                 Y = d.Y,
                 Radius = d.Radius,
                 TypeId = d.TypeId,
+                GenomeId = d.GenomeId,
                 State = (CellState)d.State,
                 Energy = d.Energy,
                 Age = d.Age,
                 DivisionProgress = d.DivisionProgress,
                 StarveTimer = d.StarveTimer,
-                DeathTimer = d.DeathTimer
+                DeathTimer = d.DeathTimer,
+                DivisionBlocked = d.DivisionBlocked
             };
-            if (sim.CellTypesById.TryGetValue(cell.TypeId, out var type))
-                cell.EnsureGeneState(type.Genome.Count);
+            foreach (var kv in d.GeneStates)
+                cell.StateOf(kv.Key).Active = kv.Value;
+            foreach (var kv in d.GeneTimers)
+                if (cell.GeneStates.TryGetValue(kv.Key, out var state))
+                    state.ActivationTimer = kv.Value;
+            foreach (var id in d.SilencedGenes) cell.SilencedGenes.Add(id);
+            foreach (var kv in d.Timers) cell.Timers[kv.Key] = kv.Value;
             sim.Cells.Add(cell);
         }
 

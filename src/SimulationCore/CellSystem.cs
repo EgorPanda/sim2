@@ -3,7 +3,8 @@ namespace SimulationCore;
 /// <summary>
 /// Owns the cell population: metabolism, apoptosis and division. Division is
 /// data-driven — a cell divides when its DivisionProgress reaches 1 (set by the
-/// "Divide" gene effect) and it has enough energy and free space.
+/// "Divide" gene effect) and it has enough energy and free space. A
+/// "BlockDivision" gene effect suppresses division for the step.
 /// </summary>
 public sealed class CellSystem
 {
@@ -72,16 +73,19 @@ public sealed class CellSystem
 
     /// <summary>
     /// Attempts division for every cell whose division progress completed.
-    /// Daughters inherit the genome/type and split the parent's energy.
-    /// Division is blocked when the cell is too crowded to find free space,
-    /// which naturally limits tissue density.
+    /// Daughters inherit the parent's phenotype, genome and regulation state, and
+    /// split the parent's energy. Division is blocked when the cell is too
+    /// crowded, or when a "BlockDivision" gene effect is active. When a
+    /// <paramref name="gradient"/> is supplied, the split axis is biased along
+    /// the local morphogen gradient, so cells grow towards the signal.
     /// </summary>
     public int ResolveDivisions(
         SpatialHash hash,
         IReadOnlyDictionary<int, CellTypeConfig> types,
         Rng rng,
         Func<Cell> createCell,
-        double maxQueryRadius)
+        double maxQueryRadius,
+        Func<double, double, (double Dx, double Dy)>? gradient = null)
     {
         int divisions = 0;
         int originalCount = _cells.Count;
@@ -90,11 +94,12 @@ public sealed class CellSystem
         {
             var cell = _cells[i];
             if (cell.State != CellState.Alive) continue;
+            if (cell.DivisionBlocked) continue;
             if (cell.DivisionProgress < 1.0) continue;
             if (!types.TryGetValue(cell.TypeId, out var type)) continue;
             if (cell.Energy < type.DivisionEnergyCost) continue;
 
-            if (!FindFreeDirection(cell, type, hash, rng, maxQueryRadius, out double dx, out double dy))
+            if (!FindFreeDirection(cell, type, hash, rng, maxQueryRadius, gradient, out double dx, out double dy))
                 continue;
 
             double cost = type.DivisionEnergyCost;
@@ -113,13 +118,14 @@ public sealed class CellSystem
 
             var child = createCell();
             child.TypeId = cell.TypeId;
+            child.GenomeId = cell.GenomeId;
             child.X = cell.X + dx * radius * 2.0;
             child.Y = cell.Y + dy * radius * 2.0;
             child.Radius = radius;
             child.Energy = half;
             child.Age = 0.0;
             child.State = CellState.Alive;
-            child.EnsureGeneState(type.Genome.Count);
+            cell.CopyRegulationStateTo(child);
             _cells.Add(child);
             divisions++;
         }
@@ -129,19 +135,33 @@ public sealed class CellSystem
 
     private bool FindFreeDirection(
         Cell cell, CellTypeConfig type, SpatialHash hash, Rng rng,
-        double maxQueryRadius, out double dx, out double dy)
+        double maxQueryRadius,
+        Func<double, double, (double Dx, double Dy)>? gradient,
+        out double dx, out double dy)
     {
         const int attempts = 16;
-        // Random start angle so division orientation depends on the seeded RNG.
+
+        // Random phase so orientation still depends on the seeded RNG.
         double phase = rng.Range(0.0, Math.PI * 2.0);
+
+        // Bias the scan towards the morphogen gradient when one is available.
+        double biasAngle = double.NaN;
+        if (gradient != null)
+        {
+            var (gx, gy) = gradient(cell.X, cell.Y);
+            double mag = Math.Sqrt(gx * gx + gy * gy);
+            if (double.IsFinite(mag) && mag > 1e-9)
+                biasAngle = Math.Atan2(gy, gx);
+        }
 
         for (int a = 0; a < attempts; a++)
         {
-            double angle = phase + a * (Math.PI * 2.0 / attempts);
+            double angle = double.IsFinite(biasAngle)
+                ? biasAngle + phase * 0.35 + a * (Math.PI * 2.0 / attempts)
+                : phase + a * (Math.PI * 2.0 / attempts);
             double cdx = Math.Cos(angle);
             double cdy = Math.Sin(angle);
 
-            // Candidate position for the child.
             double px = cell.X + cdx * type.BaseRadius * 2.0;
             double py = cell.Y + cdy * type.BaseRadius * 2.0;
 

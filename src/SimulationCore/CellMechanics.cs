@@ -4,6 +4,10 @@ namespace SimulationCore;
 /// Resolves overlaps between cells so they do not intersect and form a coherent
 /// tissue. Uses the spatial hash for neighbourhoods and position-based
 /// separation (each overlapping pair is pushed apart along their axis).
+///
+/// M1: an optional per-phenotype-pair adhesion map lets cohesive pairs relax to
+/// a smaller rest distance (partial overlap), producing distinct tissues. The
+/// correction is purely positional, so it stays stable (no oscillation).
 /// </summary>
 public sealed class CellMechanics
 {
@@ -14,6 +18,12 @@ public sealed class CellMechanics
 
     /// <summary>How strongly overlaps are corrected per pass (1.0 = full separation).</summary>
     public double Stiffness { get; set; } = 0.5;
+
+    /// <summary>Maximum allowed overlap fraction (of the touching distance) at adhesion 1.</summary>
+    public double MaxOverlap { get; set; } = 0.4;
+
+    /// <summary>Adhesion strength in [0,1] for a phenotype pair; null means no adhesion.</summary>
+    public Func<int, int, double>? Adhesion { get; set; }
 
     public void Resolve(IReadOnlyList<Cell> cells, SpatialHash hash, double maxQueryRadius)
     {
@@ -35,7 +45,14 @@ public sealed class CellMechanics
                     double dx = b.X - a.X;
                     double dy = b.Y - a.Y;
                     double distSq = dx * dx + dy * dy;
-                    double minDist = a.Radius + b.Radius;
+                    double touch = a.Radius + b.Radius;
+
+                    // Adhesion relaxes the required separation for cohesive pairs.
+                    double adhesion = Adhesion?.Invoke(a.TypeId, b.TypeId) ?? 0.0;
+                    if (adhesion < 0.0) adhesion = 0.0;
+                    if (adhesion > 1.0) adhesion = 1.0;
+                    double minDist = touch * (1.0 - MaxOverlap * adhesion);
+
                     if (distSq >= minDist * minDist) continue;
 
                     double dist = Math.Sqrt(distSq);

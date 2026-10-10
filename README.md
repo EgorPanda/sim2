@@ -31,11 +31,15 @@ dotnet test Sim2.slnx
 :: build only the core + tests (no Godot SDK needed)
 dotnet build src\SimulationCore\SimulationCore.csproj
 
-:: run the app (GUI)
+:: run the app (GUI) with the default world
 godot --path E:\sim2
+
+:: run the app with an experiment profile
+godot --path E:\sim2 -- --experiment res://config/experiments/multicellular.json
 
 :: run the app headless self-test (no window; steps the sim and quits)
 godot --path E:\sim2 --headless -- --selftest
+godot --path E:\sim2 --headless -- --selftest --experiment res://config/experiments/multicellular.json
 
 :: open the Godot editor
 godot -e --path E:\sim2
@@ -53,17 +57,28 @@ godot -e --path E:\sim2
 | Mouse wheel         | zoom                                     |
 | Space               | pause / resume                           |
 | `.` (period) / →    | single step while paused                 |
-| R                   | reset experiment                         |
+| R                  | reset experiment                         |
 | Delete / Backspace  | remove selected cell                     |
 | E                   | toggle delete mode (left click removes)  |
 | WASD                | pan camera                               |
+
+## What you can do (M1)
+
+- **Field selector** (left panel) chooses which morphogen the heat-map overlay shows;
+  the overlay auto-normalises so every field stays visible.
+- **Phenotypes** (right panel) lists live population counts per cell type.
+- **Selected cell** (right panel) shows the cell's phenotype, state, energy, radius,
+  age, neighbour count, active/silenced genes, running timers and local morphogen levels.
+- Launch the bundled `multicellular` experiment to watch a single founder grow into a
+  differentiated tissue of stem, worker and skin cells.
 
 ## Project layout
 
 ```
 project.godot, Sim2.csproj   Godot app (rendering + UI only)
 Sim2.slnx                   .NET solution (app + core + tests)
-config/                     simulation / genomes / morphogens (JSON)
+config/                     simulation / genomes / morphogens / celltypes / adhesion (JSON)
+config/experiments/         named experiment profiles (e.g. multicellular)
 scripts/                    Godot front-end (Main, WorldView, Hud)
 src/SimulationCore/         pure C# simulation core
 src/SimulationCore.Tests/   NUnit tests

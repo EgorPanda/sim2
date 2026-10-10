@@ -13,6 +13,7 @@ public partial class WorldView : Node2D
     public Simulation? Sim { get; set; }
     public bool ShowMorphogens { get; set; }
     public int? SelectedCellId { get; set; }
+    public int MorphogenId { get; set; }
 
     private Dictionary<int, Color> _typeColors = new();
     private Color _morphogenColor = Colors.DeepSkyBlue;
@@ -50,11 +51,20 @@ public partial class WorldView : Node2D
             _morphogenTexture = ImageTexture.CreateFromImage(_morphogenImage);
         }
 
+        int mid = MorphogenId >= 0 && MorphogenId < m.MorphogenCount ? MorphogenId : 0;
+
+        // Auto-normalise against the current peak so any morphogen stays visible.
+        double peak = 0.0;
+        for (int gy = 0; gy < m.GridHeight; gy++)
+            for (int gx = 0; gx < m.GridWidth; gx++)
+                peak = Math.Max(peak, m.GetField(mid, gx, gy));
+        double scale = peak > 1e-9 ? peak : (_morphogenScale > 0 ? _morphogenScale : 1.0);
+
         for (int gy = 0; gy < m.GridHeight; gy++)
         {
             for (int gx = 0; gx < m.GridWidth; gx++)
             {
-                double v = m.GetField(0, gx, gy) / _morphogenScale;
+                double v = m.GetField(mid, gx, gy) / scale;
                 if (v > 1.0) v = 1.0;
                 if (v < 0.0) v = 0.0;
                 _morphogenImage.SetPixel(gx, gy, new Color(_morphogenColor, (float)v * 0.55f));

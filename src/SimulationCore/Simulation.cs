@@ -9,13 +9,14 @@ namespace SimulationCore;
 ///   2. metabolism / ageing / starvation
 ///   3. genome evaluation (emission, absorption, growth, division progress)
 ///   4. morphogen emission -> diffusion -> decay
-///   5. cell mechanics (overlap resolution, world clamping)
+///   5. cell mechanics (overlap resolution with tissue adhesion, world clamping)
 ///   6. division & apoptosis resolution
 /// </summary>
 public sealed class Simulation : GeneContext
 {
     public SimulationConfig Config { get; }
     public IReadOnlyDictionary<int, MorphogenConfig> MorphogensById { get; }
+    public IReadOnlyDictionary<int, GenomeConfig> GenomesById { get; }
     public IReadOnlyDictionary<int, CellTypeConfig> CellTypesById { get; }
 
     public List<Cell> Cells { get; } = new();
@@ -30,6 +31,8 @@ public sealed class Simulation : GeneContext
 
     private readonly List<int> _queryScratch = new();
     private readonly Vector _worldSize;
+    private readonly Func<int, int, double> _adhesion;
+    private readonly Func<double, double, (double, double)>? _divisionGradient;
     private int _nextId;
     private double _maxRadius = 32.0;
 
@@ -48,6 +51,10 @@ public sealed class Simulation : GeneContext
         foreach (var m in setup.Morphogens) morphogens[m.Id] = m;
         MorphogensById = morphogens;
 
+        var genomes = new Dictionary<int, GenomeConfig>();
+        foreach (var g in setup.Genomes) genomes[g.Id] = g;
+        GenomesById = genomes;
+
         var types = new Dictionary<int, CellTypeConfig>();
         foreach (var t in setup.CellTypes)
         {
@@ -56,9 +63,17 @@ public sealed class Simulation : GeneContext
         }
         CellTypesById = types;
 
+        int morphCount = 0;
+        foreach (var id in morphogens.Keys) morphCount = Math.Max(morphCount, id + 1);
+
         Morphogens = new MorphogenSystem(
             Config.WorldWidth, Config.WorldHeight,
-            Config.MorphogenResolution, Math.Max(1, morphogens.Count));
+            Config.MorphogenResolution, Math.Max(1, morphCount));
+
+        _adhesion = BuildAdhesion(setup.Adhesion);
+        Mechanics.Adhesion = (a, b) => _adhesion(a, b);
+
+        _divisionGradient = BuildDivisionGradient(Config.DivisionGradientMorphogen);
 
         SpatialHash = new SpatialHash(_maxRadius * 2.0 + 2.0);
         CellSystem = new CellSystem(Cells);
@@ -68,6 +83,24 @@ public sealed class Simulation : GeneContext
         Reset();
     }
 
+    private Func<int, int, double> BuildAdhesion(AdhesionConfig adhesion)
+    {
+        var pairs = new Dictionary<(int, int), double>();
+        foreach (var p in adhesion.Pairs) pairs[(Math.Min(p.A, p.B), Math.Max(p.A, p.B))] = p.Strength;
+        Mechanics.MaxOverlap = adhesion.MaxOverlap;
+
+        return (a, b) =>
+        {
+            (int lo, int hi) = a <= b ? (a, b) : (b, a);
+            return pairs.TryGetValue((lo, hi), out double strength) ? strength : adhesion.Default;
+        };
+    }
+
+    private Func<double, double, (double, double)>? BuildDivisionGradient(int morph) =>
+        morph >= 0 && MorphogensById.ContainsKey(morph)
+            ? (x, y) => Morphogens.Gradient(morph, x, y)
+            : null;
+
     /// <summary>Clears the world and spawns the initial founder cell(s) at the centre.</summary>
     public void Reset()
     {
@@ -76,10 +109,13 @@ public sealed class Simulation : GeneContext
         Time = 0.0;
         Tick = 0;
         Rng.SetSeed(Config.RngSeed);
+        Morphogens.Clear();
 
         int initial = Math.Max(1, Config.InitialCells);
-        int typeId = CellTypesById.Count > 0 ? FirstTypeId() : 0;
-        if (!CellTypesById.TryGetValue(typeId, out var type)) return;
+        int typeId = Config.FounderTypeId;
+        if (!CellTypesById.TryGetValue(typeId, out var type))
+            typeId = FirstTypeId();
+        if (!CellTypesById.TryGetValue(typeId, out type)) return;
 
         double cx = Config.WorldWidth * 0.5;
         double cy = Config.WorldHeight * 0.5;
@@ -95,12 +131,18 @@ public sealed class Simulation : GeneContext
                 Y = cy + Math.Sin(angle) * spacing,
                 Radius = type.BaseRadius,
                 TypeId = typeId,
+                GenomeId = type.GenomeId,
                 Energy = type.MaxEnergy * 0.6,
                 State = CellState.Alive
             };
-            cell.EnsureGeneState(type.Genome.Count);
             Cells.Add(cell);
         }
+    }
+
+    public GenomeConfig? GenomeOf(int genomeId)
+    {
+        GenomesById.TryGetValue(genomeId, out var genome);
+        return genome;
     }
 
     private int FirstTypeId()
@@ -122,13 +164,19 @@ public sealed class Simulation : GeneContext
         // 2. Metabolism / ageing / starvation.
         CellSystem.Metabolism(dt, CellTypesById);
 
+        // Division blocking is re-armed by the genome evaluation each step.
+        for (int i = 0; i < Cells.Count; i++)
+            Cells[i].DivisionBlocked = false;
+
         // 3. Genome evaluation.
         for (int i = 0; i < Cells.Count; i++)
         {
             var cell = Cells[i];
             if (cell.State != CellState.Alive) continue;
             if (!CellTypesById.TryGetValue(cell.TypeId, out var type)) continue;
-            GenomeSystem.Evaluate(cell, type, this, dt);
+            var genome = GenomeOf(type.GenomeId);
+            if (genome == null) continue;
+            GenomeSystem.Evaluate(cell, type, genome, this, dt);
         }
 
         // 4. Morphogen dynamics.
@@ -140,7 +188,7 @@ public sealed class Simulation : GeneContext
 
         // 6. Division & apoptosis.
         SpatialHash.Rebuild(Cells);
-        CellSystem.ResolveDivisions(SpatialHash, CellTypesById, Rng, CreateCell, _maxRadius);
+        CellSystem.ResolveDivisions(SpatialHash, CellTypesById, Rng, CreateCell, _maxRadius, _divisionGradient);
         CellSystem.Cleanup(dt);
 
         // Rebuild once more so the next step and the renderer see fresh data.
@@ -215,10 +263,10 @@ public sealed class Simulation : GeneContext
             Y = y,
             Radius = type?.BaseRadius ?? Config.CellRadius,
             TypeId = typeId,
+            GenomeId = type?.GenomeId ?? 0,
             Energy = (type?.MaxEnergy ?? 100.0) * 0.6,
             State = CellState.Alive
         };
-        cell.EnsureGeneState(type?.Genome.Count ?? 0);
         Cells.Add(cell);
         return cell;
     }
@@ -260,9 +308,16 @@ public sealed class Simulation : GeneContext
 
     // --- GeneContext --------------------------------------------------------
 
+    Rng GeneContext.Rng => Rng;
+
     public double SampleMorphogen(int morphogen, double x, double y)
-        => Morphogens.Sample(morphogen, x, y);
+        => morphogen < 0 || morphogen >= Morphogens.MorphogenCount ? 0.0 : Morphogens.Sample(morphogen, x, y);
 
     public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond)
-        => Morphogens.Emit(morphogen, x, y, amountPerSecond);
+    {
+        if (morphogen < 0 || morphogen >= Morphogens.MorphogenCount) return;
+        Morphogens.Emit(morphogen, x, y, amountPerSecond);
+    }
+
+    public void Kill(Cell cell) => CellSystem.Kill(cell);
 }

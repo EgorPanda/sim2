@@ -1,0 +1,116 @@
+[
+  {
+    "id": 0,
+    "name": "multicellular",
+    "genes": [
+      {
+        "id": "secretor",
+        "name": "secretor",
+        "regulators": [
+          { "kind": "Morphogen", "morphogen": 0, "min": 0.0, "max": 0.4 }
+        ],
+        "effects": [
+          { "kind": "EmitMorphogen", "morphogen": 0, "rate": 30.0 }
+        ]
+      },
+      {
+        "id": "uptake",
+        "name": "uptake",
+        "activationDelay": 0.2,
+        "regulators": [
+          { "kind": "Morphogen", "morphogen": 0, "min": 0.02, "max": 1e9 }
+        ],
+        "effects": [
+          { "kind": "Absorb", "morphogen": 0, "rate": 25.0 }
+        ]
+      },
+      {
+        "id": "signalA",
+        "name": "signalA",
+        "regulators": [],
+        "effects": [
+          { "kind": "EmitMorphogen", "morphogen": 1, "rate": 2.0 }
+        ]
+      },
+      {
+        "id": "split",
+        "name": "split",
+        "activationDelay": 0.5,
+        "regulators": [
+          { "kind": "Phenotype", "typeId": 0 },
+          { "kind": "Property", "property": "energy", "min": 55.0, "max": 1e9 },
+          { "kind": "Property", "property": "radius", "min": 6.0, "max": 1e9 },
+          { "kind": "Property", "property": "neighbours", "min": 0.0, "max": 12.0 }
+        ],
+        "effects": [
+          { "kind": "Divide", "rate": 1.0 }
+        ]
+      },
+      {
+        "id": "startLife",
+        "name": "startLife",
+        "regulators": [
+          { "kind": "Property", "property": "energy", "min": 1.0, "max": 1e9 }
+        ],
+        "effects": [
+          { "kind": "StartTimer", "timer": "life", "duration": 120.0, "once": true }
+        ]
+      },
+      {
+        "id": "mortality",
+        "name": "mortality",
+        "regulators": [
+          { "kind": "Timer", "timer": "life", "invert": true }
+        ],
+        "effects": [
+          { "kind": "Apoptosis", "probability": 0.01 }
+        ]
+      },
+      {
+        "id": "toWorker",
+        "name": "toWorker",
+        "activationDelay": 1.0,
+        "regulators": [
+          { "kind": "Phenotype", "typeId": 0 },
+          { "kind": "Property", "property": "age", "min": 12.0, "max": 1e9 }
+        ],
+        "effects": [
+          { "kind": "SetCellType", "typeId": 1, "once": true },
+          { "kind": "StartTimer", "timer": "workerLife", "duration": 12.0, "once": true }
+        ]
+      },
+      {
+        "id": "toSkin",
+        "name": "toSkin",
+        "activationDelay": 1.0,
+        "regulators": [
+          { "kind": "Phenotype", "typeId": 1 },
+          { "kind": "Timer", "timer": "workerLife", "invert": true }
+        ],
+        "effects": [
+          { "kind": "SetCellType", "typeId": 2, "once": true }
+        ]
+      },
+      {
+        "id": "workerSignal",
+        "name": "workerSignal",
+        "regulators": [
+          { "kind": "Phenotype", "typeId": 1 }
+        ],
+        "effects": [
+          { "kind": "EmitMorphogen", "morphogen": 2, "rate": 1.5 }
+        ]
+      },
+      {
+        "id": "skinStatic",
+        "name": "skinStatic",
+        "regulators": [
+          { "kind": "Phenotype", "typeId": 2 }
+        ],
+        "effects": [
+          { "kind": "BlockDivision" }
+        ]
+      }
+    ]
+  }
+]

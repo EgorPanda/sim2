@@ -31,6 +31,14 @@ public sealed class MorphogenSystem
 
     public int CellCount => GridWidth * GridHeight;
 
+    /// <summary>Zeroes all field values and pending sources (used on reset).</summary>
+    public void Clear()
+    {
+        Array.Clear(_field);
+        Array.Clear(_next);
+        Array.Clear(_source);
+    }
+
     public double WorldWidth => GridWidth * Resolution;
     public double WorldHeight => GridHeight * Resolution;
 
@@ -169,6 +177,20 @@ public sealed class MorphogenSystem
         double top = v00 + (v10 - v00) * fx;
         double bottom = v01 + (v11 - v01) * fx;
         return top + (bottom - top) * fy;
+    }
+
+    /// <summary>
+    /// Central-difference gradient of a morphogen field at a continuous position.
+    /// Returns a zero vector at flat/out-of-range regions and never NaN.
+    /// </summary>
+    public (double Dx, double Dy) Gradient(int morph, double x, double y)
+    {
+        double h = Resolution;
+        double dx = (Sample(morph, x + h, y) - Sample(morph, x - h, y)) / (2.0 * h);
+        double dy = (Sample(morph, x, y + h) - Sample(morph, x, y - h)) / (2.0 * h);
+        if (!double.IsFinite(dx)) dx = 0.0;
+        if (!double.IsFinite(dy)) dy = 0.0;
+        return (dx, dy);
     }
 
     private double At(int morph, int gx, int gy)

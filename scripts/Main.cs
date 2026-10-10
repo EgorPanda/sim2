@@ -1,5 +1,7 @@
 using Godot;
 using SimulationCore;
+using System.Linq;
+using System.Text;
 
 namespace Sim2;
 
@@ -21,6 +23,7 @@ public partial class Main : Node2D
     private double _accumulator;
     private int? _selectedCellId;
     private bool _deleteMode;
+    private int _selectedMorphogenId;
 
     private bool _panning;
     private Vector2 _panStartScreen;
@@ -28,7 +31,7 @@ public partial class Main : Node2D
 
     public override void _Ready()
     {
-        _setup = ConfigLoader.LoadFromDirectory(ProjectSettings.GlobalizePath("res://config"));
+        _setup = LoadSetup();
         _speed = _setup.Simulation.DefaultSpeed;
 
         _sim = new Simulation(_setup);
@@ -45,11 +48,15 @@ public partial class Main : Node2D
 
         _world = new WorldView { Sim = _sim };
         _world.SetCellColors(_setup.CellTypes, morphogenId: 0);
+        _selectedMorphogenId = _setup.Morphogens.Length > 0 ? _setup.Morphogens[0].Id : 0;
+        _world.MorphogenId = _selectedMorphogenId;
+        ApplyMorphogenStyle(_selectedMorphogenId);
         AddChild(_world);
 
         _hud = new Hud();
         AddChild(_hud);
-        _hud.Build(_setup.Simulation);
+        _hud.Build(_setup.Simulation, _setup.Morphogens, _setup.CellTypes);
+        _hud.SetSelectedMorphogen(_selectedMorphogenId);
         _hud.PauseRequested += OnPauseRequested;
         _hud.StepRequested += OnStepRequested;
         _hud.ResetRequested += OnResetRequested;
@@ -57,11 +64,27 @@ public partial class Main : Node2D
         _hud.RadiusChanged += OnRadiusChanged;
         _hud.OverlayToggled += show => _world.ShowMorphogens = show;
         _hud.DeleteModeToggled += on => _deleteMode = on;
+        _hud.MorphogenSelected += OnMorphogenSelected;
         _hud.SetPaused(_paused);
         _hud.UpdateStats(0, 0, _sim.Time, _sim.Cells.Count, _paused, null);
 
         if (OS.GetCmdlineUserArgs().Contains("--selftest"))
             RunSelfTest();
+    }
+
+    /// <summary>
+    /// Loads the base world from res://config, or an experiment profile when
+    /// launched with "--experiment &lt;path.json&gt;".
+    /// </summary>
+    private static SimulationSetup LoadSetup()
+    {
+        var args = OS.GetCmdlineUserArgs();
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (args[i] == "--experiment")
+                return ConfigLoader.LoadExperiment(ProjectSettings.GlobalizePath(args[i + 1]));
+        }
+        return ConfigLoader.LoadFromDirectory(ProjectSettings.GlobalizePath("res://config"));
     }
 
     public override void _Process(double delta)
@@ -98,6 +121,85 @@ public partial class Main : Node2D
             tick: _sim.Tick,
             paused: _paused,
             selectedId: _selectedCellId);
+        _hud.UpdatePhenotypes(BuildPhenotypeText());
+        _hud.UpdateSelection(BuildSelectionText());
+    }
+
+    private void OnMorphogenSelected(int morphogenId)
+    {
+        _selectedMorphogenId = morphogenId;
+        if (_world != null)
+        {
+            _world.MorphogenId = morphogenId;
+            _world.QueueRedraw();
+        }
+        ApplyMorphogenStyle(morphogenId);
+    }
+
+    private void ApplyMorphogenStyle(int morphogenId)
+    {
+        if (_setup == null || _world == null) return;
+        var cfg = _setup.Morphogens.FirstOrDefault(m => m.Id == morphogenId);
+        _world.SetMorphogenStyle(cfg?.Color ?? "#4ea8de", 1.0);
+    }
+
+    private string BuildPhenotypeText()
+    {
+        if (_setup == null || _sim == null) return string.Empty;
+        var counts = new Dictionary<int, int>();
+        foreach (var cell in _sim.Cells)
+        {
+            counts.TryGetValue(cell.TypeId, out int n);
+            counts[cell.TypeId] = n + 1;
+        }
+
+        var sb = new StringBuilder();
+        foreach (var type in _setup.CellTypes)
+        {
+            counts.TryGetValue(type.Id, out int n);
+            sb.AppendLine($"{type.Name}: {n}");
+        }
+        return sb.ToString().TrimEnd();
+    }
+
+    private string BuildSelectionText()
+    {
+        if (_sim == null || _setup == null || _selectedCellId is not int id)
+            return "(none)";
+        var cell = _sim.Cells.FirstOrDefault(c => c.Id == id);
+        if (cell == null)
+            return "(none)";
+
+        var type = _setup.CellTypes.FirstOrDefault(t => t.Id == cell.TypeId);
+        var genome = _sim.GenomeOf(cell.GenomeId);
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"#{cell.Id}  {type?.Name ?? $"type {cell.TypeId}"}");
+        sb.AppendLine($"state  {cell.State}");
+        sb.AppendLine($"energy {cell.Energy:F1} / {type?.MaxEnergy:F0}");
+        sb.AppendLine($"radius {cell.Radius:F1}   age {cell.Age:F1}s   nb {cell.NeighbourCount}");
+
+        if (genome != null)
+        {
+            var active = genome.Genes.Where(g => cell.StateOf(g.Key).Active).Select(g => g.Name).ToList();
+            var silenced = genome.Genes.Where(g => cell.IsSilenced(g.Key)).Select(g => g.Name).ToList();
+            sb.AppendLine($"genes  {active.Count}/{genome.Genes.Count} active");
+            sb.AppendLine($"on:     {(active.Count > 0 ? string.Join(", ", active) : "-")}");
+            if (silenced.Count > 0)
+                sb.AppendLine($"off:    {string.Join(", ", silenced)}");
+        }
+
+        if (cell.Timers.Count > 0)
+        {
+            var timers = cell.Timers.Select(kv => $"{kv.Key} {kv.Value:F1}s");
+            sb.AppendLine($"timers {string.Join(", ", timers)}");
+        }
+
+        var fields = _setup.Morphogens
+            .Select(m => $"{m.Name} {_sim.SampleMorphogen(m.Id, cell.X, cell.Y):F2}");
+        sb.AppendLine(string.Join("  ", fields));
+
+        return sb.ToString().TrimEnd();
     }
 
     // --- Simulation control -------------------------------------------------
