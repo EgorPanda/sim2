@@ -32,6 +32,24 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Full world save/load, versioned DTO (SaveSystem v2)
 - [x] Research UI: morphogen field selector, per-phenotype stats, cell inspector
 
+## M1.5 — Genetic Lab (current release)
+
+- [x] Russian-language interface and help catalog (`Localization`, `HelpCatalog` in core)
+- [x] Analytical layers: morphogen concentration, gradient vectors, gene activity,
+      silenced genes, energy, neighbour density (+ legend, layer options in «Мир»)
+- [x] Visual genome editor: add/copy/delete genes, display data, AND/OR groups, NOT
+- [x] Comparison operators ≥ / ≤ / range / = derived from the stored [min, max] interval
+- [x] Regulator groups in the engine: OR across groups, AND inside a group,
+      empty group is satisfied, unknown regulators evaluate to false
+- [x] Morphogen editor (diffusion/decay/colour/names, dependency-guarded delete)
+- [x] Cell-type editor (all phenotype parameters + colour + linked genome)
+- [x] Experiment-settings editor (world size, resolution, seed, founders)
+- [x] Help browser built into the panel (search + related links, context «?» buttons)
+- [x] Working draft → validation (ConfigValidator) → apply (world rebuild)
+- [x] Save experiment to profile JSON; load experiment from the panel
+- [x] Dependency reference discovery before destructive edits (genes/morphogens/types)
+- [x] Tests: regulator groups, validator, writer, localization, help catalog coverage
+
 ## M2 — Persistence and experimentation
 
 - [x] Full save/load of world state (SaveSystem: cells, morphogens, RNG state)
@@ -50,9 +68,9 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 
 ## M4 — Performance and tooling
 
-- [ ] Multithreaded morphogen diffusion (chunked job system)
-- [ ] Incremental spatial-hash updates instead of per-step rebuild
-- [ ] In-editor inspector for genomes/morphogens (visual rule editor)
+- [x] Multithreaded morphogen diffusion (chunked job system)
+- [x] Incremental spatial-hash updates instead of per-step rebuild
+- [x] In-editor inspector for genomes/morphogens (visual rule editor) — delivered in M1.5
 - [ ] Profiling overlay, deterministic replay debugging
 
 ## M5 — Research features

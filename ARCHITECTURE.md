@@ -97,13 +97,37 @@ headless and independently from the interface.
 ### SimulationUI (Godot)
 - `Main` — owns `Simulation`, accumulates real time, calls `Step`, hosts camera + children.
   Loads the base world from `res://config` or an experiment via `--experiment <path>`.
-- `WorldView` — draws cells (circle per cell, colour by type/state) and an optional
-  morphogen heat-map layer for the selected field (auto-normalised). Read-only.
-- `Hud` — transport (pause / step / reset), speed, cell radius, initial conditions,
-  morphogen **field selector**, delete tool, per-**phenotype statistics** and a
-  **selected-cell inspector** (state, energy, radius, age, neighbours, active/silenced
-  genes, timers, local morphogen levels).
+  Holds a **working draft** (`SimulationSetup` deep clone) edited by the Laboratory;
+  «Применить» validates it and rebuilds the world. `WorldView` and `Hud` stay read-only.
+- `WorldView` — draws cells (circle per cell, colour by type/state) plus **seven
+  analytical layers**: cell types, morphogen concentration (auto-normalised heat map,
+  legend, optional cell tinting, absolute scale override), gradient vectors, gene
+  activity, silenced genes, energy, neighbour density. Read-only.
+- `Hud` (Russian) — transport (pause / step / reset), speed, layer selector, delete tool,
+  laboratory toggle, help button; per-**phenotype statistics**, a **selected-cell
+  inspector** (clickable genes open the editor), a legend strip and notifications.
+- `ui/ResearchPanel` — the **Laboratory** (`L`): tabs «Мир», «Геном», «Морфогены»,
+  «Типы клеток», «Настройки эксперимента», «Справочник»; toolbar Применить / Проверить /
+  Восстановить / Сохранить / Загрузить….
+- `ui/GenomeEditor` — gene list + card: display data, AND/OR **groups** (OR between
+  groups, AND inside, NOT per condition), thresholds ≥ / ≤ / range / = (derived from
+  the stored `[min, max]`), effects list. `ui/MorphogenEditor`, `ui/CellTypeEditor`,
+  `ui/ExperimentEditor` edit the equivalent models; deletes are guarded by
+  `ConfigDraft` reference discovery.
+- `ui/HelpPanel` — help browser over the central `HelpCatalog` in the core.
 - Camera: continuous pan/zoom via `Camera2D`.
+
+### Localization, help and configuration tooling (SimulationCore)
+- `Localization` — centralised Russian display names for regulators, effects,
+  properties, states, genes/morphogens/types; `DescribeRange` renders the operator
+  notation (≥/≤/…/=) for the stored interval.
+- `HelpCatalog` — ~50 Russian articles (keys `concept.*`, `logic.*`, `op.*`,
+  `regulator.*`, `effect.*`, `property.*`, `param.*`, `experiment.*`, `celltype.*`,
+  `timer`) with search and related-key resolution.
+- `ConfigValidator` — returns `ConfigIssue[]` (severity, section, file location,
+  message, fix hint); used by the panel before applying. `ConfigWriter` serialises a
+  setup to experiment profile files. `ConfigDraft` — unique gene ids, gene copy, and
+  reference discovery for guarded deletes. All live in the core so coverage is testable.
 
 ### SaveSystem
 - Versioned JSON DTO (v2) capturing cells (with `GenomeId`, gene state, timers, silenced
@@ -113,9 +137,12 @@ headless and independently from the interface.
 ### Tests
 - `SimulationCore.Tests` (NUnit) validates diffusion stability & conservation properties,
   decay, spatial-hash correctness, division rules, morphogen sampling, gene regulation
-  (inversion, AND logic, timers, silencing, apoptosis, division blocking), tissue mechanics
+  (inversion, AND/OR groups, timers, silencing, apoptosis, division blocking), tissue mechanics
   (adhesion, directed division, inheritance) and deterministic reproducibility, plus the
-  multicellular experiment profile.
+  multicellular experiment profile. M1.5 adds coverage for regulator groups,
+  configuration validation, serialization round-trips, localization completeness and
+  help-catalog completeness (every regulator/effect/property has an article; related
+  links resolve).
 
 ## 4. Data flow
 
@@ -129,12 +156,17 @@ Simulation.Reset(founder) --init--> cells + morphogen field
 each frame: Main accumulates dt*speed -> Simulation.Step(dt)
 Simulation.Step:  SpatialHash.Rebuild + neighbour counts
                   CellSystem.Metabolism  (energy, ageing, starvation)
-                  GenomeSystem.Evaluate  (active genes -> effects; gradient available)
+                  GenomeSystem.Evaluate  (regulator groups -> active genes -> effects)
                   MorphogenSystem.Update (emission -> diffusion/decay)
                   CellMechanics.Resolve  (de-overlap with tissue adhesion)
                   CellSystem.ResolveDivisions (energy + free space + gradient bias)
-WorldView._Draw reads Simulation.Cells + MorphogenSystem.GetField(selected)
+WorldView._Draw reads Simulation.Cells + MorphogenSystem fields (layer-dependent)
 Hud reads counts + the selected cell's regulation state (formatting only)
+
+Laboratory (ui/ResearchPanel): editors mutate WorkingDraft (deep clone)
+  -> ConfigValidator.Validate(draft) -> on apply: new Simulation(validated setup)
+  -> ConfigWriter.SaveExperiment(profile, draft) persists to JSON files
+  -> ConfigDraft.Find*References guards deletes
 ```
 
 ## 5. Key invariants
@@ -145,6 +177,8 @@ Hud reads counts + the selected cell's regulation state (formatting only)
 - Phenotypes reference a shared genome; a phenotype change never mutates the genome.
 - All randomness flows through the seeded RNG → reproducible runs (save/load preserves it).
 - The fixed update order is deterministic and covered by tests.
+- The UI never mutates the running world: editors change a deep-cloned draft that is
+  validated and applied atomically (world rebuild).
 
 ## 6. Project layout
 
@@ -154,21 +188,29 @@ Sim2.csproj              Godot C# assembly (references SimulationCore)
 Sim2.slnx                .NET solution (app + core + tests)
 config/                  simulation, morphogens, genomes, celltypes, adhesion
 config/experiments/      named experiment profiles (e.g. multicellular)
-scripts/                 Godot front-end (Main, WorldView, Hud)
+scripts/                 Godot front-end (Main, WorldView, Hud, UiKit, ui/* editors)
 scenes/                  Main.tscn
-src/SimulationCore/      pure C# simulation library
+src/SimulationCore/      pure C# simulation library (+ Localization, HelpCatalog,
+                         ConfigValidator, ConfigWriter, ConfigDraft)
 src/SimulationCore.Tests/NUnit tests
-docs:                    ARCHITECTURE.md, ROADMAP.md, README.md
+docs:                    ARCHITECTURE.md, ROADMAP.md, README.md, USER_GUIDE_RU.md
 ```
 
 ## 7. Extension model
 
-| To add…            | Do this                                                          |
-|--------------------|------------------------------------------------------------------|
-| a morphogen        | add an entry to `config/morphogens.json` (id must be unique)     |
-| a gene             | add it to a genome in `config/genomes.json`                      |
-| a phenotype        | add an entry to `config/celltypes.json` (set its `genomeId`)     |
-| an adhesion pair   | add it to `config/adhesion.json`                                 |
-| an experiment      | add a folder + profile under `config/experiments/`               |
-| a new effect/rule  | handle a new `GeneEffectConfig.Kind` in `GenomeSystem`           |
-| a new regulator    | handle a new `RegulatorConfig.Kind` in `GenomeSystem`            |
+| To add…           | Do this                                                          |
+|-------------------|------------------------------------------------------------------|
+| a morphogen       | add an entry to `config/morphogens.json` or in the Laboratory      |
+| a gene            | add it to a genome in `config/genomes.json` or in the Геном tab    |
+| a phenotype       | add an entry to `config/celltypes.json` (set its `genomeId`)       |
+| an adhesion pair  | add it to `config/adhesion.json`                                   |
+| an experiment     | add a folder + profile under `config/experiments/`, or save from the panel |
+| a new effect/rule | handle a new `GeneEffectConfig.Kind` in `GenomeSystem`             |
+| a new regulator   | handle a new `RegulatorConfig.Kind` in `GenomeSystem`              |
+| help content      | add a `HelpArticle` in `HelpCatalog.Data` (+ tests cover search/link resolution) |
+
+Note on regulation groups: `GeneConfig.RegulatorGroups` is optional. When absent,
+the legacy `Regulators` list acts as a single AND-group (backward compatible).
+Within a group all regulators must match (AND), groups are combined with OR, an
+empty group is vacuously satisfied, and an unknown regulator evaluates to false
+(and is flagged by the validator).

@@ -10,6 +10,10 @@ namespace SimulationCore;
 /// regulators, once-per-activation effects, named timers, gene silencing,
 /// cell-type switching, probabilistic (dt-invariant) apoptosis and
 /// division blocking.
+///
+/// M1.5 additions: regulator groups (AND inside a group, OR across groups) with
+/// full backward compatibility for the legacy single AND-list, and strict
+/// handling of unknown regulators (they no longer evaluate to "satisfied").
 /// </summary>
 public static class GenomeSystem
 {
@@ -84,14 +88,42 @@ public static class GenomeSystem
 
     private static bool RegulatorsMet(Cell cell, GeneConfig gene, GeneContext ctx)
     {
-        for (int r = 0; r < gene.Regulators.Count; r++)
+        // M1.5: a gene may declare several groups that are OR-combined, while the
+        // regulators inside a group are combined with the group operator (And/Or).
+        // Legacy genes without groups fall back to a single AND-group.
+        var groups = gene.EffectiveGroups();
+        for (int g = 0; g < groups.Count; g++)
         {
-            var reg = gene.Regulators[r];
-            bool met = EvaluateRegulator(cell, reg, ctx);
-            if (reg.Invert) met = !met;
-            if (!met) return false;
+            if (GroupMet(cell, groups[g], ctx))
+                return true;
         }
+        // No group met (or no groups at all -> vacuously false for an explicit OR,
+        // but EffectiveGroups always returns at least one group for legacy genes).
+        return groups.Count == 0;
+    }
+
+    private static bool GroupMet(Cell cell, RegulatorGroupConfig group, GeneContext ctx)
+    {
+        bool isOr = string.Equals(group.Operator, "Or", StringComparison.OrdinalIgnoreCase);
+        var regs = group.Regulators;
+        if (regs.Count == 0) return true; // AND/OR of nothing is vacuously satisfied
+
+        if (isOr)
+        {
+            for (int r = 0; r < regs.Count; r++)
+                if (RegulatorMet(cell, regs[r], ctx)) return true;
+            return false;
+        }
+
+        for (int r = 0; r < regs.Count; r++)
+            if (!RegulatorMet(cell, regs[r], ctx)) return false;
         return true;
+    }
+
+    private static bool RegulatorMet(Cell cell, RegulatorConfig reg, GeneContext ctx)
+    {
+        bool met = EvaluateRegulator(cell, reg, ctx);
+        return reg.Invert ? !met : met;
     }
 
     private static bool EvaluateRegulator(Cell cell, RegulatorConfig reg, GeneContext ctx)
@@ -120,7 +152,10 @@ public static class GenomeSystem
                 return cell.TimerRemaining(reg.Timer) > 0.0;
 
             default:
-                return true;
+                // Unknown regulators are NOT silently treated as satisfied: a gene
+                // relying on an unsupported condition stays off. The config
+                // validator flags such regulators as errors.
+                return false;
         }
     }
 

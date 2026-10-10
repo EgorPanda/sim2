@@ -1,5 +1,7 @@
 namespace SimulationCore;
 
+using System.Text.Json.Serialization;
+
 /// <summary>World / experiment settings. Loaded from config/simulation.json.</summary>
 public sealed class SimulationConfig
 {
@@ -24,6 +26,13 @@ public sealed class MorphogenConfig
 {
     public int Id { get; set; }
     public string Name { get; set; } = "morphogen";
+
+    /// <summary>Optional human-readable (Russian) name shown in the UI.</summary>
+    public string DisplayName { get; set; } = "";
+
+    /// <summary>Optional human-readable purpose/description shown in the UI.</summary>
+    public string Description { get; set; } = "";
+
     public double Diffusion { get; set; } = 0.0;
     public double Decay { get; set; } = 0.0;
     public string Color { get; set; } = "#ffffff";
@@ -49,6 +58,13 @@ public sealed class CellTypeConfig
 {
     public int Id { get; set; }
     public string Name { get; set; } = "cell";
+
+    /// <summary>Optional human-readable (Russian) name shown in the UI.</summary>
+    public string DisplayName { get; set; } = "";
+
+    /// <summary>Optional human-readable purpose/description shown in the UI.</summary>
+    public string Description { get; set; } = "";
+
     public string Color { get; set; } = "#ffffff";
 
     /// <summary>Shared genome this phenotype expresses.</summary>
@@ -70,12 +86,60 @@ public sealed class GeneConfig
     public string Id { get; set; } = "";
 
     public string Name { get; set; } = "gene";
+
+    /// <summary>Optional human-readable (Russian) name shown in the UI.</summary>
+    public string DisplayName { get; set; } = "";
+
+    /// <summary>Optional human-readable purpose/description shown in the UI.</summary>
+    public string Description { get; set; } = "";
+
+    /// <summary>Optional human-readable biological role shown in the UI.</summary>
+    public string Role { get; set; } = "";
+
     public double ActivationDelay { get; set; } = 0.0;
+
+    /// <summary>
+    /// Legacy, single AND-group of regulators. Kept for backward compatibility:
+    /// when <see cref="RegulatorGroups"/> is empty this list is treated as one
+    /// AND-group, exactly reproducing pre-M1.5 behaviour.
+    /// </summary>
     public List<RegulatorConfig> Regulators { get; set; } = new();
+
+    /// <summary>
+    /// Optional list of regulator groups (M1.5). Groups are OR-combined, and the
+    /// regulators inside each group are AND-combined. When empty, the legacy
+    /// <see cref="Regulators"/> list is used instead so old JSON files keep working.
+    /// </summary>
+    public List<RegulatorGroupConfig>? RegulatorGroups { get; set; }
+
     public List<GeneEffectConfig> Effects { get; set; } = new();
 
     /// <summary>Effective id: explicit <see cref="Id"/>, otherwise the name.</summary>
+    [JsonIgnore]
     public string Key => string.IsNullOrEmpty(Id) ? Name : Id;
+
+    /// <summary>
+    /// Returns the effective evaluation groups. Legacy <see cref="Regulators"/>
+    /// become a single AND-group when no explicit groups are present.
+    /// </summary>
+    public IReadOnlyList<RegulatorGroupConfig> EffectiveGroups()
+    {
+        if (RegulatorGroups is { Count: > 0 }) return RegulatorGroups;
+        return new[] { new RegulatorGroupConfig { Operator = "And", Regulators = Regulators } };
+    }
+}
+
+/// <summary>
+/// A group of regulators combined with AND (default) or OR. Groups of one gene
+/// are themselves OR-combined at the top level, so a gene activates when any of
+/// its groups is satisfied.
+/// </summary>
+public sealed class RegulatorGroupConfig
+{
+    /// <summary>How the regulators inside this group are combined: "And" or "Or".</summary>
+    public string Operator { get; set; } = "And";
+
+    public List<RegulatorConfig> Regulators { get; set; } = new();
 }
 
 /// <summary>

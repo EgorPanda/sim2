@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SimulationCore;
 
@@ -10,7 +11,10 @@ public static class ConfigLoader
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
-        WriteIndented = true
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
     };
 
     public static SimulationConfig LoadSimulationConfig(string file)
@@ -98,6 +102,43 @@ public static class ConfigLoader
     }
 
     public static JsonSerializerOptions SerializerOptions => Options;
+
+    // --- Serialization (M1.5: the UI saves edited configurations) -----------
+
+    public static string SerializeSimulationConfig(SimulationConfig config)
+        => JsonSerializer.Serialize(config, Options);
+
+    public static string SerializeMorphogens(MorphogenConfig[] morphogens)
+        => JsonSerializer.Serialize(morphogens, Options);
+
+    public static string SerializeGenomes(GenomeConfig[] genomes)
+        => JsonSerializer.Serialize(genomes, Options);
+
+    public static string SerializeCellTypes(CellTypeConfig[] cellTypes)
+        => JsonSerializer.Serialize(cellTypes, Options);
+
+    public static string SerializeAdhesion(AdhesionConfig adhesion)
+        => JsonSerializer.Serialize(adhesion, Options);
+
+    public static string SerializeExperiment(ExperimentConfig experiment)
+        => JsonSerializer.Serialize(experiment, Options);
+
+    public static ExperimentConfig ParseExperiment(string json)
+        => JsonSerializer.Deserialize<ExperimentConfig>(json, Options)
+           ?? throw new InvalidDataException("Failed to parse experiment config");
+
+    public static AdhesionConfig ParseAdhesion(string json)
+        => JsonSerializer.Deserialize<AdhesionConfig>(json, Options)
+           ?? new AdhesionConfig();
+
+    /// <summary>Deep, independent copy of a setup (draft editing never mutates the original).</summary>
+    public static SimulationSetup DeepClone(SimulationSetup setup)
+        => new(
+            ParseSimulationConfig(SerializeSimulationConfig(setup.Simulation)),
+            ParseMorphogens(SerializeMorphogens(setup.Morphogens)),
+            ParseGenomes(SerializeGenomes(setup.Genomes)),
+            ParseCellTypes(SerializeCellTypes(setup.CellTypes)),
+            ParseAdhesion(SerializeAdhesion(setup.Adhesion)));
 }
 
 /// <summary>Bundles all configuration needed to construct a <see cref="Simulation"/>.</summary>

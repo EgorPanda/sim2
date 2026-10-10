@@ -1,12 +1,15 @@
-# Artificial Life Simulator
+# Sim2 — Artificial Life Simulator
 
-Multicellular development simulator built with **Godot 4 (.NET)** and **C#**.
-A single founder cell grows into a organism through gene regulation, morphogen
-signalling, cell division, differentiation, death and regeneration.
+Russian-language multicellular development simulator built with **Godot 4 (.NET)**
+and **C#**. A single founder cell grows into an organism through gene regulation,
+morphogen signalling, cell division, differentiation, death and regeneration.
 
 - Visualisation contains **no biological rules** — all simulation logic lives in
   the pure C# library `src/SimulationCore` and runs headless.
 - Genes, morphogens and cell types are described in JSON under `config/`.
+- The **Laboratory** (research panel, `L`) lets you visualise the world across
+  seven analytical layers and edit the live configuration: gene logic (AND/OR/NOT
+  groups), morphogens, cell phenotypes and experiment settings — all in Russian.
 
 ## Prerequisites (Windows)
 
@@ -26,23 +29,23 @@ Godot executable (installed via winget):
 dotnet build Sim2.slnx
 
 :: run unit tests
-dotnet test Sim2.slnx
+dotnet test src\SimulationCore.Tests\SimulationCore.Tests.csproj
 
 :: build only the core + tests (no Godot SDK needed)
 dotnet build src\SimulationCore\SimulationCore.csproj
 
 :: run the app (GUI) with the default world
-godot --path E:\sim2
+godot --path E:\sim23
 
 :: run the app with an experiment profile
-godot --path E:\sim2 -- --experiment res://config/experiments/multicellular.json
+godot --path E:\sim23 -- --experiment res://config/experiments/multicellular.json
 
 :: run the app headless self-test (no window; steps the sim and quits)
-godot --path E:\sim2 --headless -- --selftest
-godot --path E:\sim2 --headless -- --selftest --experiment res://config/experiments/multicellular.json
+godot --path E:\sim23 --headless -- --selftest
+godot --path E:\sim23 --headless -- --selftest --experiment res://config/experiments/multicellular.json
 
 :: open the Godot editor
-godot -e --path E:\sim2
+godot -e --path E:\sim23
 ```
 
 > If `godot` is not on PATH in a fresh shell, restart the terminal (winget adds
@@ -60,17 +63,32 @@ godot -e --path E:\sim2
 | R                  | reset experiment                         |
 | Delete / Backspace  | remove selected cell                     |
 | E                   | toggle delete mode (left click removes)  |
+| L                   | open / close the Laboratory              |
+| F1                  | open the built-in help browser           |
 | WASD                | pan camera                               |
 
-## What you can do (M1)
+## What you can do
 
-- **Field selector** (left panel) chooses which morphogen the heat-map overlay shows;
-  the overlay auto-normalises so every field stays visible.
+- **Analytical layers** (left panel or «Мир» tab): cell types, morphogen
+  concentration (auto-normalised heat map + legend), gradient vectors, active
+  gene, silenced genes, energy, neighbour density.
 - **Phenotypes** (right panel) lists live population counts per cell type.
-- **Selected cell** (right panel) shows the cell's phenotype, state, energy, radius,
-  age, neighbour count, active/silenced genes, running timers and local morphogen levels.
-- Launch the bundled `multicellular` experiment to watch a single founder grow into a
-  differentiated tissue of stem, worker and skin cells.
+- **Selected cell** (right panel) shows state, energy, radius, age, neighbours,
+  active/silenced genes (clickable — opens the genome editor), timers and local
+  morphogen levels.
+- **Laboratory** (`L`) — six tabs:
+  - *Мир*: display layer and its options;
+  - *Геном*: create/copy/delete genes, edit display data, AND/OR groups with NOT,
+    thresholds (≥ / ≤ / range / = automatically derived from the stored interval),
+    and the list of effects (emit/absorb/grow/divide/type switch/timers/silencing/
+    apoptosis/division block);
+  - *Морфогены*: diffusion, decay, colour, display name, dependencies guard;
+  - *Типы клеток*: all phenotype parameters + colour + linked genome;
+  - *Настройки эксперимента*: world size, solver resolution, seed, founders;
+  - *Справочник*: Russian help browser with search and cross-links.
+- **Apply / Проверить / Восстановить / Сохранить / Загрузить…** in the panel
+  toolbar: changes live in a working draft until validated and applied; the world
+  rebuilds; experiments can be saved to an experiment profile JSON and reloaded.
 
 ## Project layout
 
@@ -79,10 +97,12 @@ project.godot, Sim2.csproj   Godot app (rendering + UI only)
 Sim2.slnx                   .NET solution (app + core + tests)
 config/                     simulation / genomes / morphogens / celltypes / adhesion (JSON)
 config/experiments/         named experiment profiles (e.g. multicellular)
-scripts/                    Godot front-end (Main, WorldView, Hud)
-src/SimulationCore/         pure C# simulation core
+scripts/                    Godot front-end (Main, Hud, WorldView, UiKit, ui/… editors)
+src/SimulationCore/         pure C# simulation core (+ Localization, HelpCatalog, ConfigValidator, ConfigWriter, ConfigDraft)
 src/SimulationCore.Tests/   NUnit tests
+docs/USER_GUIDE_RU.md       user guide (Russian)
 ARCHITECTURE.md, ROADMAP.md design documents
 ```
 
-See `ARCHITECTURE.md` for the component model and `ROADMAP.md` for the plan.
+See `ARCHITECTURE.md` for the component model, `ROADMAP.md` for the plan and
+`docs/USER_GUIDE_RU.md` for the in-depth user manual.

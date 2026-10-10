@@ -1,145 +1,111 @@
 using Godot;
 using SimulationCore;
+using System.Linq;
 
 namespace Sim2;
 
 /// <summary>
-/// On-screen controls and read-outs. The left panel holds transport, speed,
-/// initial conditions, the morphogen field selector and toggles. The right
-/// panel shows per-phenotype statistics and the selected cell's regulation
-/// state (active/silenced genes, timers, local morphogen levels). It only
-/// formats data supplied by <see cref="Main"/>; all biology stays in the core.
+/// Russian on-screen shell: transport (пауза/шаг/сброс), speed, layer selector,
+/// delete mode, laboratory toggle and help button on the left; live stats and
+/// the selected-cell inspector on the right; a gradient legend and notifications
+/// at the bottom. It only renders data and forwards commands — all biology lives
+/// in SimulationCore, the lab panel logic in <see cref="ResearchPanel"/>.
 /// </summary>
 public partial class Hud : CanvasLayer
 {
-    public event Action? PauseRequested;
-    public event Action? StepRequested;
-    public event Action<int, int, double>? ResetRequested;
-    public event Action<double>? SpeedChanged;
-    public event Action<double>? RadiusChanged;
-    public event Action<bool>? OverlayToggled;
-    public event Action<bool>? DeleteModeToggled;
-    public event Action<int>? MorphogenSelected;
-
-    private Button _pauseButton = null!;
-    private Button _stepButton = null!;
-    private Button _resetButton = null!;
-    private HSlider _speedSlider = null!;
-    private HSlider _radiusSlider = null!;
-    private SpinBox _founderSpinner = null!;
-    private SpinBox _seedSpinner = null!;
-    private OptionButton _morphogenSelect = null!;
-    private CheckBox _overlayCheck = null!;
-    private CheckBox _deleteCheck = null!;
-    private Label _statsLabel = null!;
-    private Label _phenotypeLabel = null!;
-    private Label _selectionLabel = null!;
+    private readonly Main _main;
+    private Button? _pauseButton;
+    private HSlider? _speedSlider;
+    private OptionButton? _layerSelect;
+    private Button? _labButton;
+    private CheckBox? _deleteCheck;
+    private Label? _statsLabel;
+    private Label? _phenotypeLabel;
+    private VBoxContainer? _selectionBox;
+    private Label? _notifyLabel;
+    private LegendBar? _legend;
+    private int? _inspectorCell;
     private bool _suppressSignals;
 
-    public void Build(SimulationConfig config, MorphogenConfig[] morphogens, CellTypeConfig[] types)
+    public Hud(Main main)
     {
-        BuildControlPanel(config, morphogens);
-        BuildStatsPanel(types);
+        _main = main;
+        BuildControlPanel();
+        BuildStatsPanel();
+        BuildLegend();
+        UpdateNotify("Добро пожаловать в лабораторию. F1 — справка, L — панель, Пробел — пауза.");
     }
 
-    private void BuildControlPanel(SimulationConfig config, MorphogenConfig[] morphogens)
+    private void BuildControlPanel()
     {
-        var panel = new PanelContainer
-        {
-            Position = new Vector2(12, 12)
-        };
-        var style = new StyleBoxFlat
-        {
-            BgColor = new Color(0, 0, 0, 0.55f),
-            CornerRadiusTopLeft = 8,
-            CornerRadiusTopRight = 8,
-            CornerRadiusBottomLeft = 8,
-            CornerRadiusBottomRight = 8
-        };
-        panel.AddThemeStyleboxOverride("panel", style);
-        AddChild(panel);
-
+        var panel = new PanelContainer { Position = new Vector2(12, 12) };
+        panel.AddThemeStyleboxOverride("panel", Ui.PanelStyle(0.55f, 8));
         var box = new VBoxContainer();
         panel.AddChild(box);
+        AddChild(panel);
 
-        // Row 1: transport.
         var transport = new HBoxContainer();
+        _pauseButton = Ui.Btn("Поставить на паузу", () => _main.TogglePause(), 150);
+        transport.AddChild(_pauseButton);
+        transport.AddChild(Ui.Btn("Шаг", () => _main.StepOnce(), 60));
+        transport.AddChild(Ui.Btn("Сброс", () => _main.ResetSimulation(), 70));
         box.AddChild(transport);
 
-        _pauseButton = new Button { Text = "Pause" };
-        _pauseButton.Pressed += () => PauseRequested?.Invoke();
-        transport.AddChild(_pauseButton);
-
-        _stepButton = new Button { Text = "Step" };
-        _stepButton.Pressed += () => StepRequested?.Invoke();
-        transport.AddChild(_stepButton);
-
-        _resetButton = new Button { Text = "Reset" };
-        _resetButton.Pressed += OnResetPressed;
-        transport.AddChild(_resetButton);
-
-        // Row 2: speed.
         var speedRow = new HBoxContainer();
-        box.AddChild(speedRow);
-        speedRow.AddChild(new Label { Text = "Speed  ", CustomMinimumSize = new Vector2(56, 0), VerticalAlignment = VerticalAlignment.Center });
-        _speedSlider = new HSlider { MinValue = 0.1, MaxValue = 8.0, Step = 0.1, Value = config.DefaultSpeed, CustomMinimumSize = new Vector2(180, 0) };
-        _speedSlider.ValueChanged += v => SpeedChanged?.Invoke(v);
+        speedRow.AddChild(new Label { Text = "Скорость", CustomMinimumSize = new Vector2(60, 0), VerticalAlignment = VerticalAlignment.Center });
+        _speedSlider = new HSlider
+        {
+            MinValue = 0.1, MaxValue = 16.0, Step = 0.1,
+            Value = _main.LiveSetup?.Simulation.DefaultSpeed ?? 1.0,
+            CustomMinimumSize = new Vector2(160, 0)
+        };
+        _speedSlider.ValueChanged += v => _main.Speed = v;
         speedRow.AddChild(_speedSlider);
+        speedRow.AddChild(new Label { Text = " ", CustomMinimumSize = new Vector2(36, 0) });
+        box.AddChild(speedRow);
 
-        // Row 3: cell radius (applies on reset).
-        var radiusRow = new HBoxContainer();
-        box.AddChild(radiusRow);
-        radiusRow.AddChild(new Label { Text = "Radius ", CustomMinimumSize = new Vector2(56, 0), VerticalAlignment = VerticalAlignment.Center });
-        _radiusSlider = new HSlider { MinValue = 4.0, MaxValue = 40.0, Step = 0.5, Value = config.CellRadius, CustomMinimumSize = new Vector2(140, 0) };
-        _radiusSlider.ValueChanged += v => RadiusChanged?.Invoke(v);
-        radiusRow.AddChild(_radiusSlider);
-
-        // Row 4: initial conditions.
-        var initRow = new HBoxContainer();
-        box.AddChild(initRow);
-        initRow.AddChild(new Label { Text = "Founders" });
-        _founderSpinner = new SpinBox { MinValue = 1, MaxValue = 200, Value = config.InitialCells, CustomMinimumSize = new Vector2(70, 0) };
-        initRow.AddChild(_founderSpinner);
-        initRow.AddChild(new Label { Text = "  Seed" });
-        _seedSpinner = new SpinBox { MinValue = 0, MaxValue = 99999, Value = config.RngSeed, CustomMinimumSize = new Vector2(84, 0) };
-        initRow.AddChild(_seedSpinner);
-
-        // Row 5: morphogen field selector.
-        var morphRow = new HBoxContainer();
-        box.AddChild(morphRow);
-        morphRow.AddChild(new Label { Text = "Field   ", CustomMinimumSize = new Vector2(56, 0), VerticalAlignment = VerticalAlignment.Center });
-        _morphogenSelect = new OptionButton { CustomMinimumSize = new Vector2(180, 0) };
-        foreach (var m in morphogens)
-            _morphogenSelect.AddItem($"{m.Id}: {m.Name}", m.Id);
-        _morphogenSelect.ItemSelected += idx =>
+        var layerRow = new HBoxContainer();
+        layerRow.AddChild(new Label { Text = "Слой", CustomMinimumSize = new Vector2(40, 0), VerticalAlignment = VerticalAlignment.Center });
+        _layerSelect = new OptionButton { CustomMinimumSize = new Vector2(210, 0) };
+        var layers = new (WorldLayer, string)[]
+        {
+            (WorldLayer.CellTypes, "Типы клеток"),
+            (WorldLayer.Morphogen, "Концентрация"),
+            (WorldLayer.Gradient, "Градиент"),
+            (WorldLayer.GeneActivity, "Активность гена"),
+            (WorldLayer.GeneState, "Подавленные гены"),
+            (WorldLayer.Energy, "Энергия"),
+            (WorldLayer.Neighbours, "Соседи"),
+        };
+        foreach (var (layer, text) in layers)
+            _layerSelect.AddItem(text, (int)layer);
+        _layerSelect.ItemSelected += idx =>
         {
             if (_suppressSignals) return;
-            int id = (int)_morphogenSelect.GetItemId((int)idx);
-            MorphogenSelected?.Invoke(id);
+            _main.CurrentLayer = (WorldLayer)(int)_layerSelect.GetItemId((int)idx);
+            _main.RefreshLayer();
         };
-        morphRow.AddChild(_morphogenSelect);
+        layerRow.AddChild(_layerSelect);
+        box.AddChild(layerRow);
 
-        // Row 6: toggles.
-        var toggleRow = new HBoxContainer();
-        box.AddChild(toggleRow);
-        _overlayCheck = new CheckBox { Text = "Morphogens", ButtonPressed = false };
-        _overlayCheck.Toggled += on => OverlayToggled?.Invoke(on);
-        toggleRow.AddChild(_overlayCheck);
-        _deleteCheck = new CheckBox { Text = "Delete mode", ButtonPressed = false };
-        _deleteCheck.Toggled += on => DeleteModeToggled?.Invoke(on);
-        toggleRow.AddChild(_deleteCheck);
+        var miscRow = new HBoxContainer();
+        _deleteCheck = Ui.Chk("Режим удаления", false, on => _main.DeleteMode = on);
+        miscRow.AddChild(_deleteCheck);
+        _labButton = Ui.Btn("Лаборатория…", () => _main.ToggleLaboratory(), 130);
+        miscRow.AddChild(_labButton);
+        box.AddChild(miscRow);
 
-        // Help text.
+        box.AddChild(Ui.Btn("Справочник (F1)", () => _main.OpenHelp("concept.gene_regulation"), 180));
+
         box.AddChild(new Label
         {
-            Text = "LMB select | RMB/MB drag pan | wheel zoom\nSpace pause | . step | E delete-mode | Del remove | R reset",
+            Text = "ЛКМ — выбрать • ПКМ/средняя — панорама • колесо — зум\nПробел — пауза • . — шаг • R — сброс • E — удаление • L — панель • F1 — справка",
             MouseFilter = Control.MouseFilterEnum.Ignore
         });
     }
 
-    private void BuildStatsPanel(CellTypeConfig[] types)
+    private void BuildStatsPanel()
     {
-        // Top-right stats line.
         _statsLabel = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Right,
@@ -151,83 +117,255 @@ public partial class Hud : CanvasLayer
         _statsLabel.Position = new Vector2(-16, 12);
         _statsLabel.GrowHorizontal = Control.GrowDirection.Begin;
 
-        // Right-side detail panel below the stats line.
         var panel = new PanelContainer();
-        var style = new StyleBoxFlat
-        {
-            BgColor = new Color(0, 0, 0, 0.55f),
-            ContentMarginLeft = 10,
-            ContentMarginRight = 10,
-            ContentMarginTop = 8,
-            ContentMarginBottom = 8,
-            CornerRadiusTopLeft = 8,
-            CornerRadiusTopRight = 8,
-            CornerRadiusBottomLeft = 8,
-            CornerRadiusBottomRight = 8
-        };
-        panel.AddThemeStyleboxOverride("panel", style);
+        panel.AddThemeStyleboxOverride("panel", Ui.PanelStyle(0.55f, 8));
         panel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        panel.Position = new Vector2(-16, 56);
+        panel.Position = new Vector2(-16, 52);
         panel.GrowHorizontal = Control.GrowDirection.Begin;
         AddChild(panel);
 
-        var box = new VBoxContainer { CustomMinimumSize = new Vector2(250, 0) };
+        var box = new VBoxContainer { CustomMinimumSize = new Vector2(300, 0) };
         panel.AddChild(box);
-        box.AddChild(new Label { Text = "-- Phenotypes --" });
+
+        box.AddChild(new Label { Text = "— Фенотипы —" });
         _phenotypeLabel = new Label();
         box.AddChild(_phenotypeLabel);
-        box.AddChild(new Label { Text = "\n-- Selected cell --" });
-        _selectionLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        box.AddChild(_selectionLabel);
+
+        box.AddChild(new Label { Text = "— Выбранная клетка —" });
+        _selectionBox = new VBoxContainer();
+        box.AddChild(_selectionBox);
     }
 
-    private void OnResetPressed()
+    private void BuildLegend()
     {
-        if (_suppressSignals) return;
-        ResetRequested?.Invoke(Mathf.Max(1, (int)_founderSpinner.Value), (int)_seedSpinner.Value, _radiusSlider.Value);
+        _legend = new LegendBar { Visible = false };
+        AddChild(_legend);
+        _notifyLabel = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        AddChild(_notifyLabel);
+        _notifyLabel.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
+        _notifyLabel.Position = new Vector2(12, -34);
+        _notifyLabel.GrowVertical = Control.GrowDirection.Begin;
     }
 
-    /// <summary>Updates the pause/disable state of transport buttons.</summary>
+    // --- Commands from the environment / to Main ---------------------------
+
     public void SetPaused(bool paused)
     {
-        _pauseButton.Text = paused ? "Resume" : "Pause";
-        _stepButton.Disabled = !paused;
+        if (_pauseButton == null) return;
+        _pauseButton.Text = paused ? "Продолжить" : "Поставить на паузу";
     }
 
-    /// <summary>Synchronises the delete-mode checkbox without re-firing its signal.</summary>
-    public void SetDeleteMode(bool enabled)
+    public void SetDeleteMode(bool on)
     {
         _suppressSignals = true;
-        _deleteCheck.SetPressedNoSignal(enabled);
+        if (_deleteCheck != null) _deleteCheck.SetPressedNoSignal(on);
         _suppressSignals = false;
     }
 
-    public void UpdateStats(int cellCount, int fps, double simTime, long tick, bool paused, int? selectedId)
+    public void SetLabOpen(bool open)
     {
-        _statsLabel.Text =
-            $"cells: {cellCount}   fps: {fps}   time: {simTime:F1}s   tick: {tick}\n" +
-            (paused ? "PAUSED  " : "") +
-            (selectedId is int id ? $"selected: #{id}" : "");
+        if (_labButton == null) return;
+        _labButton.Text = open ? "Лаборатория (открыта)" : "Лаборатория…";
     }
 
-    /// <summary>Refreshes the per-phenotype population counts (multi-line text).</summary>
-    public void UpdatePhenotypes(string text) => _phenotypeLabel.Text = text;
-
-    /// <summary>Refreshes the selected-cell detail text (multi-line).</summary>
-    public void UpdateSelection(string text) => _selectionLabel.Text = text;
-
-    /// <summary>Synchronises the field selector without re-firing its signal.</summary>
-    public void SetSelectedMorphogen(int morphogenId)
+    public void SetLayer(WorldLayer layer)
     {
         _suppressSignals = true;
-        for (int i = 0; i < _morphogenSelect.ItemCount; i++)
+        if (_layerSelect != null)
         {
-            if ((int)_morphogenSelect.GetItemId(i) == morphogenId)
+            for (int i = 0; i < _layerSelect.ItemCount; i++)
             {
-                _morphogenSelect.Select(i);
-                break;
+                if ((int)_layerSelect.GetItemId(i) == (int)layer)
+                {
+                    _layerSelect.Select(i);
+                    break;
+                }
             }
         }
         _suppressSignals = false;
+    }
+
+    // --- Per-frame refresh -------------------------------------------------
+
+    public void RefreshStats()
+    {
+        if (_sim == null) return;
+        var sim = _main.Sim!;
+        var setup = _main.LiveSetup!;
+        if (_statsLabel != null)
+        {
+            _statsLabel.Text =
+                $"клеток: {sim.Cells.Count}   fps: {Engine.GetFramesPerSecond():F0}   " +
+                $"время: {sim.Time:F1} с   такт: {sim.Tick}\n" +
+                $"{(_main.Paused ? "ПАУЗА   " : "")}" +
+                (_main.SelectedCellId is int id ? $"выбрано: #{id}" : "");
+        }
+
+        if (_phenotypeLabel != null)
+            _phenotypeLabel.Text = _main.PhenotypeText;
+
+        RefreshSelection();
+        RefreshLegend();
+    }
+
+    private void RefreshSelection()
+    {
+        if (_selectionBox == null) return;
+        int? id = _main.SelectedCellId;
+        if (_inspectorCell == id) return;
+        _inspectorCell = id;
+        Ui.Clear(_selectionBox);
+        if (id is not int cellId) return;
+
+        var sim = _main.Sim;
+        if (sim == null) return;
+        var cell = sim.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell == null) return;
+        var setup = _main.LiveSetup;
+        if (setup == null) return;
+
+        var type = setup.CellTypes.FirstOrDefault(t => t.Id == cell.TypeId);
+        var genome = sim.GenomeOf(cell.GenomeId);
+
+        string typeName = type != null ? Localization.CellTypeName(type) : $"(тип {cell.TypeId})";
+        _selectionBox.AddChild(Ui.Lbl($"#{cell.Id}  {typeName}"));
+        _selectionBox.AddChild(Ui.Lbl($"состояние: {Localization.State(cell.State)}  энергия: {cell.Energy:F1}/{type?.MaxEnergy:F0}"));
+        _selectionBox.AddChild(Ui.Lbl($"радиус: {cell.Radius:F1}  возраст: {cell.Age:F1} с  соседи: {cell.NeighbourCount}"));
+
+        if (genome != null)
+        {
+            var active = genome.Genes.Where(g => cell.StateOf(g.Key).Active).ToList();
+            var silenced = genome.Genes.Where(g => cell.IsSilenced(g.Key)).ToList();
+            _selectionBox.AddChild(Ui.Lbl($"гены активны: {active.Count}/{genome.Genes.Count}"));
+            if (active.Count > 0)
+            {
+                foreach (var gene in active)
+                {
+                    var row = new HBoxContainer();
+                    row.AddChild(Ui.Btn(Localization.GeneName(gene), () => _main.OpenGene(gene.Key)));
+                    row.AddChild(Ui.Lbl("активен"));
+                    _selectionBox.AddChild(row);
+                }
+            }
+            if (silenced.Count > 0)
+            {
+                var row = new HBoxContainer();
+                row.AddChild(Ui.Lbl("подавлены:"));
+                foreach (var gene in silenced)
+                {
+                    var btn = Ui.Btn(Localization.GeneName(gene), () => _main.OpenGene(gene.Key));
+                    btn.Modulate = new Color(1f, 0.6f, 0.6f);
+                    row.AddChild(btn);
+                }
+                _selectionBox.AddChild(row);
+            }
+
+            if (cell.Timers.Count > 0)
+            {
+                _selectionBox.AddChild(Ui.Lbl("таймеры: " + string.Join(", ",
+                    cell.Timers.Select(kv => $"{kv.Key} {kv.Value:F1}с"))));
+            }
+        }
+
+        var fields = setup.Morphogens
+            .Select(m => $"{Localization.MorphogenName(m)} {sim.SampleMorphogen(m.Id, cell.X, cell.Y):F2}");
+        _selectionBox.AddChild(Ui.Lbl(string.Join("  ", fields)));
+    }
+
+    private void RefreshLegend()
+    {
+        if (_legend == null || _world == null) return;
+        var world = _main.World;
+        bool show = _main.CurrentLayer == WorldLayer.Morphogen;
+        _legend.Visible = show;
+        if (show) _legend.Show(world);
+    }
+
+    public void UpdateNotify(string text, bool error = false)
+    {
+        if (_notifyLabel == null) return;
+        _notifyLabel.Text = text;
+        _notifyLabel.AddThemeColorOverride("font_color",
+            error ? new Color(1f, 0.5f, 0.5f) : new Color(0.92f, 0.95f, 1f));
+    }
+
+    private SimulationCore.Simulation? _sim => _main.Sim;
+    private WorldView? _world => _main.World;
+}
+
+/// <summary>Bottom-centre legend strip: color ramp for the concentration layer.</summary>
+public partial class LegendBar : Control
+{
+    private Label? _caption;
+    private Label? _min;
+    private Label? _max;
+    private Color _color = Colors.DeepSkyBlue;
+    private string _note = "";
+
+    public LegendBar()
+    {
+        SetAnchorsPreset(Control.LayoutPreset.CenterBottom);
+        Position = new Vector2(-180, -56);
+        CustomMinimumSize = new Vector2(420, 44);
+        GrowHorizontal = Control.GrowDirection.Both;
+        MouseFilter = Control.MouseFilterEnum.Ignore;
+
+        var boxLayout = new HBoxContainer();
+        boxLayout.AnchorRight = 1;
+        boxLayout.OffsetLeft = 40;
+        boxLayout.OffsetRight = -40;
+        boxLayout.OffsetTop = 2;
+        boxLayout.OffsetBottom = 34;
+        AddChild(boxLayout);
+
+        _min = new Label { Text = "0", VerticalAlignment = VerticalAlignment.Center, CustomMinimumSize = new Vector2(44, 0) };
+        _max = new Label { Text = "1", VerticalAlignment = VerticalAlignment.Center, CustomMinimumSize = new Vector2(44, 0) };
+        boxLayout.AddChild(_min);
+        boxLayout.AddChild(new Label { Text = "", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }); // ramp area
+        boxLayout.AddChild(_max);
+
+        _caption = new Label
+        {
+            Text = "",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AnchorLeft = 0, AnchorRight = 1, OffsetTop = 34, OffsetBottom = 54,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        AddChild(_caption);
+    }
+
+    public void Show(WorldView world)
+    {
+        _color = world.MorphogenUiColor;
+        _note = world.LegendNote;
+        _min!.Text = Num.Fmt(world.LegendMin);
+        _max!.Text = Num.Fmt(world.LegendMax);
+        _caption!.Text = $"{world.LegendTitle}  •  {_note}";
+        QueueRedraw();
+    }
+
+    public override void _Draw()
+    {
+        float h = Size.Y > 20 ? 26 : 12;
+        var rectTop = new Rect2(44, 2, Size.X - 88, h);
+        var from = new Color(_color, 0.0f);
+        var to = _color;
+        DrawRect(rectTop, from);
+        // Simulate a ramp with several translucent rectangles.
+        const int steps = 24;
+        float stepW = rectTop.Size.X / steps;
+        for (int i = 0; i < steps; i++)
+        {
+            float t = i / (float)steps;
+            var c = new Color(_color, t * 0.65f);
+            DrawRect(new Rect2(rectTop.Position.X + i * stepW, rectTop.Position.Y, stepW + 1, rectTop.Size.Y), c);
+        }
+        DrawRect(new Rect2(rectTop.Position, rectTop.Size), new Color(to, 0.0f), filled: false, width: 1.0f);
     }
 }
