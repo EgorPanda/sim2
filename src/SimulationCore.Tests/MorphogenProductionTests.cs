@@ -5,7 +5,7 @@ using NUnit.Framework;
 [TestFixture]
 public class MorphogenProductionTests
 {
-    private static CellTypeConfig Type() => new() { Id = 0, GenomeId = 0, MaxEnergy = 100 };
+    private static CellTypeConfig Type() => new() { Id = 0, GenomeId = 0 };
     private static GenomeConfig GenomeOf(params GeneConfig[] genes) => new() { Id = 0, Genes = genes.ToList() };
 
     private sealed class Context : GeneContext
@@ -109,7 +109,7 @@ public class MorphogenProductionTests
                 }
             }
         };
-        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 1000, MaintenanceCost = 0.0 } };
+        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 } };
 
         var sim = new Simulation(setup);
         // Run until the total mass approaches the steady state (rate / decay = 10).
@@ -143,7 +143,7 @@ public class MorphogenProductionTests
                 }
             }
         };
-        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 1000, MaintenanceCost = 0.0 } };
+        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 } };
 
         var simA = new Simulation(setup);
         for (int i = 0; i < 100; i++) simA.Step(0.05); // 5 seconds
@@ -181,7 +181,7 @@ public class MorphogenProductionTests
                 }
             }
         };
-        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 1000, MaintenanceCost = 0.0 } };
+        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 } };
 
         var sim = new Simulation(setup);
         for (int i = 0; i < 50; i++) sim.Step(0.05);
@@ -215,7 +215,7 @@ public class MorphogenProductionTests
                 }
             }
         };
-        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 1000, MaintenanceCost = 0.0 } };
+        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 } };
 
         var sim = new Simulation(setup);
         sim.Step(1.0);
@@ -224,3 +224,4 @@ public class MorphogenProductionTests
         Assert.That(total, Is.EqualTo(10.0).Within(1e-9));
     }
 }
+

@@ -32,10 +32,8 @@ public sealed class Cell
     public int GenomeId;
     public CellState State = CellState.Alive;
 
-    public double Energy;
     public double Age;
     public double DivisionProgress;
-    public double StarveTimer;
     public double DeathTimer;
 
     /// <summary>Gene regulation state keyed by gene id. One entry per gene.</summary>

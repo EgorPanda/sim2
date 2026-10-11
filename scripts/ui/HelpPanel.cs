@@ -52,7 +52,8 @@ public partial class HelpPanel : VBoxContainer
         var resultsScroll = new ScrollContainer
         {
             CustomMinimumSize = new Vector2(0, 120),
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
         resultsScroll.AddChild(_results);
         _noResults = new Label

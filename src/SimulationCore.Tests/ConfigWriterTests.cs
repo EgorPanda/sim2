@@ -29,7 +29,7 @@ public class ConfigWriterTests
                     Description = "Тестовое описание",
                     RegulatorGroups = new List<RegulatorGroupConfig>
                     {
-                        new() { Operator = "Or", Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 1 } } }
+                        new() { Operator = "Or", Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 1 } } }
                     },
                     Effects = { TestFactory.Emit(0, 5) }
                 });

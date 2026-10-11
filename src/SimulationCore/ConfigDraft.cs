@@ -109,7 +109,7 @@ public static class ConfigDraft
         return refs;
     }
 
-    /// <summary>Finds genes that reference a morphogen (emit/absorb regulators/effects) and the division gradient.</summary>
+    /// <summary>Finds genes that reference a morphogen (emit/move effects, morphogen regulators) and the division gradient.</summary>
     public static List<string> FindMorphogenReferences(SimulationSetup setup, int morphogenId)
     {
         var refs = new List<string>();
@@ -119,7 +119,7 @@ public static class ConfigDraft
             foreach (var gene in genome.Genes)
             {
                 bool hit = gene.Effects.Any(e =>
-                        (Eq(e.Kind, "EmitMorphogen") || Eq(e.Kind, "Absorb")) && e.Morphogen == morphogenId)
+                        (Eq(e.Kind, "EmitMorphogen") || Eq(e.Kind, "Move")) && e.Morphogen == morphogenId)
                     || gene.EffectiveGroups().Any(g => g.Regulators.Any(r =>
                         Eq(r.Kind, "Morphogen") && r.Morphogen == morphogenId));
                 if (hit) refs.Add($"ген «{gene.Key}»");
@@ -148,7 +148,7 @@ public static class ConfigDraft
 
     /// <summary>
     /// Deletes a morphogen from the working set and removes every reference to
-    /// it: emit/absorb effects, morphogen regulators (dropping groups that become
+    /// it: emit/move effects, morphogen regulators (dropping groups that become
     /// empty), and the division-gradient selector when it pointed at this id.
     /// Returns the affected gene ids so the UI can report the cleanup.
     /// </summary>
@@ -159,7 +159,7 @@ public static class ConfigDraft
             foreach (var gene in genome.Genes)
             {
                 bool touched = gene.Effects.RemoveAll(e =>
-                    (Eq(e.Kind, "EmitMorphogen") || Eq(e.Kind, "Absorb")) && e.Morphogen == morphogenId) > 0;
+                    (Eq(e.Kind, "EmitMorphogen") || Eq(e.Kind, "Move")) && e.Morphogen == morphogenId) > 0;
 
                 if (gene.RegulatorGroups != null)
                 {
@@ -183,10 +183,34 @@ public static class ConfigDraft
             }
 
         if (setup.Simulation.DivisionGradientMorphogen == morphogenId)
+        {
             setup.Simulation.DivisionGradientMorphogen = -1;
+            affected.Add("эксперимент (морфоген направления деления)");
+        }
+
+        if (setup.Simulation.InitialExternalSources.RemoveAll(s => s.MorphogenId == morphogenId) > 0)
+            affected.Add("начальные внешние источники");
+        if (setup.Simulation.InitialInternalMorphogens.Remove(morphogenId))
+            affected.Add("начальная внутренняя концентрация");
 
         setup.Morphogens = setup.Morphogens.Where(m => m.Id != morphogenId).ToArray();
         return affected;
+    }
+
+    /// <summary>
+    /// Removes initial-signal references that contradict the morphogen's current
+    /// type (an external initial source for an internal morphogen, an internal
+    /// founder concentration for an external one). Called when a morphogen type
+    /// is switched in the editor.
+    /// </summary>
+    public static void ReconcileInitialSignals(SimulationSetup setup, int morphogenId)
+    {
+        var cfg = setup.Morphogens.FirstOrDefault(m => m.Id == morphogenId);
+        if (cfg == null) return;
+        if (cfg.IsInternal)
+            setup.Simulation.InitialExternalSources.RemoveAll(s => s.MorphogenId == morphogenId);
+        else
+            setup.Simulation.InitialInternalMorphogens.Remove(morphogenId);
     }
 
     /// <summary>Returns a morphogen id unused in the working set.</summary>
@@ -242,12 +266,7 @@ public static class ConfigDraft
             Color = source.Color,
             GenomeId = source.GenomeId,
             BaseRadius = source.BaseRadius,
-            MaxRadius = source.MaxRadius,
-            MaxEnergy = source.MaxEnergy,
-            MaintenanceCost = source.MaintenanceCost,
-            DivisionEnergyCost = source.DivisionEnergyCost,
-            GrowEnergyCostPerRadius = source.GrowEnergyCostPerRadius,
-            StarveGracePeriod = source.StarveGracePeriod
+            MaxRadius = source.MaxRadius
         };
     }
 }

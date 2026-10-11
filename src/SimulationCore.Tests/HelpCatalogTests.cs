@@ -36,17 +36,15 @@ public class HelpCatalogTests
             "concept.morphogen", "concept.concentration", "concept.gradient",
             "concept.diffusion", "concept.decay", "concept.apoptosis",
             "concept.differentiation", "concept.silencing", "concept.division",
-            "concept.absorption", "concept.growth", "concept.adhesion", "concept.gene_regulation",
+            "concept.growth", "concept.adhesion", "concept.gene_regulation",
             "param.activationDelay", "param.morphogenDiffusion", "param.morphogenDecay",
-            "param.emissionRate", "param.absorbRate", "param.growRate", "param.divisionRate",
+            "param.emissionRate", "param.growRate", "param.divisionRate",
             "param.timerDuration", "param.apoptosisProbability",
             "experiment.worldWidth", "experiment.worldHeight", "experiment.morphogenResolution",
             "experiment.fixedTimeStep", "experiment.defaultSpeed", "experiment.cellRadius",
             "experiment.initialCells", "experiment.rngSeed", "experiment.founderTypeId",
             "experiment.divisionGradientMorphogen",
-            "celltype.baseRadius", "celltype.maxRadius", "celltype.maxEnergy",
-            "celltype.maintenanceCost", "celltype.divisionEnergyCost",
-            "celltype.growEnergyCostPerRadius", "celltype.starveGracePeriod",
+            "celltype.baseRadius", "celltype.maxRadius",
             "celltype.color", "celltype.genomeId"
         };
         foreach (var key in keys)

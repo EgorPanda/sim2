@@ -5,7 +5,7 @@ using NUnit.Framework;
 [TestFixture]
 public class MorphogenTriggerTests
 {
-    private static CellTypeConfig Type() => new() { Id = 0, GenomeId = 0, MaxEnergy = 100 };
+    private static CellTypeConfig Type() => new() { Id = 0, GenomeId = 0 };
 
     private static GenomeConfig GenomeOf(params GeneConfig[] genes) => new() { Id = 0, Genes = genes.ToList() };
 
@@ -173,17 +173,17 @@ public class MorphogenTriggerTests
             RequiredMorphogenThreshold = 0.5,
             RegulatorGroups = new()
             {
-                new() { Operator = "And", Regulators = new() { new() { Kind = "Property", Property = "energy", Min = 10.0 } } }
+                new() { Operator = "And", Regulators = new() { new() { Kind = "Property", Property = "radius", Min = 10.0 } } }
             },
             Effects = new() { new() { Kind = "EmitMorphogen", Morphogen = 0, Rate = 10.0 } }
         };
-        var cell = new Cell { TypeId = 0, GenomeId = 0, Energy = 5.0 };
+        var cell = new Cell { TypeId = 0, GenomeId = 0, Radius = 5.0 };
         var ctx = new Context { ExternalConcentration = 0.7 };
 
         GenomeSystem.Evaluate(cell, Type(), GenomeOf(gene), ctx, 0.5);
         Assert.That(cell.StateOf("g").Active, Is.False, "additional regulator blocks activation");
 
-        cell.Energy = 20.0;
+        cell.Radius = 20.0;
         GenomeSystem.Evaluate(cell, Type(), GenomeOf(gene), ctx, 0.5);
         Assert.That(cell.StateOf("g").Active, Is.True, "trigger + regulator satisfied");
     }

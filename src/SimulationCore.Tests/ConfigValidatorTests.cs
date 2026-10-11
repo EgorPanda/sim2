@@ -82,7 +82,7 @@ public class ConfigValidatorTests
     }
 
     [Test]
-    public void EmptyGroup_IsWarning_NotError()
+    public void EmptyGroup_IsAllowedWithoutWarnings()
     {
         var g = new GeneConfig
         {
@@ -91,7 +91,7 @@ public class ConfigValidatorTests
             Effects = { TestFactory.Emit(0, 1) }
         };
         var issues = ConfigValidator.Validate(TestFactory.Setup(genome: g));
-        Assert.That(issues.Any(i => !i.IsError && i.Message.Contains("Пустая группа")), Is.True);
+        Assert.That(issues, Is.Empty);
         Assert.That(ConfigValidator.HasErrors(issues), Is.False);
     }
 
@@ -99,7 +99,7 @@ public class ConfigValidatorTests
     public void BadRange_IsFlagged()
     {
         var g = TestFactory.Gene("g", TestFactory.Emit(0, 1));
-        g.Regulators.Add(new RegulatorConfig { Kind = "Property", Property = "energy", Min = 10, Max = 5 });
+        g.Regulators.Add(new RegulatorConfig { Kind = "Property", Property = "radius", Min = 10, Max = 5 });
         var issues = ConfigValidator.Validate(TestFactory.Setup(genome: g));
         Assert.That(issues.Any(i => i.IsError && i.Message.Contains("больше максимума")), Is.True);
     }

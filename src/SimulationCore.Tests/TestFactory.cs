@@ -46,11 +46,6 @@ internal static class TestFactory
             Name = "test",
             BaseRadius = 8.0,
             MaxRadius = 12.0,
-            MaxEnergy = 100.0,
-            MaintenanceCost = 0.0,
-            DivisionEnergyCost = 10.0,
-            GrowEnergyCostPerRadius = 0.0,
-            StarveGracePeriod = 1.0,
             GenomeId = genomeId
         };
 
@@ -64,9 +59,7 @@ internal static class TestFactory
         string color = "#ffffff",
         int genomeId = 0,
         double? baseRadius = null,
-        double? maxRadius = null,
-        double? maxEnergy = null,
-        double? divisionCost = null)
+        double? maxRadius = null)
     {
         var existing = setup.CellTypes.ToList();
         var newType = new CellTypeConfig
@@ -76,11 +69,6 @@ internal static class TestFactory
             Color = color,
             BaseRadius = baseRadius ?? 8.0,
             MaxRadius = maxRadius ?? 12.0,
-            MaxEnergy = maxEnergy ?? 100.0,
-            MaintenanceCost = 0.0,
-            DivisionEnergyCost = divisionCost ?? 10.0,
-            GrowEnergyCostPerRadius = 0.0,
-            StarveGracePeriod = 1.0,
             GenomeId = genomeId
         };
         existing.Add(newType);
@@ -96,9 +84,6 @@ internal static class TestFactory
 
     public static GeneEffectConfig Emit(int morph, double rate) =>
         new() { Kind = "EmitMorphogen", Morphogen = morph, Rate = rate };
-
-    public static GeneEffectConfig Absorb(int morph, double rate) =>
-        new() { Kind = "Absorb", Morphogen = morph, Rate = rate };
 
     public static GeneEffectConfig Grow(double rate) =>
         new() { Kind = "Grow", Rate = rate };

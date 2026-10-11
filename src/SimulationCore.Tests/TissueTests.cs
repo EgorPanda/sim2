@@ -116,7 +116,6 @@ public class TissueTests
         setup.Simulation.DivisionGradientMorphogen = 0;
 
         var sim = new Simulation(setup);
-        sim.Cells[0].Energy = 100.0;
 
         // Build a field that increases along +x: value(x) = x.
         for (int gx = 0; gx < sim.Morphogens.GridWidth; gx++)
@@ -143,7 +142,6 @@ public class TissueTests
         setup.Simulation.DivisionGradientMorphogen = 0;
 
         var sim = new Simulation(setup);
-        sim.Cells[0].Energy = 100.0;
 
         sim.Step(0.05);
 
@@ -165,19 +163,19 @@ public class TissueTests
         var always = new GeneConfig
         {
             Id = "on",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { TestFactory.Emit(0, 1) }
         };
         var victim = new GeneConfig
         {
             Id = "victim",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { TestFactory.Emit(0, 1) }
         };
         var silencer = new GeneConfig
         {
             Id = "s",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects =
             {
                 new GeneEffectConfig { Kind = "SilenceGene", Gene = "victim", Once = true },
@@ -189,7 +187,6 @@ public class TissueTests
 
         var sim = new Simulation(setup);
         var parent = sim.Cells[0];
-        parent.Energy = 100.0;
 
         // Step 1 activates the genes; the silencer silences 'victim' and begins division.
         sim.Step(0.05);

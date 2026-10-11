@@ -198,7 +198,6 @@ public static class GenomeSystem
 
     private static double Property(Cell cell, string name) => name switch
     {
-        "energy" => cell.Energy,
         "radius" => cell.Radius,
         "age" => cell.Age,
         "neighbours" => cell.NeighbourCount,
@@ -216,23 +215,10 @@ public static class GenomeSystem
                     ctx.EmitMorphogen(effect.Morphogen, cell.X, cell.Y, effect.Rate);
                 break;
 
-            case "Absorb":
-            {
-                double conc = ctx.SampleMorphogen(effect.Morphogen, cell.X, cell.Y);
-                cell.Energy = Num.Clamp(cell.Energy + effect.Rate * conc * dt, 0.0, type.MaxEnergy);
-                break;
-            }
-
             case "Grow":
             {
                 if (cell.Radius < type.MaxRadius)
-                {
-                    double grow = effect.Rate * dt;
-                    double newRadius = Math.Min(type.MaxRadius, cell.Radius + grow);
-                    double actual = newRadius - cell.Radius;
-                    cell.Radius = newRadius;
-                    cell.Energy -= actual * type.GrowEnergyCostPerRadius;
-                }
+                    cell.Radius = Math.Min(type.MaxRadius, cell.Radius + effect.Rate * dt);
                 break;
             }
 

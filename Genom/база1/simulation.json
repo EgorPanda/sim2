@@ -7,7 +7,7 @@
   "cellRadius": 12,
   "initialCells": 1,
   "rngSeed": 1337,
-  "founderTypeId": 0,
+  "founderTypeId": 1,
   "divisionGradientMorphogen": 0,
   "initialExternalSources": [],
   "initialInternalMorphogens": {}

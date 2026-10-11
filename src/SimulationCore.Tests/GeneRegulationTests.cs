@@ -27,16 +27,14 @@ public class GeneRegulationTests
 
     private static GenomeConfig GenomeOf(params GeneConfig[] genes) => new() { Id = 0, Genes = new List<GeneConfig>(genes) };
 
-    private static CellTypeConfig Type(int maxEnergy = 200) => new()
+    private static CellTypeConfig Type() => new()
     {
         Id = 0,
         MaxRadius = 30.0,
-        MaxEnergy = maxEnergy,
-        GrowEnergyCostPerRadius = 1.0,
         GenomeId = 0
     };
 
-    private static Cell Cell0(double energy = 100, int type = 0) => new() { Id = 0, Radius = 5, Energy = energy, TypeId = type, GenomeId = 0 };
+    private static Cell Cell0(double radius = 5, int type = 0) => new() { Id = 0, Radius = radius, TypeId = type, GenomeId = 0 };
 
     // --- Inversion ----------------------------------------------------------
 
@@ -74,21 +72,23 @@ public class GeneRegulationTests
             Id = "g",
             Regulators =
             {
-                new RegulatorConfig { Kind = "Property", Property = "energy", Min = 50, Max = 1e9 },
+                new RegulatorConfig { Kind = "Property", Property = "age", Min = 1, Max = 1e9 },
                 new RegulatorConfig { Kind = "Property", Property = "radius", Min = 10, Max = 1e9 }
             },
-            Effects = { TestFactory.Emit(0, 1) }
+            Effects = { new GeneEffectConfig { Kind = "Grow", Rate = 1.0 } }
         };
         var ctx = new Context();
 
-        // energy high, radius low -> NOT active.
-        var low = Cell0(energy: 100);
+        // age high, radius low -> NOT active.
+        var low = Cell0();
+        low.Age = 10.0;
         low.Radius = 5.0;
         GenomeSystem.Evaluate(low, Type(), GenomeOf(gene), ctx, 0.5);
         Assert.That(low.StateOf("g").Active, Is.False);
 
         // both high -> active.
-        var ok = Cell0(energy: 100);
+        var ok = Cell0();
+        ok.Age = 10.0;
         ok.Radius = 12.0;
         GenomeSystem.Evaluate(ok, Type(), GenomeOf(gene), ctx, 0.5);
         Assert.That(ok.StateOf("g").Active, Is.True);
@@ -123,7 +123,7 @@ public class GeneRegulationTests
         var gene = new GeneConfig
         {
             Id = "diff",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { new GeneEffectConfig { Kind = "SetCellType", TypeId = 2, Once = true } }
         };
         var cell = Cell0();
@@ -146,7 +146,7 @@ public class GeneRegulationTests
         var start = new GeneConfig
         {
             Id = "start",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { new GeneEffectConfig { Kind = "StartTimer", Timer = "life", Duration = 10.0 } }
         };
         var cell = Cell0();
@@ -253,7 +253,7 @@ public class GeneRegulationTests
         var start = new GeneConfig
         {
             Id = "start",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { new GeneEffectConfig { Kind = "StartTimer", Timer = "life", Duration = 2.0, Once = true } }
         };
         var cell = Cell0();
@@ -279,13 +279,13 @@ public class GeneRegulationTests
         var target = new GeneConfig
         {
             Id = "target",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { TestFactory.Emit(0, 1) }
         };
         var silencer = new GeneConfig
         {
             Id = "silencer",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { new GeneEffectConfig { Kind = "SilenceGene", Gene = "target", Once = true } }
         };
         var ctx = new Context { Sample = 1.0 };
@@ -310,7 +310,7 @@ public class GeneRegulationTests
         var gene = new GeneConfig
         {
             Id = "die",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { new GeneEffectConfig { Kind = "Apoptosis", Probability = 0 } }
         };
         var ctx = new Context();
@@ -329,7 +329,7 @@ public class GeneRegulationTests
         var gene = new GeneConfig
         {
             Id = "die",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { new GeneEffectConfig { Kind = "Apoptosis", Probability = p } }
         };
         var genome = GenomeOf(gene);
@@ -369,19 +369,18 @@ public class GeneRegulationTests
         var blocker = new GeneConfig
         {
             Id = "block",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { new GeneEffectConfig { Kind = "BlockDivision" } }
         };
         var divider = new GeneConfig
         {
             Id = "div",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 0, Max = 1e9 } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = 1e9 } },
             Effects = { TestFactory.Divide(100.0) }
         };
 
         var setup = TestFactory.Setup(morphogenCount: 1, initialCells: 1, genome: new[] { blocker, divider });
         var sim = new Simulation(setup);
-        sim.Cells[0].Energy = 100.0;
         sim.Cells[0].DivisionProgress = 1.0;
 
         int before = sim.Cells.Count;
@@ -400,25 +399,22 @@ public class GeneRegulationTests
             genome: new GeneConfig
             {
                 Id = "block",
-                Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 100, Max = 1e9 } },
+                Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 3, Max = 6 } },
                 Effects = { new GeneEffectConfig { Kind = "BlockDivision" } }
             });
         var sim = new Simulation(setup);
         var cell = sim.Cells[0];
 
-        // Below the threshold -> no block.
-        cell.Energy = 20.0;
-        sim.Step(0.05);
+        // Age below the window -> no block.
+        for (int i = 0; i < 20; i++) sim.Step(0.05); // age 1.0
         Assert.That(cell.DivisionBlocked, Is.False);
 
-        // Above the threshold -> blocked for this step.
-        cell.Energy = 120.0;
-        sim.Step(0.05);
+        // Age inside the window -> blocked for this step.
+        for (int i = 0; i < 60; i++) sim.Step(0.05); // age 4.0
         Assert.That(cell.DivisionBlocked, Is.True);
 
-        // Energy drops back -> next step the flag is cleared again.
-        cell.Energy = 20.0;
-        sim.Step(0.05);
+        // Age above the window -> next step the flag is cleared again.
+        for (int i = 0; i < 60; i++) sim.Step(0.05); // age 7.0
         Assert.That(cell.DivisionBlocked, Is.False,
             "BlockDivision only suppresses division while the gene is active.");
     }

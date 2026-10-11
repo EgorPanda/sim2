@@ -157,14 +157,6 @@ public static class ConfigValidator
                 issues.Add(Err("Типы клеток", loc, "Базовый радиус должен быть положительным числом.", ""));
             if (t.MaxRadius < t.BaseRadius || double.IsNaN(t.MaxRadius))
                 issues.Add(Err("Типы клеток", loc, "Максимальный радиус меньше базового или некорректен.", "MaxRadius ≥ BaseRadius."));
-            if (t.MaxEnergy <= 0 || double.IsNaN(t.MaxEnergy))
-                issues.Add(Err("Типы клеток", loc, "Максимальная энергия должна быть положительным числом.", ""));
-            if (t.MaintenanceCost < 0 || double.IsNaN(t.MaintenanceCost))
-                issues.Add(Err("Типы клеток", loc, "Расход на поддержание должен быть числом ≥ 0.", ""));
-            if (t.GrowEnergyCostPerRadius < 0 || double.IsNaN(t.GrowEnergyCostPerRadius))
-                issues.Add(Err("Типы клеток", loc, "Стоимость роста должна быть числом ≥ 0.", ""));
-            if (t.DivisionEnergyCost < 0 || double.IsNaN(t.DivisionEnergyCost))
-                issues.Add(Err("Типы клеток", loc, "Стоимость деления должна быть числом ≥ 0.", ""));
             if (!IsHexColor(t.Color))
                 issues.Add(Warn("Типы клеток", loc, $"Цвет «{t.Color}» не распознан.", "HEX, например #7bd88f."));
         }
@@ -197,12 +189,6 @@ public static class ConfigValidator
                     issues.Add(Err("Геномы", loc, "Повторяющийся идентификатор гена внутри генома.", "Идентификаторы генов должны быть уникальны."));
                 if (gene.ActivationDelay < 0)
                     issues.Add(Err("Геномы", loc, "Задержка активации не может быть отрицательной.", ""));
-                if (gene.Effects.Count == 0)
-                    issues.Add(Warn("Геномы", loc, "У гена нет эффектов — он ни на что не влияет.", "Добавьте хотя бы один эффект."));
-                if (string.IsNullOrWhiteSpace(gene.Description) && string.IsNullOrWhiteSpace(gene.DisplayName))
-                    issues.Add(Warn("Геномы", loc, "У гена нет понятного названия и описания.",
-                        "Заполните название и назначение, чтобы ген был понятен."));
-
                 if (gene.RequireMorphogenTrigger)
                 {
                     if (!morphogenIds.Contains(gene.RequiredMorphogenId))
@@ -224,7 +210,7 @@ public static class ConfigValidator
                         !string.Equals(group.Operator, "Or", StringComparison.OrdinalIgnoreCase))
                         issues.Add(Err("Геномы", groupLoc, $"Неизвестный оператор группы «{group.Operator}».", "Используйте And или Or."));
                     if (group.Regulators.Count == 0)
-                        issues.Add(Warn("Геномы", groupLoc, "Пустая группа условий.", "Пустая группа всегда истинна — добавьте условия или удалите группу."));
+                        continue; // empty group is vacuously true; not a problem worth a warning
                     foreach (var reg in group.Regulators)
                         ValidateRegulator(issues, groupLoc, reg, morphogenIds, typeIds);
                 }
@@ -282,7 +268,7 @@ public static class ConfigValidator
                 break;
             case "Property":
                 if (!Localization.IsKnownProperty(reg.Property))
-                    issues.Add(Err("Геномы", loc, $"Неизвестное свойство «{reg.Property}».", "Доступны: energy, radius, age, neighbours."));
+                    issues.Add(Err("Геномы", loc, $"Неизвестное свойство «{reg.Property}».", "Доступны: radius, age, neighbours."));
                 break;
             case "Phenotype":
                 if (!typeIds.Contains(reg.TypeId))
@@ -316,12 +302,6 @@ public static class ConfigValidator
                     issues.Add(Err("Геномы", loc, $"Выделение: несуществующий морфоген {e.Morphogen}.", "Выберите морфоген."));
                 if (e.Rate < 0 || double.IsNaN(e.Rate))
                     issues.Add(Err("Геномы", loc, "Интенсивность выделения должна быть числом ≥ 0.", ""));
-                break;
-            case "Absorb":
-                if (!morphogenIds.Contains(e.Morphogen))
-                    issues.Add(Err("Геномы", loc, $"Поглощение: несуществующий морфоген {e.Morphogen}.", "Выберите морфоген."));
-                else if (setup.Morphogens.FirstOrDefault(m => m.Id == e.Morphogen)?.IsInternal == true)
-                    issues.Add(Err("Геномы", loc, "Поглощение внутреннего морфогена не поддерживается.", "Используйте внешний морфоген или эффект выделения."));
                 break;
             case "Grow":
                 if (e.Rate < 0 || double.IsNaN(e.Rate))

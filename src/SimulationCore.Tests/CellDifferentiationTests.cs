@@ -47,10 +47,8 @@ public class CellDifferentiationTests
 
         // Two stem founders well inside their zones: left in high, right in low.
         sim.Cells.Clear();
-        var left = sim.AddCell(60.0, 60.0, 0);
-        left.Energy = 100.0;
-        var right = sim.AddCell(228.0, 60.0, 0);
-        right.Energy = 100.0;
+        sim.AddCell(60.0, 60.0, 0);
+        sim.AddCell(228.0, 60.0, 0);
         sim.Rng.SetSeed(42);
 
         SeedHalfPlane(sim, setup, high, low);
@@ -66,7 +64,6 @@ public class CellDifferentiationTests
             genome: TestFactory.Gene("div", TestFactory.Divide(100.0)));
         var sim = new Simulation(setup);
         int parentType = sim.Cells[0].TypeId;
-        sim.Cells[0].Energy = 100.0;
 
         sim.Step(0.05);
 
@@ -88,7 +85,6 @@ public class CellDifferentiationTests
         TestFactory.AddType(setup, 1, "worker");
         var sim = new Simulation(setup);
         int parentType = sim.Cells[0].TypeId;
-        sim.Cells[0].Energy = 100.0;
 
         sim.Step(0.05);
 
@@ -111,7 +107,6 @@ public class CellDifferentiationTests
             genome: TestFactory.Gene("div", Div(1, 100.0)));
         var sim = new Simulation(setup);
         int parentId = sim.Cells[0].Id;
-        sim.Cells[0].Energy = 100.0;
 
         sim.Step(0.05);
 
@@ -139,7 +134,6 @@ public class CellDifferentiationTests
             var child = sim.Cells.First(c => c.Id == diag.ChildId);
             Assert.That(child.TypeId, Is.EqualTo(diag.ChildTypeId));
             Assert.That(child.Radius, Is.GreaterThan(0.0), "A born daughter is a full cell.");
-            Assert.That(child.Energy, Is.GreaterThanOrEqualTo(0.0));
             Assert.That(diag.ParentTypeId, Is.EqualTo(0), "The stem parent itself did not differentiate.");
         }
 
@@ -187,7 +181,6 @@ public class CellDifferentiationTests
         TestFactory.AddType(setup, 1, "worker");
         TestFactory.AddType(setup, 2, "skin");
         var sim = new Simulation(setup);
-        sim.Cells[0].Energy = 100.0;
 
         sim.Step(0.05);
 
@@ -210,7 +203,6 @@ public class CellDifferentiationTests
             initialCells: 1,
             genome: TestFactory.Gene("div", Div(1, 100.0)));
         var sim = new Simulation(setup);
-        sim.Cells[0].Energy = 100.0;
 
         sim.Step(0.05);
 

@@ -34,7 +34,7 @@ public class M16ConfigTests
     }
 
     [Test]
-    public void Validator_FlagsAbsorbOfInternalMorphogen()
+    public void Validator_FlagsMoveOfInternalMorphogen()
     {
         var setup = TestFactory.Setup();
         setup.Morphogens = new[] { new MorphogenConfig { Id = 0, Type = "Internal" } };
@@ -48,7 +48,7 @@ public class M16ConfigTests
                     new()
                     {
                         Id = "bad",
-                        Effects = new() { new() { Kind = "Absorb", Morphogen = 0, Rate = 1.0 } }
+                        Effects = new() { new() { Kind = "Move", Morphogen = 0, Rate = 1.0 } }
                     }
                 }
             }
@@ -56,7 +56,7 @@ public class M16ConfigTests
         setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0 } };
 
         var issues = ConfigValidator.Validate(setup);
-        Assert.That(issues.Any(i => i.Section == "Геномы" && i.Message.Contains("Поглощение внутреннего")), Is.True);
+        Assert.That(issues.Any(i => i.Section == "Геномы" && i.Message.Contains("внутреннего морфогена не поддерживается")), Is.True);
     }
 
     [Test]

@@ -45,9 +45,17 @@ public partial class GenomeEditor : VBoxContainer
 
     private void Build()
     {
-        var layout = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var layout = new HBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
 
-        var left = new VBoxContainer { CustomMinimumSize = new Vector2(240, 0) };
+        var left = new VBoxContainer
+        {
+            CustomMinimumSize = new Vector2(240, 0),
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
         _genomeSelect = new OptionButton();
         _genomeSelect.ItemSelected += idx =>
         {
@@ -74,11 +82,12 @@ public partial class GenomeEditor : VBoxContainer
         };
         left.AddChild(_filterSelect);
 
-        _geneList = new VBoxContainer();
+        _geneList = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         var listScroll = new ScrollContainer
         {
             CustomMinimumSize = new Vector2(240, 320),
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
         listScroll.AddChild(_geneList);
         left.AddChild(listScroll);
@@ -94,9 +103,14 @@ public partial class GenomeEditor : VBoxContainer
         _cardScroll = new ScrollContainer
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
         };
-        _card = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        _card = new VBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin
+        };
         _cardScroll.AddChild(_card);
         layout.AddChild(_cardScroll);
 
@@ -515,7 +529,7 @@ public partial class GenomeEditor : VBoxContainer
             }
 
             cbox.AddChild(Ui.Btn("Добавить условие", () =>
-                OpenCondition(gene, group, new RegulatorConfig { Kind = "Property", Property = "energy" })));
+                OpenCondition(gene, group, new RegulatorConfig { Kind = "Property", Property = "age" })));
             into.AddChild(crate);
         }
 
@@ -762,7 +776,6 @@ public partial class GenomeEditor : VBoxContainer
         switch (kind)
         {
             case "EmitMorphogen":
-            case "Absorb":
                 effect.Morphogen = draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : -1;
                 break;
             case "SetCellType":
@@ -786,7 +799,6 @@ public partial class GenomeEditor : VBoxContainer
         return e.Kind switch
         {
             "EmitMorphogen" => $"{baseText}: морфоген #{e.Morphogen}, {Num.Fmt(e.Rate)}/с",
-            "Absorb" => $"{baseText}: морфоген #{e.Morphogen}, {Num.Fmt(e.Rate)}·конц/с",
             "Grow" => $"{baseText}: {Num.Fmt(e.Rate)} ед./с",
             "Divide" => e.ChildTypeId is int cid
                 ? $"{baseText}: {Num.Fmt(e.Rate)} ед./с, потомок → тип #{cid}"
@@ -859,16 +871,6 @@ public partial class GenomeEditor : VBoxContainer
                         effect.Morphogen >= 0 ? effect.Morphogen : (draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : 0),
                         id => { effect.Morphogen = id; _main.MarkDirty(); }, 220)));
                 into.AddChild(Ui.Field("Скорость, ед./с:",
-                    Ui.Sp(0, 1000, 0.1, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
-                break;
-
-            case "Absorb":
-                into.AddChild(Ui.Field("Морфоген:",
-                    Ui.Opt(
-                        draft.Morphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
-                        effect.Morphogen >= 0 ? effect.Morphogen : (draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : 0),
-                        id => { effect.Morphogen = id; _main.MarkDirty(); }, 220)));
-                into.AddChild(Ui.Field("Коэффициент поглощения:",
                     Ui.Sp(0, 1000, 0.1, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
                 break;
 

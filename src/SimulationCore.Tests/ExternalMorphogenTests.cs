@@ -26,7 +26,7 @@ public class ExternalMorphogenTests
                 }
             }
         };
-        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 1000, MaintenanceCost = 0.0 } };
+        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 } };
 
         var sim = new Simulation(setup);
         sim.Step(0.1);
@@ -112,7 +112,7 @@ public class ExternalMorphogenTests
                 }
             }
         };
-        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 1000, MaintenanceCost = 0.0 } };
+        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 } };
 
         var sim = new Simulation(setup);
         var placed = sim.AddCell(setup.Simulation.WorldWidth * 0.5 + 16.0, setup.Simulation.WorldHeight * 0.5, 0);
@@ -151,3 +151,4 @@ public class ExternalMorphogenTests
         Assert.That(double.IsFinite(dy), Is.True);
     }
 }
+

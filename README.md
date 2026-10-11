@@ -85,12 +85,15 @@ godot -e --path E:\sim23
 
 ## What you can do
 
+- **No built-in death**: cells never die of old age or starvation — death happens
+  only through gene-driven effects («Апоптоз», manual deletion with `E` mode).
+  Life, growth and death are fully gene-controlled.
 - **Analytical layers** (left panel or «Мир» tab): cell types, external morphogen
   concentration (auto-normalised heat map + legend), gradient vectors, internal
-  morphogen concentration per cell, active gene, silenced genes, energy, neighbour
+  morphogen concentration per cell, active gene, silenced genes, neighbour
   density.
 - **Phenotypes** (right panel) lists live population counts per cell type.
-- **Selected cell** (right panel) shows state, energy, radius, age, neighbours,
+- **Selected cell** (right panel) shows state, radius, age, neighbours,
   active/silenced genes (clickable — opens the genome editor), timers and local
   external/internal morphogen levels.
 - **Laboratory** (`L`) — opens as a **separate resizable window** so it never covers
@@ -98,7 +101,7 @@ godot -e --path E:\sim23
   - *Мир*: display layer and its options;
   - *Геном*: create/copy/delete genes, edit display data, mandatory morphogen trigger,
     AND/OR groups with NOT, thresholds (≥ / ≤ / range / = automatically derived from
-    the stored interval), and the list of effects (emit/absorb/grow/divide/move/
+    the stored interval), and the list of effects (emit/grow/divide/move/
     type switch/timers/silencing/apoptosis/division block); the «Деление» effect can set
     the **child phenotype** — daughters are then born as that type instead of
     inheriting the parent's;

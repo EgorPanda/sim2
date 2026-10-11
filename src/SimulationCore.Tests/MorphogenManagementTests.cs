@@ -25,7 +25,7 @@ public class MorphogenManagementTests
         var setup = TestFactory.Setup(morphogenCount: 2, genome: new[]
         {
             TestFactory.Gene("sent", TestFactory.Emit(0, 1.0)),
-            TestFactory.Gene("taken", TestFactory.Absorb(0, 1.0)),
+            TestFactory.Gene("moved", new GeneEffectConfig { Kind = "Move", Morphogen = 0, Rate = 1.0 }),
             GeneReg("gated", 0),
             TestFactory.Gene("untouched", TestFactory.Emit(1, 1.0))
         });
@@ -33,15 +33,75 @@ public class MorphogenManagementTests
 
         var affected = ConfigDraft.RemoveMorphogen(setup, 0);
 
-        Assert.That(affected, Is.EquivalentTo(new[] { "ген «sent»", "ген «taken»", "ген «gated»" }));
+        Assert.That(affected, Is.EquivalentTo(new[]
+        {
+            "ген «sent»", "ген «moved»", "ген «gated»", "эксперимент (морфоген направления деления)"
+        }));
         Assert.That(setup.Morphogens.Select(m => m.Id), Is.EqualTo(new[] { 1 }));
         Assert.That(setup.Genomes[0].Genes.First(g => g.Key == "sent").Effects, Is.Empty);
-        Assert.That(setup.Genomes[0].Genes.First(g => g.Key == "taken").Effects, Is.Empty);
+        Assert.That(setup.Genomes[0].Genes.First(g => g.Key == "moved").Effects, Is.Empty);
         Assert.That(setup.Genomes[0].Genes.First(g => g.Key == "gated").Regulators, Is.Empty);
         Assert.That(setup.Genomes[0].Genes.First(g => g.Key == "untouched").Effects.Select(e => e.Morphogen), Is.EqualTo(new[] { 1 }),
             "Unrelated genes are not modified.");
         Assert.That(setup.Simulation.DivisionGradientMorphogen, Is.EqualTo(-1),
             "The division-gradient selector is reset when the morphogen is removed.");
+    }
+
+    [Test]
+    public void RemoveMorphogen_CleansInitialSignals()
+    {
+        var setup = TestFactory.Setup(morphogenCount: 2, genome: Array.Empty<GeneConfig>());
+        setup.Simulation.InitialExternalSources.Add(new MorphogenSourceConfig
+        {
+            MorphogenId = 0,
+            X = 10, Y = 10, Radius = 20.0, Concentration = 1.5,
+            Profile = "uniform"
+        });
+        setup.Simulation.InitialExternalSources.Add(new MorphogenSourceConfig
+        {
+            MorphogenId = 1,
+            X = 40, Y = 40, Radius = 20.0, Concentration = 0.5,
+            Profile = "uniform"
+        });
+        setup.Simulation.InitialInternalMorphogens[0] = 3.0;
+
+        var affected = ConfigDraft.RemoveMorphogen(setup, 0);
+
+        Assert.That(affected, Does.Contain("начальные внешние источники"));
+        Assert.That(affected, Does.Contain("начальная внутренняя концентрация"));
+        Assert.That(setup.Simulation.InitialExternalSources.Select(s => s.MorphogenId),
+            Is.EqualTo(new[] { 1 }), "Only references to the deleted morphogen are removed.");
+        Assert.That(setup.Simulation.InitialInternalMorphogens.ContainsKey(0), Is.False);
+
+        var issues = ConfigValidator.Validate(setup);
+        Assert.That(issues.Where(i => i.IsError), Is.Empty,
+            "After the cleanup the configuration must validate without errors.");
+    }
+
+    [Test]
+    public void ReconcileInitialSignals_MatchesMorphogenType()
+    {
+        var setup = TestFactory.Setup(morphogenCount: 2, genome: Array.Empty<GeneConfig>());
+        setup.Simulation.InitialExternalSources.Add(new MorphogenSourceConfig
+        {
+            MorphogenId = 0,
+            X = 10, Y = 10, Radius = 20.0, Concentration = 1.0,
+            Profile = "uniform"
+        });
+        setup.Simulation.InitialInternalMorphogens[1] = 2.0;
+
+        // Morphogen 0 becomes internal: its external source must go.
+        setup.Morphogens[0].Type = "Internal";
+        ConfigDraft.ReconcileInitialSignals(setup, 0);
+        Assert.That(setup.Simulation.InitialExternalSources.Select(s => s.MorphogenId), Is.Empty);
+
+        // Morphogen 1 becomes external: its internal concentration must go.
+        setup.Morphogens[1].Type = "External";
+        ConfigDraft.ReconcileInitialSignals(setup, 1);
+        Assert.That(setup.Simulation.InitialInternalMorphogens.ContainsKey(1), Is.False);
+
+        var issues = ConfigValidator.Validate(setup);
+        Assert.That(issues.Where(i => i.IsError), Is.Empty);
     }
 
     [Test]
@@ -54,7 +114,7 @@ public class MorphogenManagementTests
                 Id = "grouped",
                 RegulatorGroups = new List<RegulatorGroupConfig>
                 {
-                    new() { Operator = "And", Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 1.0 } } },
+                    new() { Operator = "And", Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 1.0 } } },
                     new() { Operator = "Or", Regulators = { new RegulatorConfig { Kind = "Morphogen", Morphogen = 0 } } }
                 },
                 Effects = { TestFactory.Emit(0, 1.0) }

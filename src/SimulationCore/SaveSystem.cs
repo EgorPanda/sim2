@@ -26,10 +26,8 @@ public static class SaveSystem
         public int TypeId { get; set; }
         public int GenomeId { get; set; }
         public int State { get; set; }
-        public double Energy { get; set; }
         public double Age { get; set; }
         public double DivisionProgress { get; set; }
-        public double StarveTimer { get; set; }
         public double DeathTimer { get; set; }
         public bool DivisionBlocked { get; set; }
         public Dictionary<string, bool> GeneStates { get; set; } = new();
@@ -80,10 +78,8 @@ public static class SaveSystem
                 TypeId = c.TypeId,
                 GenomeId = c.GenomeId,
                 State = (int)c.State,
-                Energy = c.Energy,
                 Age = c.Age,
                 DivisionProgress = c.DivisionProgress,
-                StarveTimer = c.StarveTimer,
                 DeathTimer = c.DeathTimer,
                 DivisionBlocked = c.DivisionBlocked
             };
@@ -128,10 +124,8 @@ public static class SaveSystem
                 TypeId = d.TypeId,
                 GenomeId = d.GenomeId,
                 State = (CellState)d.State,
-                Energy = d.Energy,
                 Age = d.Age,
                 DivisionProgress = d.DivisionProgress,
-                StarveTimer = d.StarveTimer,
                 DeathTimer = d.DeathTimer,
                 DivisionBlocked = d.DivisionBlocked
             };

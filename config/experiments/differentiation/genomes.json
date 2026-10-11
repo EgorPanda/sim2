@@ -15,16 +15,6 @@
         ]
       },
       {
-        "id": "uptake",
-        "name": "Питание: поглощение",
-        "regulators": [
-          { "kind": "Morphogen", "morphogen": 0, "min": 0.02, "max": 1e9 }
-        ],
-        "effects": [
-          { "kind": "Absorb", "morphogen": 0, "rate": 25.0 }
-        ]
-      },
-      {
         "id": "signalA",
         "name": "Сигнал: эмиссия",
         "regulators": [],
@@ -82,26 +72,6 @@
         ],
         "effects": [
           { "kind": "BlockDivision" }
-        ]
-      },
-      {
-        "id": "startLife",
-        "name": "Таймер жизни",
-        "regulators": [
-          { "kind": "Property", "property": "energy", "min": 1.0, "max": 1e9 }
-        ],
-        "effects": [
-          { "kind": "StartTimer", "timer": "life", "duration": 180.0, "once": true }
-        ]
-      },
-      {
-        "id": "mortality",
-        "name": "Старение",
-        "regulators": [
-          { "kind": "Timer", "timer": "life", "invert": true }
-        ],
-        "effects": [
-          { "kind": "Apoptosis", "probability": 0.05 }
         ]
       }
     ]

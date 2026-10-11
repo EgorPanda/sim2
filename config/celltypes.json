@@ -5,11 +5,6 @@
     "color": "#7bd88f",
     "genomeId": 0,
     "baseRadius": 12.0,
-    "maxRadius": 20.0,
-    "maxEnergy": 120.0,
-    "maintenanceCost": 1.5,
-    "divisionEnergyCost": 50.0,
-    "growEnergyCostPerRadius": 1.0,
-    "starveGracePeriod": 2.0
+    "maxRadius": 20.0
   }
 ]

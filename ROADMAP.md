@@ -24,8 +24,9 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Chemotaxis: division biased towards a morphogen gradient
 - [x] Tissue cohesion (adhesion strengths per cell-type pair, controlled overlap)
 - [x] Regulators: Morphogen / Property / Phenotype / State / Timer (+ `invert`, AND-combined)
-- [x] Effects: Emit / Absorb / Grow / Divide / SetCellType / StartTimer / Apoptosis /
+- [x] Effects: Emit / Grow / Divide / SetCellType / StartTimer / Apoptosis /
       SilenceGene / BlockDivision, with once-per-activation semantics
+- [x] No energy economy: life, growth and division are fully gene-controlled
 - [x] Named cell timers; probabilistic (dt-invariant) apoptosis
 - [x] Regulation state (active genes, timers, silenced genes) inherited on division
 - [x] Experiment profiles under `config/experiments/` (self-contained file sets)
@@ -58,7 +59,7 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 
 - [x] Russian-language interface and help catalog (`Localization`, `HelpCatalog` in core)
 - [x] Analytical layers: morphogen concentration, gradient vectors, gene activity,
-      silenced genes, energy, neighbour density (+ legend, layer options in «Мир»)
+      silenced genes, neighbour density (+ legend, layer options in «Мир»)
 - [x] Visual genome editor: add/copy/delete genes, display data, AND/OR groups, NOT
 - [x] Comparison operators ≥ / ≤ / range / = derived from the stored [min, max] interval
 - [x] Regulator groups in the engine: OR across groups, AND inside a group,

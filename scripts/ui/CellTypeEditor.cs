@@ -25,9 +25,17 @@ public partial class CellTypeEditor : VBoxContainer
 
     private void Build()
     {
-        var layout = new HBoxContainer();
+        var layout = new HBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
 
-        var left = new VBoxContainer { CustomMinimumSize = new Vector2(240, 0) };
+        var left = new VBoxContainer
+        {
+            CustomMinimumSize = new Vector2(240, 0),
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
         _list = new OptionButton();
         _list.ItemSelected += idx => { _typeId = (int)_list.GetItemId((int)idx); RebuildCard(); };
         left.AddChild(_list);
@@ -52,7 +60,11 @@ public partial class CellTypeEditor : VBoxContainer
         left.AddChild(Ui.Btn("Удалить", DeleteType));
         layout.AddChild(left);
 
-        _card = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        _card = new VBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin
+        };
         layout.AddChild(_card);
         AddChild(layout);
     }
@@ -161,15 +173,5 @@ public partial class CellTypeEditor : VBoxContainer
             Ui.Sp(1, 100, 0.5, t.BaseRadius, v => { t.BaseRadius = v; _main.MarkDirty(); })));
         _card.AddChild(Ui.Field("Макс. радиус, ед.:",
             Ui.Sp(1, 200, 0.5, t.MaxRadius, v => { t.MaxRadius = v; _main.MarkDirty(); })));
-        _card.AddChild(Ui.Field("Макс. энергия, ед.:",
-            Ui.Sp(1, 10000, 1, t.MaxEnergy, v => { t.MaxEnergy = v; _main.MarkDirty(); })));
-        _card.AddChild(Ui.Field("Поддержание, ед./с:",
-            Ui.Sp(0, 1000, 0.1, t.MaintenanceCost, v => { t.MaintenanceCost = v; _main.MarkDirty(); })));
-        _card.AddChild(Ui.Field("Энергия на деление:",
-            Ui.Sp(0, 10000, 1, t.DivisionEnergyCost, v => { t.DivisionEnergyCost = v; _main.MarkDirty(); })));
-        _card.AddChild(Ui.Field("Энергия на рост /ед.:",
-            Ui.Sp(0, 1000, 0.1, t.GrowEnergyCostPerRadius, v => { t.GrowEnergyCostPerRadius = v; _main.MarkDirty(); })));
-        _card.AddChild(Ui.Field("Грация голода, с:",
-            Ui.Sp(0, 1000, 0.1, t.StarveGracePeriod, v => { t.StarveGracePeriod = v; _main.MarkDirty(); })));
     }
 }

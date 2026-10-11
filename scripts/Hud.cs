@@ -79,7 +79,6 @@ public partial class Hud : CanvasLayer
             (WorldLayer.InternalMorphogen, "Внутриклеточная"),
             (WorldLayer.GeneActivity, "Активность гена"),
             (WorldLayer.GeneState, "Подавленные гены"),
-            (WorldLayer.Energy, "Энергия"),
             (WorldLayer.Neighbours, "Соседи"),
         };
         foreach (var (layer, text) in layers)
@@ -324,7 +323,7 @@ public partial class Hud : CanvasLayer
 
         string typeName = type != null ? Localization.CellTypeName(type) : $"(тип {cell.TypeId})";
         _selectionBox.AddChild(Ui.Lbl($"#{cell.Id}  {typeName}"));
-        _selectionBox.AddChild(Ui.Lbl($"состояние: {Localization.State(cell.State)}  энергия: {cell.Energy:F1}/{type?.MaxEnergy:F0}"));
+        _selectionBox.AddChild(Ui.Lbl($"состояние: {Localization.State(cell.State)}"));
         _selectionBox.AddChild(Ui.Lbl($"радиус: {cell.Radius:F1}  возраст: {cell.Age:F1} с  соседи: {cell.NeighbourCount}"));
 
         if (genome != null)

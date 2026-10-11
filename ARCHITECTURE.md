@@ -47,17 +47,19 @@ headless and independently from the interface.
 
 ### SimulationCore
 - Holds the authoritative world state: list of cells, morphogen field, tick counter, sim time.
-- `Step(dt)` runs the fixed update order: spatial index → genome/metabolism → morphogen
+- `Step(dt)` runs the fixed update order: spatial index → genome evaluation → morphogen
   emission → diffusion/decay → mechanics → division/apoptosis → cleanup.
 - Owns the deterministic RNG (seeded) for reproducibility.
 
 ### CellSystem
-- `Cell`: id, continuous position, radius, type, energy, state (Alive / Dying),
+- `Cell`: id, continuous position, radius, type, state (Alive / Dying),
   age, neighbour count, per-gene state (`GeneState`: active flag + activation timer),
   named `Timers`, a `SilencedGenes` set, a `DivisionBlocked` flag and
   `InternalMorphogenConcentrations` (morphogen id → concentration) for cellular memory.
 - Division: a cell divides when its `DivisionProgress` reaches 1 (driven by the
-  `Divide` gene effect) with enough energy, free space and no active `BlockDivision`.
+  `Divide` gene effect) with free space and no active `BlockDivision`. Life and
+  division are fully gene-controlled: there is no energy, no maintenance cost and
+  no starvation.
   The daughter's phenotype is a **birth decision**: the last active `Divide` effect
   writes a per-step `PendingChildTypeId` intent (deterministic genome order); an
   explicit `ChildTypeId` produces a daughter of that type while the parent keeps its
@@ -67,7 +69,7 @@ headless and independently from the interface.
   inherited flag) used by tests and the demo. Daughters inherit the parent's genome,
   regulation state (`CopyRegulationStateTo`: active genes, timers, silenced genes) and
   internal morphogen concentrations (`CopyInternalMorphogensTo`).
-- Apoptosis: starvation (energy below zero for a grace period) or the `Apoptosis` effect.
+- Apoptosis: the `Apoptosis` effect (deterministic or probabilistic).
 - Differentiation: the `SetCellType` effect switches a cell's `TypeId`; the genome
   stays shared.
 
@@ -82,14 +84,13 @@ headless and independently from the interface.
   works for both external (field sample) and internal (per-cell concentration)
   morphogens. Newly-created genes have the trigger enabled; legacy genes without
   the field keep the historical always-on behaviour.
-- Regulators: `Morphogen`, `Property` (`energy`, `radius`, `age`, `neighbours`),
+- Regulators: `Morphogen`, `Property` (`radius`, `age`, `neighbours`),
   `Phenotype`, `State`, `Timer` — each optionable with `invert` (negation).
-- Effects: `EmitMorphogen`, `Absorb`, `Grow`, `Divide`, `Move`, `SetCellType`,
+- Effects: `EmitMorphogen`, `Grow`, `Divide`, `Move`, `SetCellType`,
   `StartTimer`, `Apoptosis`, `SilenceGene`, `BlockDivision`. Effects may be `once`
   (run only on the step a gene activates); otherwise they run every step while the
   gene is active. `EmitMorphogen` writes to the external field for external
-  morphogens and to the cell's internal store for internal morphogens. `Absorb` is
-  only supported for external morphogens. `Move` displaces the cell along (or
+  morphogens and to the cell's internal store for internal morphogens. `Move` displaces the cell along (or
   against, with `Repel`) the gradient of an external morphogen. `Divide` optionally
   carries `ChildTypeId` (birth phenotype; `null` = inherit parent). Timers are not
   restarted while running. Probabilistic apoptosis is dt-invariant (`1 - exp(-p·dt)`).
@@ -128,7 +129,7 @@ headless and independently from the interface.
   analytical layers**: cell types, external morphogen concentration (auto-normalised heat map,
   legend, optional cell tinting, absolute scale override), **multi-morphogen blend**
   (toggle individual external signals in real time), gradient vectors, internal
-  morphogen concentration per cell, gene activity, silenced genes, energy, neighbour
+  morphogen concentration per cell, gene activity, silenced genes, neighbour
   density. Read-only.
 - `Hud` (Russian) — transport (pause / step / reset), speed, layer selector, delete tool,
   laboratory toggle, help button; per-**phenotype statistics**, a **selected-cell
@@ -206,12 +207,12 @@ config/*.json --ConfigLoader--> SimulationSetup
 Simulation.Reset(founder) --init--> cells + morphogen field
 each frame: Main accumulates dt*speed -> Simulation.Step(dt)
 Simulation.Step:  SpatialHash.Rebuild + neighbour counts
-                  CellSystem.Metabolism  (energy, ageing, starvation)
+                  CellSystem.AgeCells   (ageing)
                   GenomeSystem.Evaluate  (mandatory triggers -> regulator groups -> active genes -> effects)
                   MorphogenSystem.Update (external emission -> diffusion/decay)
                   Simulation.ApplyInternalDecay (per-cell internal morphogen decay)
                   CellMechanics.Resolve  (de-overlap with tissue adhesion)
-                  CellSystem.ResolveDivisions (energy + free space + gradient bias)
+                  CellSystem.ResolveDivisions (free space + gradient bias)
 WorldView._Draw reads Simulation.Cells + MorphogenSystem fields (layer-dependent)
 Hud reads counts + the selected cell's regulation state (formatting only)
 

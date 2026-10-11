@@ -42,7 +42,7 @@ public class InternalMorphogenTests
         };
         setup.CellTypes = new[]
         {
-            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 1000, MaintenanceCost = 0.0 }
+            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 }
         };
         setup.Simulation.InitialExternalSources.Add(new MorphogenSourceConfig
         {
@@ -102,7 +102,7 @@ public class InternalMorphogenTests
             new MorphogenConfig { Id = 1, Type = "Internal", Diffusion = 0.0, Decay = 2.0 }
         };
         setup.Genomes = new[] { new GenomeConfig { Id = 0, Genes = new() } };
-        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 100, MaintenanceCost = 0.0 } };
+        setup.CellTypes = new[] { new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 } };
 
         var sim = new Simulation(setup);
         sim.Cells[0].InternalMorphogenConcentrations[1] = 1.0;
@@ -154,7 +154,7 @@ public class InternalMorphogenTests
         };
         setup.CellTypes = new[]
         {
-            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 100, MaintenanceCost = 0.0, DivisionEnergyCost = 0.0 }
+            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 }
         };
 
         var sim = new Simulation(setup);
@@ -214,3 +214,4 @@ public class InternalMorphogenTests
         }
     }
 }
+

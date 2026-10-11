@@ -18,14 +18,14 @@ public static class Localization
     /// <summary>Known gene effect kinds supported by the engine.</summary>
     public static readonly string[] EffectKinds =
     {
-        "EmitMorphogen", "Absorb", "Grow", "Divide", "SetCellType",
+        "EmitMorphogen", "Grow", "Divide", "SetCellType",
         "StartTimer", "Apoptosis", "SilenceGene", "BlockDivision", "Move"
     };
 
     /// <summary>Known cell properties usable by the "Property" regulator.</summary>
     public static readonly string[] PropertyNames =
     {
-        "energy", "radius", "age", "neighbours"
+        "radius", "age", "neighbours"
     };
 
     /// <summary>Known morphogen types.</summary>
@@ -43,7 +43,6 @@ public static class Localization
     private static readonly Dictionary<string, string> EffectNames = new(StringComparer.OrdinalIgnoreCase)
     {
         ["EmitMorphogen"] = "Выделение морфогена",
-        ["Absorb"] = "Поглощение морфогена",
         ["Grow"] = "Рост",
         ["Divide"] = "Деление",
         ["SetCellType"] = "Смена типа клетки",
@@ -57,8 +56,7 @@ public static class Localization
     private static readonly Dictionary<string, string> EffectShort = new(StringComparer.OrdinalIgnoreCase)
     {
         ["EmitMorphogen"] = "клетка выбрасывает морфоген в среду",
-        ["Absorb"] = "клетка поглощает морфоген и получает энергию",
-        ["Grow"] = "увеличивает радиус клетки, расходуя энергию",
+        ["Grow"] = "увеличивает радиус клетки",
         ["Divide"] = "накапливает готовность к делению",
         ["SetCellType"] = "переключает фенотип (тип) клетки",
         ["StartTimer"] = "запускает именованный таймер",
@@ -70,7 +68,6 @@ public static class Localization
 
     private static readonly Dictionary<string, string> PropertyNamesRu = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["energy"] = "Энергия",
         ["radius"] = "Радиус",
         ["age"] = "Возраст",
         ["neighbours"] = "Количество соседей",

@@ -67,7 +67,7 @@ public class InitializationTests
         };
         setup.CellTypes = new[]
         {
-            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 1000, MaintenanceCost = 0.0 }
+            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 }
         };
 
         var sim = new Simulation(setup);
@@ -110,7 +110,7 @@ public class InitializationTests
         };
         setup.CellTypes = new[]
         {
-            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 1000, MaintenanceCost = 0.0 }
+            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 }
         };
 
         var sim = new Simulation(setup);
@@ -120,3 +120,4 @@ public class InitializationTests
         Assert.That(sim.Morphogens.TotalMass(0), Is.GreaterThan(0.0));
     }
 }
+

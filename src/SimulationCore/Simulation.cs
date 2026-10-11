@@ -6,8 +6,8 @@ namespace SimulationCore;
 ///
 /// Fixed update order (deterministic):
 ///   1. spatial index rebuild + neighbour counts
-///   2. metabolism / ageing / starvation
-///   3. genome evaluation (emission, absorption, growth, division progress)
+///   2. ageing
+///   3. genome evaluation (emission, growth, movement, division progress)
 ///   4. morphogen emission -> diffusion -> decay
 ///   5. cell mechanics (overlap resolution with tissue adhesion, world clamping)
 ///   6. division & apoptosis resolution
@@ -136,7 +136,6 @@ public sealed class Simulation : GeneContext
                 Radius = type.BaseRadius,
                 TypeId = typeId,
                 GenomeId = type.GenomeId,
-                Energy = type.MaxEnergy * 0.6,
                 State = CellState.Alive
             };
             ApplyInitialInternalMorphogens(cell);
@@ -245,8 +244,8 @@ public sealed class Simulation : GeneContext
         SpatialHash.Rebuild(Cells);
         UpdateNeighbourCounts();
 
-        // 2. Metabolism / ageing / starvation.
-        CellSystem.Metabolism(dt, CellTypesById);
+        // 2. Ageing (gene effects fully control life and death).
+        CellSystem.AgeCells(dt);
 
         // Division blocking is re-armed by the genome evaluation each step.
         for (int i = 0; i < Cells.Count; i++)
@@ -349,7 +348,6 @@ public sealed class Simulation : GeneContext
             Radius = type?.BaseRadius ?? Config.CellRadius,
             TypeId = typeId,
             GenomeId = type?.GenomeId ?? 0,
-            Energy = (type?.MaxEnergy ?? 100.0) * 0.6,
             State = CellState.Alive
         };
         Cells.Add(cell);

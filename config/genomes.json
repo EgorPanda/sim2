@@ -15,22 +15,11 @@
         ]
       },
       {
-        "id": "uptake",
-        "name": "uptake",
-        "activationDelay": 0.2,
-        "regulators": [
-          { "kind": "Morphogen", "morphogen": 0, "min": 0.02, "max": 1e9 }
-        ],
-        "effects": [
-          { "kind": "Absorb", "morphogen": 0, "rate": 25.0 }
-        ]
-      },
-      {
         "id": "grow",
         "name": "grow",
         "activationDelay": 0.3,
         "regulators": [
-          { "kind": "Property", "property": "energy", "min": 30.0, "max": 1e9 }
+          { "kind": "Property", "property": "age", "min": 0.0, "max": 1e9 }
         ],
         "effects": [
           { "kind": "Grow", "rate": 1.2 }
@@ -41,7 +30,6 @@
         "name": "divide",
         "activationDelay": 0.5,
         "regulators": [
-          { "kind": "Property", "property": "energy", "min": 55.0, "max": 1e9 },
           { "kind": "Property", "property": "radius", "min": 17.0, "max": 1e9 }
         ],
         "effects": [

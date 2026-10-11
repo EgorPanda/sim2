@@ -28,12 +28,10 @@ public class GenomeSystemTests
     {
         Id = 0,
         MaxRadius = 100.0,
-        MaxEnergy = 100.0,
-        GrowEnergyCostPerRadius = 1.0,
         GenomeId = 0
     };
 
-    private static Cell MakeCell() => new() { Id = 0, Radius = 5, Energy = 100, TypeId = 0, GenomeId = 0 };
+    private static Cell MakeCell() => new() { Id = 0, Radius = 5, TypeId = 0, GenomeId = 0 };
 
     [Test]
     public void Gene_IsInactive_DuringActivationDelay()
@@ -80,41 +78,15 @@ public class GenomeSystemTests
     }
 
     [Test]
-    public void AbsorbEffect_ConvertsConcentrationToEnergy()
-    {
-        var ctx = new Context { Sample = 2.0 };
-        var type = TypeWith();
-        var genome = GenomeOf(TestFactory.Gene("uptake", TestFactory.Absorb(0, 5)));
-        var cell = new Cell { Id = 0, Radius = 5, Energy = 0, TypeId = 0, GenomeId = 0 };
-
-        GenomeSystem.Evaluate(cell, type, genome, ctx, 1.0);
-        Assert.That(cell.Energy, Is.EqualTo(10.0).Within(1e-9),
-            "Energy += rate * concentration * dt = 5 * 2 * 1.");
-    }
-
-    [Test]
-    public void AbsorbEffect_RespectsMaxEnergy()
-    {
-        var ctx = new Context { Sample = 1000.0 };
-        var type = TypeWith();
-        var genome = GenomeOf(TestFactory.Gene("uptake", TestFactory.Absorb(0, 100)));
-        var cell = new Cell { Id = 0, Radius = 5, Energy = 0, TypeId = 0, GenomeId = 0 };
-
-        GenomeSystem.Evaluate(cell, type, genome, ctx, 1.0);
-        Assert.That(cell.Energy, Is.EqualTo(type.MaxEnergy).Within(1e-9));
-    }
-
-    [Test]
-    public void GrowEffect_IncreasesRadius_AndSpendsEnergy()
+    public void GrowEffect_IncreasesRadius()
     {
         var ctx = new Context();
         var type = TypeWith();
         var genome = GenomeOf(TestFactory.Gene("grow", TestFactory.Grow(4)));
-        var cell = new Cell { Id = 0, Radius = 5, Energy = 100, TypeId = 0, GenomeId = 0 };
+        var cell = new Cell { Id = 0, Radius = 5, TypeId = 0, GenomeId = 0 };
 
         GenomeSystem.Evaluate(cell, type, genome, ctx, 1.0);
         Assert.That(cell.Radius, Is.EqualTo(9.0).Within(1e-9));
-        Assert.That(cell.Energy, Is.EqualTo(96.0).Within(1e-9), "Grow costs energy per unit radius.");
     }
 
     [Test]
@@ -123,7 +95,7 @@ public class GenomeSystemTests
         var ctx = new Context();
         var type = TypeWith();
         var genome = GenomeOf(TestFactory.Gene("grow", TestFactory.Grow(100)));
-        var cell = new Cell { Id = 0, Radius = 95, Energy = 100, TypeId = 0, GenomeId = 0 };
+        var cell = new Cell { Id = 0, Radius = 95, TypeId = 0, GenomeId = 0 };
 
         GenomeSystem.Evaluate(cell, type, genome, ctx, 1.0);
         Assert.That(cell.Radius, Is.EqualTo(type.MaxRadius).Within(1e-9));

@@ -5,12 +5,7 @@
     "color": "#7bd88f",
     "genomeId": 0,
     "baseRadius": 6.0,
-    "maxRadius": 6.0,
-    "maxEnergy": 120.0,
-    "maintenanceCost": 1.0,
-    "divisionEnergyCost": 45.0,
-    "growEnergyCostPerRadius": 1.0,
-    "starveGracePeriod": 3.0
+    "maxRadius": 6.0
   },
   {
     "id": 1,
@@ -18,12 +13,7 @@
     "color": "#f6c85f",
     "genomeId": 0,
     "baseRadius": 6.0,
-    "maxRadius": 6.0,
-    "maxEnergy": 100.0,
-    "maintenanceCost": 1.4,
-    "divisionEnergyCost": 999.0,
-    "growEnergyCostPerRadius": 1.2,
-    "starveGracePeriod": 1.5
+    "maxRadius": 6.0
   },
   {
     "id": 2,
@@ -31,11 +21,6 @@
     "color": "#6a8fe0",
     "genomeId": 0,
     "baseRadius": 6.0,
-    "maxRadius": 6.0,
-    "maxEnergy": 80.0,
-    "maintenanceCost": 0.8,
-    "divisionEnergyCost": 999.0,
-    "growEnergyCostPerRadius": 1.0,
-    "starveGracePeriod": 4.0
+    "maxRadius": 6.0
   }
 ]

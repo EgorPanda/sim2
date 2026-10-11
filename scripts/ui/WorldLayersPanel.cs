@@ -22,7 +22,6 @@ public partial class WorldLayersPanel : VBoxContainer
         (WorldLayer.InternalMorphogen, "Внутриклеточная концентрация"),
         (WorldLayer.GeneActivity, "Активность гена"),
         (WorldLayer.GeneState, "Подавленные гены"),
-        (WorldLayer.Energy, "Энергия"),
         (WorldLayer.Neighbours, "Плотность соседей"),
     };
 

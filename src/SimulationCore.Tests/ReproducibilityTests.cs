@@ -8,25 +8,25 @@ public class ReproducibilityTests
 {
     private static Simulation BuildSimulation(int seed)
     {
-        // A genome that emits and absorbs a morphogen and grows, so behaviour
-        // depends on RNG (division angles) and floating-point state.
+        // A genome that emits and grows, so behaviour depends on RNG
+        // (division angles) and floating-point state.
         var emit = TestFactory.Gene("emit", TestFactory.Emit(0, 20));
-        var absorb = new GeneConfig
+        var echo = new GeneConfig
         {
-            Name = "absorb",
+            Name = "echo",
             Regulators = { new RegulatorConfig { Kind = "Morphogen", Morphogen = 0, Min = 0.001, Max = double.PositiveInfinity } },
-            Effects = { TestFactory.Absorb(0, 10) }
+            Effects = { TestFactory.Emit(0, 10) }
         };
         var grow = new GeneConfig
         {
             Name = "grow",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 20, Max = double.PositiveInfinity } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = double.PositiveInfinity } },
             Effects = { TestFactory.Grow(2) }
         };
         var divide = new GeneConfig
         {
             Name = "divide",
-            Regulators = { new RegulatorConfig { Kind = "Property", Property = "energy", Min = 40, Max = double.PositiveInfinity } },
+            Regulators = { new RegulatorConfig { Kind = "Property", Property = "age", Min = 0, Max = double.PositiveInfinity } },
             Effects = { TestFactory.Divide(1) }
         };
 
@@ -36,7 +36,7 @@ public class ReproducibilityTests
             decay: 0.1,
             initialCells: 1,
             seed: seed,
-            genome: new[] { emit, absorb, grow, divide });
+            genome: new[] { emit, echo, grow, divide });
 
         return new Simulation(setup);
     }
@@ -59,7 +59,6 @@ public class ReproducibilityTests
             Assert.That(a.Cells[i].X, Is.EqualTo(b.Cells[i].X).Within(1e-12), $"cell {i} X");
             Assert.That(a.Cells[i].Y, Is.EqualTo(b.Cells[i].Y).Within(1e-12), $"cell {i} Y");
             Assert.That(a.Cells[i].Radius, Is.EqualTo(b.Cells[i].Radius).Within(1e-12), $"cell {i} radius");
-            Assert.That(a.Cells[i].Energy, Is.EqualTo(b.Cells[i].Energy).Within(1e-9), $"cell {i} energy");
         }
         Assert.That(a.Time, Is.EqualTo(b.Time).Within(1e-12));
     }

@@ -71,14 +71,12 @@ public class CellMemoryTests
             new CellTypeConfig
             {
                 Id = 0, Name = "stem", GenomeId = 0,
-                BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 200.0,
-                MaintenanceCost = 0.0, DivisionEnergyCost = 0.0
+                BaseRadius = 6.0, MaxRadius = 6.0
             },
             new CellTypeConfig
             {
                 Id = 1, Name = "memory", GenomeId = 0,
-                BaseRadius = 6.0, MaxRadius = 6.0, MaxEnergy = 200.0,
-                MaintenanceCost = 0.0, DivisionEnergyCost = 999.0
+                BaseRadius = 6.0, MaxRadius = 6.0
             }
         };
 

@@ -7,7 +7,7 @@ namespace Sim2;
 /// <summary>
 /// Analytical display layer of the world. A layer changes how real simulation
 /// data is visualised (cell type, morphogen concentration, gradient, gene
-/// activity, silenced genes, energy, neighbour density) and never mutates the
+/// activity, silenced genes, neighbour density) and never mutates the
 /// simulation state.
 /// </summary>
 public enum WorldLayer
@@ -19,12 +19,11 @@ public enum WorldLayer
     InternalMorphogen,
     GeneActivity,
     GeneState,
-    Energy,
     Neighbours
 }
 
 /// <summary>
-/// Draws the world. Seven display layers over the cell bodies; concentration
+/// Draws the world. Cellular layers over the cell bodies; concentration
 /// heat-map (throttled) and gradient arrows. Purely presentational — it only
 /// reads core state and never mutates it.
 /// </summary>
@@ -72,7 +71,6 @@ public partial class WorldView : Node2D
     public double LegendMax { get; private set; }
 
     private Dictionary<int, Color> _typeColors = new();
-    private Dictionary<int, double> _maxEnergyByType = new();
     private Color _morphogenColor = Colors.DeepSkyBlue;
     public Color MorphogenUiColor => _morphogenColor;
     private Dictionary<int, Color> _morphogenColors = new();
@@ -104,11 +102,9 @@ public partial class WorldView : Node2D
     public void SetCellColors(IEnumerable<CellTypeConfig> types, int morphogenId)
     {
         _typeColors = new Dictionary<int, Color>();
-        _maxEnergyByType = new Dictionary<int, double>();
         foreach (var t in types)
         {
             _typeColors[t.Id] = ParseColor(t.Color);
-            _maxEnergyByType[t.Id] = t.MaxEnergy;
         }
     }
 
@@ -188,7 +184,7 @@ public partial class WorldView : Node2D
                     double v = (m.GetField(mid, gx, gy) - scaleMin) / (scaleMax - scaleMin);
                     if (v < 0.0) v = 0.0;
                     if (v > 1.0) v = 1.0;
-                    _morphogenImage.SetPixel(gx, gy, new Color(_morphogenColor, (float)v * 0.55f));
+                    _morphogenImage.SetPixel(gx, gy, new Color(_morphogenColor, (float)v * 0.75f));
                 }
             }
             _morphogenTexture?.Update(_morphogenImage);
@@ -273,7 +269,7 @@ public partial class WorldView : Node2D
                         r += c.R * (float)v;
                         g += c.G * (float)v;
                         b += c.B * (float)v;
-                        a += (float)v * 0.45f;
+                        a += (float)v * 0.55f;
                     }
                     r = Mathf.Clamp(r, 0, 1);
                     g = Mathf.Clamp(g, 0, 1);
@@ -396,10 +392,6 @@ public partial class WorldView : Node2D
                 fill = GeneStateColor(cell);
                 analysis = true;
                 break;
-            case WorldLayer.Energy:
-                fill = EnergyColor(cell);
-                analysis = true;
-                break;
             case WorldLayer.Neighbours:
                 fill = NeighboursColor(cell);
                 analysis = true;
@@ -423,21 +415,13 @@ public partial class WorldView : Node2D
             }
         }
 
-        if (!ShowCells && Layer != WorldLayer.Morphogen) return;
+        if (!ShowCells) return;
 
-        // State / dying tint.
+        // State / dying tint only: the fill itself is always the phenotype colour.
         if (cell.State == CellState.Dying)
         {
             float fade = Mathf.Clamp((float)(1.0 - cell.DeathTimer / 0.6), 0.0f, 1.0f);
             fill = new Color(fill.R, fill.G * 0.3f, fill.B * 0.3f, fade * 0.8f);
-        }
-        else if (Layer == WorldLayer.CellTypes && cell.Energy <= 0.0)
-        {
-            fill = new Color(0.7f, 0.2f, 0.25f);
-        }
-        else if (Layer == WorldLayer.CellTypes && cell.DivisionProgress > 0.0)
-        {
-            fill = fill.Lerp(new Color(1.0f, 0.9f, 0.4f), (float)Num.Clamp(cell.DivisionProgress, 0.0, 1.0) * 0.5f);
         }
 
         DrawCircle(center, radius, fill);
@@ -467,14 +451,6 @@ public partial class WorldView : Node2D
     }
 
     private bool IsGeneActive(Cell cell) => !string.IsNullOrEmpty(GeneId) && cell.StateOf(GeneId).Active;
-
-    private Color EnergyColor(Cell cell)
-    {
-        _maxEnergyByType.TryGetValue(cell.TypeId, out double max);
-        if (max <= 0) max = 100.0;
-        double t = Math.Clamp(cell.Energy / max, 0.0, 1.0);
-        return new Color((float)(0.4 + 0.6 * t), (float)(0.15 + 0.8 * t), (float)(0.15 + 0.2 * t), 0.9f);
-    }
 
     private Color NeighboursColor(Cell cell)
     {

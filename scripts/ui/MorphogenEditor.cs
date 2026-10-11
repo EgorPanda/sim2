@@ -33,9 +33,17 @@ public partial class MorphogenEditor : VBoxContainer
 
     private void Build()
     {
-        var layout = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var layout = new HBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
 
-        var left = new VBoxContainer { CustomMinimumSize = new Vector2(260, 0) };
+        var left = new VBoxContainer
+        {
+            CustomMinimumSize = new Vector2(260, 0),
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
         _search = new LineEdit { PlaceholderText = "Поиск по имени или ид…" };
         _search.TextChanged += t =>
         {
@@ -65,9 +73,14 @@ public partial class MorphogenEditor : VBoxContainer
         var cardScroll = new ScrollContainer
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
         };
-        _card = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        _card = new VBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin
+        };
         cardScroll.AddChild(_card);
         layout.AddChild(cardScroll);
 
@@ -301,6 +314,12 @@ public partial class MorphogenEditor : VBoxContainer
                 bool changed = !string.Equals(m.Type, newType, StringComparison.OrdinalIgnoreCase);
                 m.Type = newType;
                 if (changed && m.IsInternal) m.Diffusion = 0.0;
+                if (changed)
+                {
+                    // Initial signals must match the new type, otherwise the
+                    // configuration stops applying.
+                    ConfigDraft.ReconcileInitialSignals(_main.WorkingDraft, m.Id);
+                }
                 _main.MarkDirty();
                 UpdateEntryText(m.Id);
                 RebuildCard();

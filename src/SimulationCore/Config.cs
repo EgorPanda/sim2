@@ -105,11 +105,6 @@ public sealed class CellTypeConfig
 
     public double BaseRadius { get; set; } = 12.0;
     public double MaxRadius { get; set; } = 20.0;
-    public double MaxEnergy { get; set; } = 120.0;
-    public double MaintenanceCost { get; set; } = 1.5;
-    public double DivisionEnergyCost { get; set; } = 50.0;
-    public double GrowEnergyCostPerRadius { get; set; } = 1.0;
-    public double StarveGracePeriod { get; set; } = 2.0;
 }
 
 /// <summary>A gene: regulators gate its activation, effects run while active.</summary>
@@ -201,7 +196,7 @@ public sealed class RegulatorConfig
     /// <summary>Logical NOT applied to this regulator's result.</summary>
     public bool Invert { get; set; } = false;
 
-    /// <summary>Property name when Kind == "Property": energy, radius, age, neighbours.</summary>
+    /// <summary>Property name when Kind == "Property": radius, age, neighbours.</summary>
     public string Property { get; set; } = "";
 
     /// <summary>Morphogen index when Kind == "Morphogen".</summary>
@@ -221,7 +216,7 @@ public sealed class RegulatorConfig
 public sealed class GeneEffectConfig
 {
     /// <summary>
-    /// "EmitMorphogen", "Absorb", "Grow", "Divide", "SetCellType", "StartTimer",
+    /// "EmitMorphogen", "Grow", "Divide", "SetCellType", "StartTimer",
     /// "Apoptosis", "SilenceGene" or "BlockDivision".
     /// </summary>
     public string Kind { get; set; } = "";
@@ -249,7 +244,7 @@ public sealed class GeneEffectConfig
     /// <summary>Gene id silenced by "SilenceGene".</summary>
     public string Gene { get; set; } = "";
 
-    /// <summary>Rate: emission/absorb/grow/divide/move amount, or timer duration.</summary>
+    /// <summary>Rate: emission/grow/divide/move amount, or timer duration.</summary>
     public double Rate { get; set; } = 0.0;
 
     /// <summary>Duration for "StartTimer" (seconds).</summary>

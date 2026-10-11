@@ -14,17 +14,6 @@
         ]
       },
       {
-        "id": "uptake",
-        "name": "uptake",
-        "activationDelay": 0.2,
-        "regulators": [
-          { "kind": "Morphogen", "morphogen": 0, "min": 0.02, "max": 1e9 }
-        ],
-        "effects": [
-          { "kind": "Absorb", "morphogen": 0, "rate": 25.0 }
-        ]
-      },
-      {
         "id": "signalA",
         "name": "signalA",
         "regulators": [],
@@ -38,32 +27,11 @@
         "activationDelay": 0.5,
         "regulators": [
           { "kind": "Phenotype", "typeId": 0 },
-          { "kind": "Property", "property": "energy", "min": 55.0, "max": 1e9 },
           { "kind": "Property", "property": "radius", "min": 6.0, "max": 1e9 },
           { "kind": "Property", "property": "neighbours", "min": 0.0, "max": 12.0 }
         ],
         "effects": [
           { "kind": "Divide", "rate": 1.0 }
-        ]
-      },
-      {
-        "id": "startLife",
-        "name": "startLife",
-        "regulators": [
-          { "kind": "Property", "property": "energy", "min": 1.0, "max": 1e9 }
-        ],
-        "effects": [
-          { "kind": "StartTimer", "timer": "life", "duration": 120.0, "once": true }
-        ]
-      },
-      {
-        "id": "mortality",
-        "name": "mortality",
-        "regulators": [
-          { "kind": "Timer", "timer": "life", "invert": true }
-        ],
-        "effects": [
-          { "kind": "Apoptosis", "probability": 0.01 }
         ]
       },
       {
