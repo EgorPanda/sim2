@@ -115,9 +115,10 @@ godot -e --path E:\sim23
 - **Morphogen filters** (bottom-left HUD panel): while the simulation is running,
   toggle individual external morphogens on/off for the *Смесь морфогенов* layer.
   The overlay blends the selected signals in real time.
-- **Apply / Проверить / Восстановить / Сохранить / Загрузить…** in the panel
+- **Apply / Проверить / Восстановить / Сохранить / Сохранить как… / Открыть…** in the panel
   toolbar: changes live in a working draft until validated and applied; the world
-  rebuilds; experiments can be saved to an experiment profile JSON and reloaded.
+  rebuilds; experiments can be saved to an experiment profile JSON and reloaded;
+  genomes are created/copied/deleted right in the «Геном» tab.
 
 ## Project layout
 

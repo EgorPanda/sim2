@@ -67,7 +67,9 @@ public static class ConfigLoader
         string adhesionPath = Path.Combine(directory, "adhesion.json");
         if (File.Exists(adhesionPath)) adhesion = LoadAdhesion(adhesionPath);
 
-        return new SimulationSetup(sim, morphogens, genomes, cellTypes, adhesion);
+        var setup = new SimulationSetup(sim, morphogens, genomes, cellTypes, adhesion);
+        ConfigDraft.SanitizeMorphogenReferences(setup);
+        return setup;
     }
 
     /// <summary>
@@ -98,7 +100,9 @@ public static class ConfigLoader
         string adhesionPath = Resolve(experiment.AdhesionFile);
         if (File.Exists(adhesionPath)) adhesion = LoadAdhesion(adhesionPath);
 
-        return new SimulationSetup(sim, morphogens, genomes, cellTypes, adhesion);
+        var setup = new SimulationSetup(sim, morphogens, genomes, cellTypes, adhesion);
+        ConfigDraft.SanitizeMorphogenReferences(setup);
+        return setup;
     }
 
     public static JsonSerializerOptions SerializerOptions => Options;

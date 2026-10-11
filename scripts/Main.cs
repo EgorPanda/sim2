@@ -219,7 +219,9 @@ public partial class Main : Node2D
             return;
         }
 
-        ApplySetup(ConfigLoader.DeepClone(WorkingDraft));
+        var setup = ConfigLoader.DeepClone(WorkingDraft);
+        ConfigDraft.SanitizeMorphogenReferences(setup);
+        ApplySetup(setup);
         _dirty = false;
         _lab.UpdateDirtyLabel();
         _lab.RefreshData();
@@ -248,6 +250,7 @@ public partial class Main : Node2D
 
     // --- Saving / loading experiment profiles -------------------------------
 
+    /// <summary>Saves to the current path (or opens the Save As dialog on first save).</summary>
     public void SaveExperimentUi()
     {
         if (_experimentPath != null)
@@ -255,22 +258,37 @@ public partial class Main : Node2D
             SaveExperimentTo(_experimentPath);
             return;
         }
+        SaveExperimentAsUi();
+    }
+
+    /// <summary>Always opens the Save As dialog and rebinds the default save path.</summary>
+    public void SaveExperimentAsUi()
+    {
         var dialog = new FileDialog
         {
             FileMode = FileDialog.FileModeEnum.SaveFile,
             Access = FileDialog.AccessEnum.Filesystem,
             Title = "Сохранить эксперимент (файл профиля *.json)",
             Filters = new[] { "*.json ; Профиль эксперимента" },
-            CurrentFile = "experiment.json"
+            CurrentFile = string.IsNullOrWhiteSpace(_experimentName)
+                ? "experiment.json"
+                : $"{_experimentName}.json"
         };
         dialog.FileSelected += path =>
         {
             dialog.QueueFree();
             SaveExperimentTo(path);
+            RefreshLabData();
         };
         dialog.Canceled += () => dialog.QueueFree();
         GetTree().Root.AddChild(dialog);
         dialog.PopupCentered(new Vector2I(760, 480));
+    }
+
+    private void RefreshLabData()
+    {
+        _lab.RefreshData();
+        _lab.UpdateDirtyLabel();
     }
 
     public void SaveExperimentTo(string profilePath)
@@ -320,11 +338,12 @@ public partial class Main : Node2D
                 _experimentName = System.IO.Path.GetFileNameWithoutExtension(path);
                 ApplySetup(loaded);
                 RefreshDraft();
-                Notify($"Загружен эксперимент: {_experimentName}");
+                RefreshLabData();
+                Notify($"Открыт эксперимент: {_experimentName}");
             }
             catch (System.Exception ex)
             {
-                Notify($"Не удалось загрузить: {ex.Message}", error: true);
+                Notify($"Не удалось открыть: {ex.Message}", error: true);
             }
         };
         dialog.Canceled += () => dialog.QueueFree();

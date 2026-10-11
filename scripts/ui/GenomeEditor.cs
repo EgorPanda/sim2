@@ -56,13 +56,22 @@ public partial class GenomeEditor : VBoxContainer
             CustomMinimumSize = new Vector2(240, 0),
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
-        _genomeSelect = new OptionButton();
+        var genomeRow = new HBoxContainer();
+        _genomeSelect = new OptionButton
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(140, 0)
+        };
         _genomeSelect.ItemSelected += idx =>
         {
             _genomeIndex = (int)idx;
             RebuildList();
         };
-        left.AddChild(_genomeSelect);
+        genomeRow.AddChild(_genomeSelect);
+        genomeRow.AddChild(Ui.Btn("+", () => AddGenome(), 28));
+        genomeRow.AddChild(Ui.Btn("копия", CopyGenome, 56));
+        genomeRow.AddChild(Ui.Btn("удалить", DeleteGenome, 66));
+        left.AddChild(genomeRow);
 
         _filterSelect = new OptionButton();
         _filterSelect.AddItem("Все гены", 0);
@@ -171,6 +180,51 @@ public partial class GenomeEditor : VBoxContainer
             _genomeIndex = prev;
             _genomeSelect.Select(prev);
         }
+    }
+
+    private void AddGenome()
+    {
+        var draft = _main.WorkingDraft;
+        var genome = ConfigDraft.NewGenome(draft);
+        draft.Genomes = draft.Genomes.Append(genome).ToArray();
+        _genomeIndex = draft.Genomes.Length - 1;
+        _selectedGene = genome.Genes.Count > 0 ? genome.Genes[0].Key : "";
+        _main.MarkDirty();
+        _main.Notify($"Добавлен геном {genome.Id}");
+        RefreshData();
+    }
+
+    private void CopyGenome()
+    {
+        var draft = _main.WorkingDraft;
+        var source = CurrentGenome;
+        if (source == null) return;
+        var copy = ConfigDraft.CopyGenome(draft, source);
+        draft.Genomes = draft.Genomes.Append(copy).ToArray();
+        _genomeIndex = draft.Genomes.Length - 1;
+        _selectedGene = copy.Genes.Count > 0 ? copy.Genes[0].Key : "";
+        _main.MarkDirty();
+        _main.Notify($"Создана копия генома {source.Id} → {copy.Id}");
+        RefreshData();
+    }
+
+    private void DeleteGenome()
+    {
+        var draft = _main.WorkingDraft;
+        var genome = CurrentGenome;
+        if (genome == null) return;
+        string? blocked = ConfigDraft.RemoveGenome(draft, genome);
+        if (blocked != null)
+        {
+            _main.Notify($"Нельзя удалить геном {genome.Id}: {blocked}.", error: true);
+            return;
+        }
+        _genomeIndex = 0;
+        var remaining = draft.Genomes.FirstOrDefault();
+        _selectedGene = remaining?.Genes.FirstOrDefault()?.Key ?? "";
+        _main.MarkDirty();
+        _main.Notify($"Удалён геном {genome.Id}");
+        RefreshData();
     }
 
     private void AddGene()

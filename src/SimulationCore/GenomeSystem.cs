@@ -281,12 +281,16 @@ public static class GenomeSystem
             case "Move":
             {
                 if (effect.Morphogen < 0) break;
-                var (dx, dy) = ctx.MorphogenGradient(effect.Morphogen, cell.X, cell.Y);
-                if (!double.IsFinite(dx) || !double.IsFinite(dy)) break;
-                double scale = effect.Rate * dt;
+                var (gx, gy) = ctx.MorphogenGradient(effect.Morphogen, cell.X, cell.Y);
+                if (!double.IsFinite(gx) || !double.IsFinite(gy)) break;
+                // Normalize: Rate is defined in world units per second, so the
+                // real gradient steepness must not change the actual speed.
+                double len = Math.Sqrt(gx * gx + gy * gy);
+                if (len <= 1e-12) break;
+                double scale = effect.Rate * dt / len;
                 if (effect.Repel) scale = -scale;
-                cell.X += dx * scale;
-                cell.Y += dy * scale;
+                cell.X += gx * scale;
+                cell.Y += gy * scale;
                 break;
             }
         }

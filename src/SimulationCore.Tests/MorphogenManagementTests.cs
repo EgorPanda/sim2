@@ -290,4 +290,115 @@ public class MorphogenManagementTests
             && (i.Location?.Contains("divisionGradientMorphogen") == true
                 || i.Message.Contains("divisionGradientMorphogen"))), Is.True);
     }
+
+    // --- Genome management ---------------------------------------------------
+
+    [Test]
+    public void NewGenome_GetsUniqueId_AndStarterGene()
+    {
+        var setup = TestFactory.Setup(morphogenCount: 1);
+
+        var genome = ConfigDraft.NewGenome(setup);
+        setup.Genomes = setup.Genomes.Append(genome).ToArray();
+
+        Assert.That(genome.Id, Is.EqualTo(1));
+        Assert.That(genome.Genes, Has.Count.EqualTo(1));
+        var issues = ConfigValidator.Validate(setup);
+        Assert.That(issues.Where(i => i.IsError), Is.Empty,
+            "A freshly created genome must validate cleanly.");
+    }
+
+    [Test]
+    public void CopyGenome_DeepCopiesGenes_IncludingRepel()
+    {
+        var setup = TestFactory.Setup(morphogenCount: 1, genome: new[]
+        {
+            TestFactory.Gene("move", new GeneEffectConfig { Kind = "Move", Morphogen = 0, Rate = 3.0, Repel = true }),
+            TestFactory.Gene("emit", TestFactory.Emit(0, 5.0))
+        });
+        var source = setup.Genomes[0];
+
+        var copy = ConfigDraft.CopyGenome(setup, source);
+        setup.Genomes = setup.Genomes.Append(copy).ToArray();
+
+        Assert.That(copy.Id, Is.EqualTo(1));
+        Assert.That(copy.Genes.Count, Is.EqualTo(source.Genes.Count));
+        Assert.That(copy.Genes[0].Effects[0].Repel, Is.True,
+            "The Repel flag must survive genome copy.");
+        Assert.That(ReferenceEquals(copy.Genes[0], source.Genes[0]), Is.False,
+            "Genome copy must deep-copy genes.");
+
+        // Editing the copy must not leak into the source.
+        copy.Genes[0].Effects[0].Repel = false;
+        Assert.That(source.Genes[0].Effects[0].Repel, Is.True);
+    }
+
+    [Test]
+    public void RemoveGenome_BlocksLastGenomeAndReferencedGenome()
+    {
+        var setup = TestFactory.Setup(morphogenCount: 1);
+        var only = setup.Genomes[0];
+
+        Assert.That(ConfigDraft.RemoveGenome(setup, only), Is.EqualTo("нельзя удалить последний геном"));
+        Assert.That(setup.Genomes, Has.Length.EqualTo(1));
+
+        var other = ConfigDraft.NewGenome(setup);
+        setup.Genomes = setup.Genomes.Append(other).ToArray();
+
+        // Referenced by a cell type -> blocked.
+        Assert.That(ConfigDraft.RemoveGenome(setup, only), Is.EqualTo("на геном ссылаются типы клеток"));
+        Assert.That(setup.Genomes, Has.Length.EqualTo(2));
+
+        // Unreferenced -> removable.
+        Assert.That(ConfigDraft.RemoveGenome(setup, other), Is.Null);
+        Assert.That(setup.Genomes, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void SanitizeMorphogenReferences_HealsDanglingExternalReferences()
+    {
+        // A profile like the user's ex1: gradient points at morphogen 0 which was
+        // deleted; initial signals may still point at it.
+        var setup = TestFactory.Setup(morphogenCount: 1, genome: TestFactory.Gene("g", TestFactory.Emit(1, 1.0)));
+        setup.Morphogens = new[] { new MorphogenConfig { Id = 1, Name = "m1", Diffusion = 1.0, Decay = 0.1 } };
+        setup.Simulation.DivisionGradientMorphogen = 0;
+        setup.Simulation.InitialExternalSources.Add(new MorphogenSourceConfig
+        {
+            MorphogenId = 0,
+            X = 10, Y = 10, Radius = 20, Concentration = 1.0,
+            Profile = "uniform"
+        });
+        setup.Simulation.InitialInternalMorphogens[0] = 2.0;
+
+        ConfigDraft.SanitizeMorphogenReferences(setup);
+
+        Assert.That(setup.Simulation.DivisionGradientMorphogen, Is.EqualTo(-1));
+        Assert.That(setup.Simulation.InitialExternalSources, Is.Empty);
+        Assert.That(setup.Simulation.InitialInternalMorphogens, Is.Empty);
+
+        var issues = ConfigValidator.Validate(setup);
+        Assert.That(issues.Where(i => i.IsError), Is.Empty,
+            "After sanitizing, a hand-edited configuration must validate cleanly.");
+    }
+
+    [Test]
+    public void SanitizeMorphogenReferences_KeepsValidReferences()
+    {
+        var setup = TestFactory.Setup(morphogenCount: 2, genome: TestFactory.Gene("g", TestFactory.Emit(0, 1.0)));
+        setup.Morphogens[1].Type = "Internal";
+        setup.Simulation.DivisionGradientMorphogen = 0;
+        setup.Simulation.InitialExternalSources.Add(new MorphogenSourceConfig
+        {
+            MorphogenId = 0,
+            X = 10, Y = 10, Radius = 20, Concentration = 1.0,
+            Profile = "uniform"
+        });
+        setup.Simulation.InitialInternalMorphogens[1] = 1.0;
+
+        ConfigDraft.SanitizeMorphogenReferences(setup);
+
+        Assert.That(setup.Simulation.DivisionGradientMorphogen, Is.EqualTo(0));
+        Assert.That(setup.Simulation.InitialExternalSources, Has.Count.EqualTo(1));
+        Assert.That(setup.Simulation.InitialInternalMorphogens, Does.ContainKey(1));
+    }
 }

@@ -67,7 +67,7 @@ public static class ConfigDraft
         {
             Kind = e.Kind, Once = e.Once, Morphogen = e.Morphogen, TypeId = e.TypeId,
             Timer = e.Timer, Gene = e.Gene, Rate = e.Rate, Duration = e.Duration, Probability = e.Probability,
-            ChildTypeId = e.ChildTypeId
+            ChildTypeId = e.ChildTypeId, Repel = e.Repel
         };
 
         var clone = new GeneConfig
@@ -220,6 +220,74 @@ public static class ConfigDraft
         int id = baseId;
         while (used(id)) id++;
         return id;
+    }
+
+    /// <summary>Returns a genome id unused in the working set.</summary>
+    public static int UniqueGenomeId(SimulationSetup setup, int baseId)
+    {
+        bool used(int id) => setup.Genomes.Any(g => g.Id == id);
+        int id = baseId;
+        while (used(id)) id++;
+        return id;
+    }
+
+    /// <summary>Creates a new empty genome with a fresh unique id.</summary>
+    public static GenomeConfig NewGenome(SimulationSetup setup)
+    {
+        int id = UniqueGenomeId(setup, setup.Genomes.Length > 0 ? setup.Genomes.Max(g => g.Id) + 1 : 0);
+        var genome = new GenomeConfig { Id = id, Name = $"genome{id}" };
+        genome.Genes.Add(NewGene(genome, setup.Morphogens));
+        return genome;
+    }
+
+    /// <summary>Deep copy of a genome (all genes) with a fresh unique id.</summary>
+    public static GenomeConfig CopyGenome(SimulationSetup setup, GenomeConfig source)
+    {
+        int id = UniqueGenomeId(setup, source.Id + 1);
+        return new GenomeConfig
+        {
+            Id = id,
+            Name = string.IsNullOrWhiteSpace(source.Name)
+                ? $"genome{id}"
+                : $"{source.Name}_copy",
+            Genes = source.Genes.Select(CloneGene).ToList()
+        };
+    }
+
+    /// <summary>
+    /// Deletes a genome when possible. Returns null on success, otherwise a
+    /// short explanation: the last genome cannot be deleted, and a genome that
+    /// phenotype references stays until the reference is reassigned.
+    /// </summary>
+    public static string? RemoveGenome(SimulationSetup setup, GenomeConfig genome)
+    {
+        if (setup.Genomes.Length <= 1)
+            return "нельзя удалить последний геном";
+        if (setup.CellTypes.Any(t => t.GenomeId == genome.Id))
+            return "на геном ссылаются типы клеток";
+        setup.Genomes = setup.Genomes.Where(g => g.Id != genome.Id).ToArray();
+        return null;
+    }
+
+    /// <summary>
+    /// Auto-repairs external references to missing morphogens so a configuration
+    /// that survived manual edits (or an older save) can always be loaded and
+    /// applied: disables the division-gradient selector and drops initial
+    /// signals that point at a morphogen that no longer exists.
+    /// </summary>
+    public static void SanitizeMorphogenReferences(SimulationSetup setup)
+    {
+        var ids = setup.Morphogens.Select(m => m.Id).ToHashSet();
+        var external = setup.Morphogens.Where(m => m.IsExternal).Select(m => m.Id).ToHashSet();
+        var internalIds = setup.Morphogens.Where(m => m.IsInternal).Select(m => m.Id).ToHashSet();
+
+        if (setup.Simulation.DivisionGradientMorphogen >= 0 && !ids.Contains(setup.Simulation.DivisionGradientMorphogen))
+            setup.Simulation.DivisionGradientMorphogen = -1;
+
+        setup.Simulation.InitialExternalSources.RemoveAll(s => !external.Contains(s.MorphogenId));
+        foreach (int key in setup.Simulation.InitialInternalMorphogens.Keys.ToArray())
+            if (!internalIds.Contains(key))
+                setup.Simulation.InitialInternalMorphogens.Remove(key);
     }
 
     /// <summary>Deep copy of a single morphogen with a fresh, unique id.</summary>

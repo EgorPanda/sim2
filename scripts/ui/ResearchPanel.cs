@@ -104,8 +104,9 @@ public partial class ResearchPanel : PanelContainer
         bar.AddChild(Ui.Btn("Применить", () => _main.ApplyDraft(), 90));
         bar.AddChild(Ui.Btn("Проверить", () => _main.ValidateWorkingDraft(showAll: true), 90));
         bar.AddChild(Ui.Btn("Восстановить", () => _main.RevertDraft(), 110));
-        bar.AddChild(Ui.Btn("Сохранить", () => _main.SaveExperimentUi(), 90));
-        bar.AddChild(Ui.Btn("Загрузить…", () => _main.LoadExperimentUi(), 100));
+        bar.AddChild(Ui.Btn("Сохранить", () => _main.SaveExperimentUi(), 100));
+        bar.AddChild(Ui.Btn("Сохранить как…", () => _main.SaveExperimentAsUi(), 130));
+        bar.AddChild(Ui.Btn("Открыть…", () => _main.LoadExperimentUi(), 90));
 
         var spacer = new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         bar.AddChild(spacer);
