@@ -8,5 +8,7 @@
   "initialCells": 1,
   "rngSeed": 1337,
   "founderTypeId": 0,
-  "divisionGradientMorphogen": 0
+  "divisionGradientMorphogen": 0,
+  "initialExternalSources": [],
+  "initialInternalMorphogens": {}
 }

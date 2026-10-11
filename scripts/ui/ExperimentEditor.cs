@@ -150,7 +150,7 @@ public partial class ExperimentEditor : VBoxContainer
             var external = draft.Morphogens.FirstOrDefault(m => m.IsExternal);
             s.InitialExternalSources.Add(new MorphogenSourceConfig
             {
-                MorphogenId = external?.Id ?? 0,
+                MorphogenId = external?.Id ?? -1,
                 X = s.WorldWidth * 0.5,
                 Y = s.WorldHeight * 0.5,
                 Radius = 40.0,
@@ -175,6 +175,7 @@ public partial class ExperimentEditor : VBoxContainer
             Ui.Opt(
                 new[] { (-1, "(не использовать)") }
                     .Concat(_main.WorkingDraft.Morphogens
+                        .Where(m => m.IsExternal)
                         .Select(m => ((int)m.Id, $"{m.Id}: {Localization.MorphogenName(m)}"))),
                 s.DivisionGradientMorphogen,
                 id => { s.DivisionGradientMorphogen = id; _main.MarkDirty(); }, 220)));

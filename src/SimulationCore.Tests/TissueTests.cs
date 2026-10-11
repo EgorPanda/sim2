@@ -232,7 +232,7 @@ public class TissueTests
     [Test]
     public void MultipleMorphogens_FieldsAreIndependent()
     {
-        var system = new MorphogenSystem(128.0, 128.0, 8.0, 3);
+        var system = new MorphogenSystem(128.0, 128.0, 8.0, new[] { 0, 1, 2 });
         system.SetField(0, 8, 8, 50.0);
 
         var configs = new Dictionary<int, MorphogenConfig>
@@ -266,7 +266,10 @@ public class TissueTests
             new[] { new CellTypeConfig { Id = 0, GenomeId = 0 } });
 
         var s = new Simulation(setup);
-        Assert.That(s.Morphogens.MorphogenCount, Is.EqualTo(6), "Count must span up to the largest configured id.");
+        Assert.That(s.Morphogens.FieldCount, Is.EqualTo(2), "Only external morphogens allocate field slots, counted compactly.");
+        Assert.That(s.Morphogens.HasField(0), Is.True);
+        Assert.That(s.Morphogens.HasField(5), Is.True);
+        Assert.That(s.Morphogens.HasField(7), Is.False);
         Assert.That(s.SampleMorphogen(5, 128, 128), Is.EqualTo(0.0).Within(1e-12));
         Assert.That(s.SampleMorphogen(7, 128, 128), Is.EqualTo(0.0).Within(1e-12), "Out-of-range id returns 0.");
     }

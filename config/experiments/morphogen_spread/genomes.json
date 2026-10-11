@@ -1,0 +1,42 @@
+[
+  {
+    "id": 0,
+    "name": "producer_genome",
+    "displayName": "Геном производителя",
+    "description": "Постоянно выделяет внешний сигнал A.",
+    "genes": [
+      {
+        "id": "produceA",
+        "name": "Выделять A",
+        "displayName": "Выделять A",
+        "description": "Производит внешний сигнал A с заданным радиусом выделения.",
+        "regulators": [
+          { "kind": "Phenotype", "typeId": 0 }
+        ],
+        "effects": [
+          { "kind": "EmitMorphogen", "morphogen": 0, "rate": 30.0, "emissionRadius": 15.0 }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 1,
+    "name": "responder_genome",
+    "displayName": "Геном респондера",
+    "description": "При достижении порога сигнала A переключается в активированный фенотип.",
+    "genes": [
+      {
+        "id": "senseA",
+        "name": "Чувствовать A",
+        "displayName": "Чувствовать A",
+        "description": "При концентрации A выше порога переключает фенотип.",
+        "regulators": [
+          { "kind": "Morphogen", "morphogen": 0, "min": 0.5, "max": 999999.0 }
+        ],
+        "effects": [
+          { "kind": "SetCellType", "typeId": 2, "once": true }
+        ]
+      }
+    ]
+  }
+]

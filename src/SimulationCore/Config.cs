@@ -18,7 +18,7 @@ public sealed class SimulationConfig
     public int FounderTypeId { get; set; } = 0;
 
     /// <summary>Morphogen whose gradient biases division direction. -1 disables it.</summary>
-    public int DivisionGradientMorphogen { get; set; } = 0;
+    public int DivisionGradientMorphogen { get; set; } = -1;
 
     /// <summary>Initial local sources of external morphogens (seeded on reset).</summary>
     public List<MorphogenSourceConfig> InitialExternalSources { get; set; } = new();
@@ -252,6 +252,9 @@ public sealed class GeneEffectConfig
 
     /// <summary>Per-second apoptosis probability; 0 or less kills deterministically.</summary>
     public double Probability { get; set; } = 0.0;
+
+    /// <summary>For "EmitMorphogen": spatial emission radius in world units (0 = point source).</summary>
+    public double EmissionRadius { get; set; } = 0.0;
 
     /// <summary>For "Move": when true, move opposite to the morphogen gradient (repel).</summary>
     public bool Repel { get; set; } = false;

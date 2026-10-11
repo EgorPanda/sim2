@@ -58,11 +58,11 @@ godot -e --path E:\sim23
 > If `godot` is not on PATH in a fresh shell, restart the terminal (winget adds
 > the alias on install) or call the full path shown above.
 
-> Verification status (2026-10): `dotnet build Sim2.slnx` clean; 167 NUnit tests
+> Verification status (2026-10): `dotnet build Sim2.slnx` clean; 206 NUnit tests
 > pass; `--selftest` and `--uitest` pass both headless and in a real window on
-> Windows (no resource-leak messages on exit). The bundled `differentiation`
-> and new `cell_memory` demo experiments are covered by tests and can be opened
-> from the «Настройки эксперимента» → «Загрузить…». Interactive-only flows
+> Windows (no resource-leak messages on exit). The bundled `differentiation`,
+> `cell_memory` and `morphogen_spread` demo experiments are covered by tests and can be opened
+> from the «Настройки эксперимента» → «Открыть…». Interactive-only flows
 > (mouse gestures, message boxes in the save/load dialogs) still need a human
 > click.
 
@@ -88,33 +88,36 @@ godot -e --path E:\sim23
 - **No built-in death**: cells never die of old age or starvation — death happens
   only through gene-driven effects («Апоптоз», manual deletion with `E` mode).
   Life, growth and death are fully gene-controlled.
-- **Analytical layers** (left panel or «Мир» tab): cell types, external morphogen
+- **Analytical layers** (left panel): cell types, external morphogen
   concentration (auto-normalised heat map + legend), gradient vectors, internal
   morphogen concentration per cell, active gene, silenced genes, neighbour
-  density.
+  density. Use **«Показать морфогены»**, **«Выбрать морфогены…»** and **«Посмотреть сквозь»**
+  in the HUD to control the overlay and cell transparency.
 - **Phenotypes** (right panel) lists live population counts per cell type.
 - **Selected cell** (right panel) shows state, radius, age, neighbours,
   active/silenced genes (clickable — opens the genome editor), timers and local
   external/internal morphogen levels.
 - **Laboratory** (`L`) — opens as a **separate resizable window** so it never covers
-  the simulation. Six tabs:
-  - *Мир*: display layer and its options;
-  - *Геном*: create/copy/delete genes, edit display data, mandatory morphogen trigger,
+  the simulation. Five tabs:
+  - *Геном*: create/copy/delete genomes and genes, edit display data, mandatory morphogen trigger,
     AND/OR groups with NOT, thresholds (≥ / ≤ / range / = automatically derived from
     the stored interval), and the list of effects (emit/grow/divide/move/
     type switch/timers/silencing/apoptosis/division block); the «Деление» effect can set
-    the **child phenotype** — daughters are then born as that type instead of
-    inheriting the parent's;
+    the **child phenotype**; the «Выделение морфогена» effect has an **EmissionRadius**
+    for spatial spreading of external signals;
   - *Морфогены*: searchable list, copy, delete with automatic cleanup of every
-    reference (effects, regulators, triggers, gradient selector), type (External/
-    Internal), diffusion, decay, initial concentration, colour, display name;
+    reference, type (External/Internal), diffusion, decay, initial concentration,
+    colour, display name; morphogen IDs are arbitrary integers, only External
+    morphogens allocate spatial fields;
   - *Типы клеток*: all phenotype parameters + colour + linked genome;
   - *Настройки эксперимента*: world size, solver resolution, seed, founders,
-    initial external sources and founder internal morphogen concentrations;
+    external division-gradient morphogen, initial external sources and founder
+    internal morphogen concentrations;
   - *Справочник*: Russian help browser with search and cross-links.
-- **Morphogen filters** (bottom-left HUD panel): while the simulation is running,
-  toggle individual external morphogens on/off for the *Смесь морфогенов* layer.
-  The overlay blends the selected signals in real time.
+- **Morphogen picker** (HUD button «Выбрать морфогены…»): while the simulation is running,
+  choose which external and internal morphogens are shown. External morphogens render
+  as concentration fields; internal morphogens tint cells by their local concentration.
+  The picker supports «All external», «All internal» and «None» presets.
 - **Apply / Проверить / Восстановить / Сохранить / Сохранить как… / Открыть…** in the panel
   toolbar: changes live in a working draft until validated and applied; the world
   rebuilds; experiments can be saved to an experiment profile JSON and reloaded;
@@ -126,8 +129,8 @@ godot -e --path E:\sim23
 project.godot, Sim2.csproj   Godot app (rendering + UI only)
 Sim2.slnx                   .NET solution (app + core + tests)
 config/                     simulation / genomes / morphogens / celltypes / adhesion (JSON)
-config/experiments/         named experiment profiles (multicellular.json, differentiation.json)
-config/experiments/differentiation/   demo «дифференцировка при делении» (directory form)
+config/experiments/         named experiment profiles (multicellular.json, differentiation.json, cell_memory.json, morphogen_spread.json)
+config/experiments/differentiation/   demo «дифференцировка при делении»
 scripts/                    Godot front-end (Main, Hud, WorldView, UiKit, ui/… editors)
 src/SimulationCore/         pure C# simulation core (+ Localization, HelpCatalog, ConfigValidator, ConfigWriter, ConfigDraft)
 src/SimulationCore.Tests/   NUnit tests

@@ -10,7 +10,7 @@ public class RegulatorGroupTests
     {
         public double Emitted;
         public Rng Rng { get; } = new(42);
-        public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond) => Emitted += amountPerSecond;
+        public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond, double radius = 0.0) => Emitted += amountPerSecond;
         public double SampleMorphogen(int morphogen, double x, double y) => 0.0;
         public void Kill(Cell cell) => cell.State = CellState.Dying;
     }

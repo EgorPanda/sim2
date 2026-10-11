@@ -17,15 +17,17 @@ public partial class Hud : CanvasLayer
     private Button? _pauseButton;
     private HSlider? _speedSlider;
     private OptionButton? _layerSelect;
+    private OptionButton? _geneSelect;
     private Button? _labButton;
     private CheckBox? _deleteCheck;
+    private CheckBox? _showMorphogensCheck;
+    private Button? _pickMorphogensButton;
+    private Button? _seeThroughButton;
     private Label? _statsLabel;
     private Label? _phenotypeLabel;
     private VBoxContainer? _selectionBox;
     private Label? _notifyLabel;
     private LegendBar? _legend;
-    private PanelContainer? _morphogenFilterPanel;
-    private VBoxContainer? _morphogenFilterBox;
     private int? _inspectorCell;
     private bool _suppressSignals;
 
@@ -35,7 +37,6 @@ public partial class Hud : CanvasLayer
         BuildControlPanel();
         BuildStatsPanel();
         BuildLegend();
-        BuildMorphogenFilterPanel();
         UpdateNotify("Добро пожаловать в лабораторию. F1 — справка, L — панель, Пробел — пауза.");
     }
 
@@ -91,6 +92,43 @@ public partial class Hud : CanvasLayer
         };
         layerRow.AddChild(_layerSelect);
         box.AddChild(layerRow);
+
+        var geneRow = new HBoxContainer();
+        geneRow.AddChild(new Label { Text = "Ген", CustomMinimumSize = new Vector2(40, 0), VerticalAlignment = VerticalAlignment.Center });
+        _geneSelect = new OptionButton { CustomMinimumSize = new Vector2(210, 0) };
+        _geneSelect.ItemSelected += idx =>
+        {
+            if (_suppressSignals) return;
+            var id = (int)_geneSelect!.GetItemId((int)idx);
+            var key = id >= 0 ? _geneSelect.GetItemText((int)idx) : "";
+            _main.World.GeneId = key;
+            _main.RefreshLayer();
+        };
+        geneRow.AddChild(_geneSelect);
+        box.AddChild(geneRow);
+
+        var morphRow = new HBoxContainer();
+        _showMorphogensCheck = Ui.Chk("Показать морфогены", _main.World.ShowMorphogens, on =>
+        {
+            _main.World.ShowMorphogens = on;
+            _main.RefreshLayer();
+        });
+        morphRow.AddChild(_showMorphogensCheck);
+        _pickMorphogensButton = Ui.Btn("Выбрать морфогены…", () =>
+        {
+            var picker = new MorphogenPicker(_main);
+            GetTree().Root.AddChild(picker);
+            picker.PopupCentered();
+        }, 150);
+        morphRow.AddChild(_pickMorphogensButton);
+        _seeThroughButton = Ui.Btn("Посмотреть сквозь", () =>
+        {
+            _main.World.SeeThrough = !_main.World.SeeThrough;
+            UpdateSeeThroughButton();
+            _main.RefreshLayer();
+        }, 130);
+        morphRow.AddChild(_seeThroughButton);
+        box.AddChild(morphRow);
 
         var miscRow = new HBoxContainer();
         _deleteCheck = Ui.Chk("Режим удаления", false, on => _main.DeleteMode = on);
@@ -163,81 +201,8 @@ public partial class Hud : CanvasLayer
         _notifyLabel.OffsetRight = 720;
     }
 
-    private void BuildMorphogenFilterPanel()
-    {
-        _morphogenFilterPanel = new PanelContainer
-        {
-            Visible = false,
-            SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin
-        };
-        _morphogenFilterPanel.AddThemeStyleboxOverride("panel", Ui.PanelStyle(0.65f, 8));
-        _morphogenFilterPanel.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
-        _morphogenFilterPanel.OffsetLeft = 12;
-        _morphogenFilterPanel.OffsetRight = 12 + 220;
-        _morphogenFilterPanel.OffsetTop = -12 - 240;
-        _morphogenFilterPanel.OffsetBottom = -12;
-        AddChild(_morphogenFilterPanel);
-
-        _morphogenFilterBox = new VBoxContainer { CustomMinimumSize = new Vector2(200, 0) };
-        _morphogenFilterPanel.AddChild(_morphogenFilterBox);
-        _morphogenFilterBox.AddChild(Ui.Title("Фильтры морфогенов", 200));
-        _morphogenFilterBox.AddChild(Ui.Lbl("Включают видимость на слое «Смесь морфогенов»", 200));
-    }
-
-    public void RefreshMorphogenFilters()
-    {
-        if (_morphogenFilterBox == null || _morphogenFilterPanel == null) return;
-        Ui.Clear(_morphogenFilterBox);
-        _morphogenFilterBox.AddChild(Ui.Title("Фильтры морфогенов", 200));
-        _morphogenFilterBox.AddChild(Ui.Lbl("Включают видимость на слое «Смесь морфогенов»", 200));
-
-        var setup = _main.LiveSetup;
-        if (setup == null) return;
-        var external = setup.Morphogens.Where(m => m.IsExternal).OrderBy(m => m.Id).ToList();
-        if (external.Count == 0)
-        {
-            _morphogenFilterBox.AddChild(Ui.Lbl("Нет внешних морфогенов"));
-            _morphogenFilterPanel.Visible = false;
-            return;
-        }
-
-        _morphogenFilterPanel.Visible = true;
-        foreach (var m in external)
-        {
-            int id = m.Id;
-            bool visible = _main.World.VisibleMorphogenIds.Contains(id);
-            var row = new HBoxContainer();
-            var color = new ColorRect
-            {
-                CustomMinimumSize = new Vector2(16, 16),
-                Color = Color.FromHtml(m.Color)
-            };
-            row.AddChild(color);
-            row.AddChild(Ui.Chk($"{id}: {Localization.MorphogenName(m)}", visible, on =>
-            {
-                if (on) _main.World.VisibleMorphogenIds.Add(id);
-                else _main.World.VisibleMorphogenIds.Remove(id);
-                _main.RefreshLayer();
-            }));
-            _morphogenFilterBox.AddChild(row);
-        }
-
-        var allRow = new HBoxContainer();
-        allRow.AddChild(Ui.Btn("Все", () =>
-        {
-            foreach (var m in external)
-                _main.World.VisibleMorphogenIds.Add(m.Id);
-            RefreshMorphogenFilters();
-            _main.RefreshLayer();
-        }, 70));
-        allRow.AddChild(Ui.Btn("Ни одного", () =>
-        {
-            _main.World.VisibleMorphogenIds.Clear();
-            RefreshMorphogenFilters();
-            _main.RefreshLayer();
-        }, 90));
-        _morphogenFilterBox.AddChild(allRow);
-    }
+    // Kept for backward compatibility; the morphogen picker replaced this panel.
+    public void RefreshMorphogenFilters() { }
 
     // --- Commands from the environment / to Main ---------------------------
 
@@ -276,6 +241,46 @@ public partial class Hud : CanvasLayer
                 }
             }
         }
+        UpdateGeneSelector(layer);
+        _suppressSignals = false;
+    }
+
+    private void UpdateGeneSelector(WorldLayer layer)
+    {
+        if (_geneSelect == null) return;
+        Ui.Clear(_geneSelect);
+        bool needsGene = layer == WorldLayer.GeneActivity || layer == WorldLayer.GeneState;
+        _geneSelect.Visible = needsGene;
+        if (!needsGene) return;
+
+        _geneSelect.AddItem("(не выбран)", -1);
+        var setup = _main.LiveSetup;
+        if (setup == null) return;
+        foreach (var genome in setup.Genomes)
+        {
+            foreach (var gene in genome.Genes)
+            {
+                int id = _geneSelect.ItemCount;
+                _geneSelect.AddItem(gene.Key, id);
+                if (gene.Key == _main.World.GeneId)
+                    _geneSelect.Select(id);
+            }
+        }
+    }
+
+    private void UpdateSeeThroughButton()
+    {
+        if (_seeThroughButton == null) return;
+        _seeThroughButton.Text = _main.World.SeeThrough ? "Посмотреть сквозь ✓" : "Посмотреть сквозь";
+    }
+
+    public void RefreshControls()
+    {
+        _suppressSignals = true;
+        if (_showMorphogensCheck != null)
+            _showMorphogensCheck.SetPressedNoSignal(_main.World.ShowMorphogens);
+        UpdateSeeThroughButton();
+        UpdateGeneSelector(_main.CurrentLayer);
         _suppressSignals = false;
     }
 
@@ -286,6 +291,7 @@ public partial class Hud : CanvasLayer
         if (_sim == null) return;
         var sim = _main.Sim!;
         var setup = _main.LiveSetup!;
+        RefreshControls();
         if (_statsLabel != null)
         {
             _statsLabel.Text =

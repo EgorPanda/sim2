@@ -20,7 +20,7 @@ public class MorphogenTriggerTests
 
         public double SampleMorphogen(int morphogen, double x, double y)
             => ExistingMorphogens.Contains(morphogen) ? ExternalConcentration : 0.0;
-        public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond) => Emitted += amountPerSecond;
+        public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond, double radius = 0.0) => Emitted += amountPerSecond;
         public void Kill(Cell cell) { }
 
         public bool IsMorphogenInternal(int morphogen) => InternalMorphogens.Contains(morphogen);

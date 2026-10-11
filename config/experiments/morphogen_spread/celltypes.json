@@ -1,0 +1,32 @@
+[
+  {
+    "id": 0,
+    "name": "producer",
+    "displayName": "Производитель",
+    "description": "Выделяет внешний сигнал A.",
+    "color": "#2ed573",
+    "genomeId": 0,
+    "baseRadius": 8.0,
+    "maxRadius": 14.0
+  },
+  {
+    "id": 1,
+    "name": "naive",
+    "displayName": "Наивная",
+    "description": "Ждёт прихода сигнала A.",
+    "color": "#4ea8de",
+    "genomeId": 1,
+    "baseRadius": 8.0,
+    "maxRadius": 14.0
+  },
+  {
+    "id": 2,
+    "name": "activated",
+    "displayName": "Активированная",
+    "description": "Переключилась под действием сигнала A.",
+    "color": "#ff4757",
+    "genomeId": 1,
+    "baseRadius": 8.0,
+    "maxRadius": 14.0
+  }
+]

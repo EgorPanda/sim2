@@ -40,7 +40,7 @@ public static class SaveSystem
 
     public sealed class WorldDto
     {
-        public int Version { get; set; } = 3;
+        public int Version { get; set; } = 4;
         public double Time { get; set; }
         public long Tick { get; set; }
         public int NextId { get; set; }
@@ -49,6 +49,8 @@ public static class SaveSystem
         public double WorldHeight { get; set; }
         public double MorphogenResolution { get; set; }
         public int MorphogenCount { get; set; }
+        /// <summary>Morphogen id for each entry in MorphogenFields (M1.7+).</summary>
+        public List<int> MorphogenIds { get; set; } = new();
         public List<CellDto> Cells { get; set; } = new();
         public List<double[]> MorphogenFields { get; set; } = new();
     }
@@ -64,7 +66,7 @@ public static class SaveSystem
             WorldWidth = sim.Morphogens.WorldWidth,
             WorldHeight = sim.Morphogens.WorldHeight,
             MorphogenResolution = sim.Morphogens.Resolution,
-            MorphogenCount = sim.Morphogens.MorphogenCount
+            MorphogenCount = sim.Morphogens.FieldCount
         };
 
         foreach (var c in sim.Cells)
@@ -96,11 +98,13 @@ public static class SaveSystem
             dto.Cells.Add(cellDto);
         }
 
-        for (int m = 0; m < sim.Morphogens.MorphogenCount; m++)
+        for (int idx = 0; idx < sim.Morphogens.FieldCount; idx++)
         {
+            int id = sim.Morphogens.MorphogenIdAt(idx);
             var field = new double[sim.Morphogens.CellCount];
             for (int i = 0; i < field.Length; i++)
-                field[i] = sim.Morphogens.GetField(m, i);
+                field[i] = sim.Morphogens.GetField(id, i);
+            dto.MorphogenIds.Add(id);
             dto.MorphogenFields.Add(field);
         }
 
@@ -144,15 +148,22 @@ public static class SaveSystem
 
         sim.RestoreRuntime(dto.Time, dto.Tick, dto.NextId, dto.RngState);
 
-        int m = Math.Min(dto.MorphogenFields.Count, sim.Morphogens.MorphogenCount);
-        for (int k = 0; k < m; k++)
+        // Backward compatibility: old saves stored fields by index 0..MorphogenCount-1.
+        var ids = dto.MorphogenIds != null && dto.MorphogenIds.Count > 0
+            ? dto.MorphogenIds
+            : Enumerable.Range(0, dto.MorphogenFields.Count).ToList();
+
+        int count = Math.Min(ids.Count, dto.MorphogenFields.Count);
+        for (int k = 0; k < count; k++)
         {
+            int morphId = ids[k];
+            if (!sim.Morphogens.HasField(morphId)) continue;
             var field = dto.MorphogenFields[k];
             for (int i = 0; i < field.Length && i < sim.Morphogens.CellCount; i++)
             {
                 int gx = i % sim.Morphogens.GridWidth;
                 int gy = i / sim.Morphogens.GridWidth;
-                sim.Morphogens.SetField(k, gx, gy, field[i]);
+                sim.Morphogens.SetField(morphId, gx, gy, field[i]);
             }
         }
     }

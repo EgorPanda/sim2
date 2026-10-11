@@ -5,25 +5,23 @@ using System.Linq;
 namespace Sim2;
 
 /// <summary>
-/// "Лаборатория" — the research panel. Tabs: Мир (display layers), Геном,
-/// Морфогены, Типы клеток, Настройки эксперимента and Справочник. Holds the
-/// global action row (Применить / Проверить / Восстановить / Сохранить) and
-/// the live validation output. It works on the working draft owned by
-/// <see cref="Main"/> and never touches the running simulation directly.
+/// "Лаборатория" — the research panel. Tabs: Геном, Морфогены, Типы клеток,
+/// Настройки эксперимента and Справочник. Holds the global action row
+/// (Применить / Проверить / Восстановить / Сохранить) and the live validation
+/// output. It works on the working draft owned by <see cref="Main"/> and never
+/// touches the running simulation directly.
 /// </summary>
 public partial class ResearchPanel : PanelContainer
 {
-    internal const int TabWorld = 0;
-    internal const int TabGenome = 1;
-    internal const int TabMorphogens = 2;
-    internal const int TabTypes = 3;
-    internal const int TabExperiment = 4;
-    internal const int TabHelp = 5;
+    internal const int TabGenome = 0;
+    internal const int TabMorphogens = 1;
+    internal const int TabTypes = 2;
+    internal const int TabExperiment = 3;
+    internal const int TabHelp = 4;
 
     private readonly Main _main;
     private TabContainer? _tabs;
     private GenomeEditor? _genome;
-    private WorldLayersPanel? _worldTab;
     private MorphogenEditor? _morphogens;
     private CellTypeEditor? _types;
     private ExperimentEditor? _experiment;
@@ -68,10 +66,6 @@ public partial class ResearchPanel : PanelContainer
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
         root.AddChild(_tabs);
-
-        _worldTab = new WorldLayersPanel(main);
-        _tabs.AddChild(_worldTab);
-        _tabs.SetTabTitle(TabWorld, "Мир");
 
         _genome = new GenomeEditor(main);
         _tabs.AddChild(_genome);
@@ -135,7 +129,6 @@ public partial class ResearchPanel : PanelContainer
 
     public void RefreshData()
     {
-        _worldTab?.RefreshData();
         _genome?.RefreshData();
         _morphogens?.RefreshData();
         _types?.RefreshData();

@@ -4,14 +4,175 @@
     "name": "genome0",
     "genes": [
       {
-        "id": "00",
-        "name": "\u0413\u0435\u043D \u0436\u0438\u0437\u043D\u0438",
-        "displayName": "\u0413\u0435\u043D \u0436\u0438\u0437\u043D\u0438",
+        "id": "100",
+        "name": "g_100",
+        "displayName": "\u0414\u0435\u043B\u0435\u043D\u0438\u0435",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": [
+          {
+            "kind": "Divide",
+            "once": false,
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 0.5,
+            "duration": 0,
+            "probability": 0,
+            "repel": false
+          }
+        ]
+      },
+      {
+        "id": "0",
+        "name": "0",
+        "displayName": "g0",
         "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
         "role": "",
         "activationDelay": 0,
         "requireMorphogenTrigger": true,
         "requiredMorphogenId": 0,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [
+          {
+            "operator": "And",
+            "regulators": [
+              {
+                "kind": "Morphogen",
+                "invert": false,
+                "property": "",
+                "morphogen": 0,
+                "typeId": -1,
+                "timer": "",
+                "min": "-Infinity",
+                "max": "Infinity"
+              }
+            ]
+          }
+        ],
+        "effects": [
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 6,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 10,
+            "duration": 0,
+            "probability": 0,
+            "repel": false
+          }
+        ]
+      },
+      {
+        "id": "1",
+        "name": "1",
+        "displayName": "g1",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 1,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [
+          {
+            "operator": "And",
+            "regulators": [
+              {
+                "kind": "Morphogen",
+                "invert": false,
+                "property": "",
+                "morphogen": 6,
+                "typeId": -1,
+                "timer": "",
+                "min": "-Infinity",
+                "max": "Infinity"
+              }
+            ]
+          }
+        ],
+        "effects": []
+      },
+      {
+        "id": "2",
+        "name": "2",
+        "displayName": "g2",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 2,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "3",
+        "name": "3",
+        "displayName": "g3",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 3,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "4",
+        "name": "4",
+        "displayName": "g4",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 4,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "5",
+        "name": "5",
+        "displayName": "g5",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 5,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [
+          {
+            "operator": "And",
+            "regulators": []
+          }
+        ],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D",
+        "displayName": "g6",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 6,
         "requiredMorphogenThreshold": 0.5,
         "regulators": [],
         "regulatorGroups": [
@@ -27,6 +188,16 @@
                 "timer": "",
                 "min": "-Infinity",
                 "max": "Infinity"
+              },
+              {
+                "kind": "Morphogen",
+                "invert": false,
+                "property": "",
+                "morphogen": 0,
+                "typeId": -1,
+                "timer": "",
+                "min": "-Infinity",
+                "max": "Infinity"
               }
             ]
           }
@@ -35,11 +206,11 @@
           {
             "kind": "EmitMorphogen",
             "once": false,
-            "morphogen": 1,
+            "morphogen": 6,
             "typeId": -1,
             "timer": "",
             "gene": "",
-            "rate": 5,
+            "rate": 70,
             "duration": 0,
             "probability": 0,
             "repel": false
@@ -47,15 +218,260 @@
         ]
       },
       {
-        "id": "01",
-        "name": "01",
-        "displayName": "\u0420\u0435\u043F\u0440\u043E\u0434\u0443\u043A\u0446\u0438\u044F",
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D2",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D2",
+        "displayName": "g7",
         "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
         "role": "",
         "activationDelay": 0,
         "requireMorphogenTrigger": true,
-        "requiredMorphogenId": 1,
-        "requiredMorphogenThreshold": 10,
+        "requiredMorphogenId": 7,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D3",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D3",
+        "displayName": "g8",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 8,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D4",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D4",
+        "displayName": "g9",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 9,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D5",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D5",
+        "displayName": "g10",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 10,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D6",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D6",
+        "displayName": "g11",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 11,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D7",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D7",
+        "displayName": "g12",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 12,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D8",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D8",
+        "displayName": "g13",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 13,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D9",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D9",
+        "displayName": "g14",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [
+          {
+            "operator": "And",
+            "regulators": [
+              {
+                "kind": "Property",
+                "invert": true,
+                "property": "neighbours",
+                "morphogen": -1,
+                "typeId": -1,
+                "timer": "",
+                "min": 5,
+                "max": "Infinity"
+              },
+              {
+                "kind": "Phenotype",
+                "invert": false,
+                "property": "",
+                "morphogen": -1,
+                "typeId": 1,
+                "timer": "",
+                "min": "-Infinity",
+                "max": "Infinity"
+              },
+              {
+                "kind": "Timer",
+                "invert": false,
+                "property": "",
+                "morphogen": -1,
+                "typeId": -1,
+                "timer": "t1",
+                "min": 4,
+                "max": "Infinity"
+              }
+            ]
+          }
+        ],
+        "effects": [
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 0,
+            "duration": 0,
+            "probability": 0,
+            "repel": false
+          }
+        ]
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D10",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D10",
+        "displayName": "g15",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D11",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D11",
+        "displayName": "g16",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D12",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D12",
+        "displayName": "g17",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D13",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D13",
+        "displayName": "g18",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "19",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D14",
+        "displayName": "g19",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "20",
+        "name": "\u043D\u043E\u0432\u044B\u0439_\u0433\u0435\u043D15",
+        "displayName": "g20",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
+        "regulatorGroups": [],
+        "effects": []
+      },
+      {
+        "id": "21",
+        "name": "\u0411\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0449\u0438\u043A \u0434\u0435\u043B\u0435\u043D\u0438\u044F",
+        "displayName": "g21_\u0411\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0449\u0438\u043A \u0434\u0435\u043B\u0435\u043D\u0438\u044F",
+        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "role": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": 6,
+        "requiredMorphogenThreshold": 0.5,
         "regulators": [],
         "regulatorGroups": [
           {
@@ -68,7 +484,7 @@
                 "morphogen": 1,
                 "typeId": -1,
                 "timer": "",
-                "min": 15,
+                "min": "-Infinity",
                 "max": "Infinity"
               }
             ]

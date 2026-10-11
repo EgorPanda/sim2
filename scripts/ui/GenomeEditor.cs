@@ -923,9 +923,14 @@ public partial class GenomeEditor : VBoxContainer
                     Ui.Opt(
                         draft.Morphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
                         effect.Morphogen >= 0 ? effect.Morphogen : (draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : 0),
-                        id => { effect.Morphogen = id; _main.MarkDirty(); }, 220)));
+                        id => { effect.Morphogen = id; _main.MarkDirty(); Rebind(); }, 220)));
                 into.AddChild(Ui.Field("Скорость, ед./с:",
                     Ui.Sp(0, 1000, 0.1, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
+                bool isInternal = draft.Morphogens.FirstOrDefault(m => m.Id == effect.Morphogen)?.IsInternal == true;
+                into.AddChild(Ui.Field("Радиус выделения:",
+                    Ui.Sp(0, 200, 0.5, effect.EmissionRadius, v => { effect.EmissionRadius = v; _main.MarkDirty(); })));
+                if (isInternal)
+                    into.AddChild(Ui.Lbl("Радиус выделения не применяется к внутреннему морфогену.", 0, 0));
                 break;
 
             case "Grow":

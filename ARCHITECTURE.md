@@ -84,30 +84,38 @@ headless and independently from the interface.
   works for both external (field sample) and internal (per-cell concentration)
   morphogens. Newly-created genes have the trigger enabled; legacy genes without
   the field keep the historical always-on behaviour.
-- Regulators: `Morphogen`, `Property` (`radius`, `age`, `neighbours`),
-  `Phenotype`, `State`, `Timer` — each optionable with `invert` (negation).
+- Regulators: `Morphogen` (external field or internal concentration), `Property`
+  (`radius`, `age`, `neighbours`), `Phenotype`, `State`, `Timer` — each optionable
+  with `invert` (negation).
 - Effects: `EmitMorphogen`, `Grow`, `Divide`, `Move`, `SetCellType`,
   `StartTimer`, `Apoptosis`, `SilenceGene`, `BlockDivision`. Effects may be `once`
   (run only on the step a gene activates); otherwise they run every step while the
   gene is active. `EmitMorphogen` writes to the external field for external
-  morphogens and to the cell's internal store for internal morphogens. `Move` displaces the cell along (or
-  against, with `Repel`) the gradient of an external morphogen. `Divide` optionally
-  carries `ChildTypeId` (birth phenotype; `null` = inherit parent). Timers are not
-  restarted while running. Probabilistic apoptosis is dt-invariant (`1 - exp(-p·dt)`).
+  morphogens (with optional `EmissionRadius`) and to the cell's internal store for
+  internal morphogens. `Move` displaces the cell along (or against, with `Repel`)
+  the normalized gradient of an external morphogen. `Divide` optionally carries
+  `ChildTypeId` (birth phenotype; `null` = inherit parent). Timers are not restarted
+  while running. Probabilistic apoptosis is dt-invariant (`1 - exp(-p·dt)`).
 - Genes are data, not code: adding genes / morphogens / cell types is a JSON change.
 
 ### MorphogenSystem
 - A **separate** uniform grid (world rect + resolution) for **external** morphogens;
-  it does not constrain cell positions. Each external morphogen has its own scalar
-  field. **Internal** morphogens have no field; their concentrations live inside
-  `Cell.InternalMorphogenConcentrations` and decay locally per cell.
+  it does not constrain cell positions. External morphogens are stored in compact
+  field slots via an explicit `id → index` map, so sparse ids do not waste memory and
+  internal morphogens never allocate a field. **Internal** morphogens have no field;
+  their concentrations live inside `Cell.InternalMorphogenConcentrations` and decay
+  locally per cell.
 - Update: explicit diffusion (`D * laplacian`) + exponential decay + accumulated
   emission. The number of sub-steps is chosen automatically for stability
-  (`D*dt/dx^2 <= 0.25`). Internal morphogens skip the spatial solver entirely.
+  (`D*dt/dx^2 <= 0.24`); if a very high diffusion still violates the condition, the
+  effective coefficient is reduced for that step instead of being silently capped.
+  Emission supports a spatial kernel (`EmissionRadius`) for external morphogens:
+  the source is distributed around the cell with normalized weights so total mass
+  stays equal to `rate * dt`. Internal morphogens skip the spatial solver entirely.
 - `Sample(x, y)` gives smooth bilinear concentration for external fields;
   `Gradient(x, y)` gives a central-difference vector (used to bias division
-  direction), never NaN.
-- The field count spans up to the largest configured **external** morphogen id.
+  direction), never NaN. Missing or internal ids return zero.
+- `DivisionGradientMorphogen` must be an external morphogen; `-1` disables the bias.
 
 ### CellMechanicsSystem
 - Prevents overlaps: pairwise, position-based separation of overlapping circles using the
@@ -131,16 +139,19 @@ headless and independently from the interface.
   (toggle individual external signals in real time), gradient vectors, internal
   morphogen concentration per cell, gene activity, silenced genes, neighbour
   density. Read-only.
-- `Hud` (Russian) — transport (pause / step / reset), speed, layer selector, delete tool,
-  laboratory toggle, help button; per-**phenotype statistics**, a **selected-cell
-  inspector** (clickable genes open the editor), a legend strip and notifications.
-- `ui/ResearchPanel` — the **Laboratory** (`L`): tabs «Мир», «Геном», «Морфогены»,
+- `Hud` (Russian) — transport (pause / step / reset), speed, layer selector, gene
+  selector for gene layers, delete tool, laboratory toggle, help button,
+  «Показать морфогены» / «Выбрать морфогены…» / «Посмотреть сквозь» controls;
+  per-**phenotype statistics**, a **selected-cell inspector** (clickable genes open
+  the editor), a legend strip and notifications.
+- `ui/ResearchPanel` — the **Laboratory** (`L`): tabs «Геном», «Морфогены»,
   «Типы клеток», «Настройки эксперимента», «Справочник»; toolbar Применить / Проверить /
-  Восстановить / Сохранить / Загрузить…; hosted in a separate `Window` so the
+  Восстановить / Сохранить / Сохранить как… / Открыть…; hosted in a separate `Window` so the
   simulation view stays unobstructed; closes with `L` or `Esc` or the window close
-  button. `L`/`F1`, the «Справочник» button and the «?» context buttons route through
-  `Main.OpenHelp`, `Main.OpenGene` and `Main.OpenMorphogen`, which make the panel
-  visible and select the requested tab/article/row.
+  button. Layer options moved to the main HUD. `L`/`F1`, the «Справочник» button and
+  the «?» context buttons route through `Main.OpenHelp`, `Main.OpenGene` and
+  `Main.OpenMorphogen`, which make the panel visible and select the requested
+  tab/article/row.
 - `ui/GenomeEditor` — gene list + card: display data, AND/OR **groups** (OR between
   groups, AND inside, NOT per condition), thresholds ≥ / ≤ / range / = (derived from
   the stored `[min, max]`), effects list. `ui/MorphogenEditor`, `ui/CellTypeEditor`,
@@ -168,23 +179,23 @@ headless and independently from the interface.
   the core so coverage is testable.
 
 ### SaveSystem
-- Versioned JSON DTO (v3) capturing cells (with `GenomeId`, gene state, timers,
+- Versioned JSON DTO (v4) capturing cells (with `GenomeId`, gene state, timers,
   internal morphogen concentrations, silenced genes, `DivisionBlocked`), the external
-  morphogen fields, the RNG state and world time. A load continues bit-for-bit
-  identically to the saved run. Old v2 saves load with empty internal concentrations.
+  morphogen fields with their public ids, the RNG state and world time. A load
+  continues bit-for-bit identically to the saved run. Old saves load by index
+  (v3 and earlier) or by id (v4).
 
 ### Tests
 - `SimulationCore.Tests` (NUnit) validates diffusion stability & conservation properties,
   decay, spatial-hash correctness, division rules, morphogen sampling, gene regulation
   (inversion, AND/OR groups, timers, silencing, apoptosis, division blocking), tissue mechanics
   (adhesion, directed division, inheritance) and deterministic reproducibility, plus the
-  multicellular experiment profile. M1.5 adds coverage for regulator groups,
+  bundled experiment profiles. M1.5+ adds coverage for regulator groups,
   configuration validation, serialization round-trips, localization completeness,
-  help-catalog completeness (every regulator/effect/property has an article; related
-  links resolve), morphogen management (copy, reference-guarded removal) and
-  birth-differentiation (`ChildTypeId`, last-applies-wins, intent lifecycle, gradient
-  demo), and the `differentiation` demo experiment (both birth phenotypes realised,
-  differentiated cells never divide, fixed seed reproducible).
+  help-catalog completeness, morphogen management (copy, reference-guarded removal),
+  birth-differentiation, genome management, the `cell_memory` and `morphogen_spread`
+  demo experiments, internal/external morphogen regulation, sparse morphogen IDs,
+  spatial emission radius and a morphogen-pipeline performance diagnostic.
 - `Main` also exposes two headless/runnable checks. `--selftest` steps a fresh world
   for 4000 ticks and verifies reproducibility. `--uitest` drives the real UI in a
   process: opens the Laboratory via the button-equivalent, L and F1 keys, checks the
@@ -242,7 +253,8 @@ Sim2.slnx                .NET solution (app + core + tests)
 config/                  simulation, morphogens, genomes, celltypes, adhesion
 config/experiments/      named experiment profiles (multicellular.json,
                          differentiation.json + differentiation/,
-                         cell_memory.json + cell_memory/ — directory form)
+                         cell_memory.json + cell_memory/,
+                         morphogen_spread.json + morphogen_spread/)
 scripts/                 Godot front-end (Main, WorldView, Hud, UiKit, ui/* editors)
 scenes/                  Main.tscn
 src/SimulationCore/      pure C# simulation library (+ Localization, HelpCatalog,

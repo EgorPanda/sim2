@@ -63,16 +63,14 @@ public sealed class Simulation : GeneContext
         }
         CellTypesById = types;
 
-        int morphCount = 0;
-        foreach (var id in morphogens.Keys)
-        {
-            if (!morphogens[id].IsInternal)
-                morphCount = Math.Max(morphCount, id + 1);
-        }
+        var externalIds = morphogens.Values
+            .Where(m => m.IsExternal)
+            .Select(m => m.Id)
+            .ToArray();
 
         Morphogens = new MorphogenSystem(
             Config.WorldWidth, Config.WorldHeight,
-            Config.MorphogenResolution, Math.Max(1, morphCount));
+            Config.MorphogenResolution, externalIds);
 
         _adhesion = BuildAdhesion(setup.Adhesion);
         Mechanics.Adhesion = (a, b) => _adhesion(a, b);
@@ -101,7 +99,7 @@ public sealed class Simulation : GeneContext
     }
 
     private Func<double, double, (double, double)>? BuildDivisionGradient(int morph) =>
-        morph >= 0 && MorphogensById.ContainsKey(morph)
+        morph >= 0 && MorphogensById.TryGetValue(morph, out var cfg) && cfg.IsExternal
             ? (x, y) => Morphogens.Gradient(morph, x, y)
             : null;
 
@@ -394,18 +392,15 @@ public sealed class Simulation : GeneContext
     Rng GeneContext.Rng => Rng;
 
     public double SampleMorphogen(int morphogen, double x, double y)
-        => morphogen < 0 || morphogen >= Morphogens.MorphogenCount ? 0.0 : Morphogens.Sample(morphogen, x, y);
+        => Morphogens.HasField(morphogen) ? Morphogens.Sample(morphogen, x, y) : 0.0;
 
     public (double Dx, double Dy) MorphogenGradient(int morphogen, double x, double y)
-    {
-        if (morphogen < 0 || morphogen >= Morphogens.MorphogenCount) return (0.0, 0.0);
-        return Morphogens.Gradient(morphogen, x, y);
-    }
+        => Morphogens.HasField(morphogen) ? Morphogens.Gradient(morphogen, x, y) : (0.0, 0.0);
 
-    public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond)
+    public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond, double radius = 0.0)
     {
-        if (morphogen < 0 || morphogen >= Morphogens.MorphogenCount) return;
-        Morphogens.Emit(morphogen, x, y, amountPerSecond);
+        if (!Morphogens.HasField(morphogen)) return;
+        Morphogens.Emit(morphogen, x, y, amountPerSecond, radius);
     }
 
     public bool IsMorphogenInternal(int morphogen)

@@ -33,15 +33,23 @@ public partial class WorldView : Node2D
     public int? SelectedCellId { get; set; }
 
     public WorldLayer Layer { get; set; } = WorldLayer.CellTypes;
-    public bool ShowCells { get; set; } = true;
 
     /// <summary>Heat-map on top when Layer == Morphogen or MultiMorphogen.</summary>
     public bool ShowField => Layer == WorldLayer.Morphogen || Layer == WorldLayer.MultiMorphogen;
 
     public int MorphogenId { get; set; }
 
+    /// <summary>All morphogens selected for visualisation (external fields + internal tinting).</summary>
+    public HashSet<int> SelectedMorphogenIds { get; } = new();
+
     /// <summary>Ids of external morphogens shown in the multi-morphogen overlay.</summary>
     public HashSet<int> VisibleMorphogenIds { get; } = new();
+
+    /// <summary>Global toggle for morphogen overlay visibility.</summary>
+    public bool ShowMorphogens { get; set; } = true;
+
+    /// <summary>When true, cell fill is drawn semi-transparent so fields underneath are visible.</summary>
+    public bool SeeThrough { get; set; } = false;
 
     /// <summary>Normalize each morphogen channel to its own peak in the multi overlay.</summary>
     public bool MultiMorphogenNormalize { get; set; } = true;
@@ -131,7 +139,7 @@ public partial class WorldView : Node2D
     public bool HasFieldState()
     {
         if (Sim == null) return false;
-        return MorphogenId >= 0 && MorphogenId < Sim.Morphogens.MorphogenCount;
+        return Sim.Morphogens.HasField(MorphogenId);
     }
 
     /// <summary>
@@ -149,7 +157,15 @@ public partial class WorldView : Node2D
         if (Layer == WorldLayer.MultiMorphogen)
             return RefreshMultiMorphogenOverlay();
 
-        int mid = MorphogenId >= 0 && MorphogenId < m.MorphogenCount ? MorphogenId : 0;
+        if (Sim == null || !Sim.Morphogens.HasField(MorphogenId))
+        {
+            LegendTitle = "Морфоген не выбран";
+            LegendNote = "выберите внешний морфоген";
+            QueueRedraw();
+            return (0, 1, true);
+        }
+
+        int mid = MorphogenId;
 
         double peak = 0.0;
         double minVal = double.MaxValue;
@@ -319,17 +335,18 @@ public partial class WorldView : Node2D
     {
         if (Sim == null) return;
 
-        if ((Layer == WorldLayer.Morphogen || Layer == WorldLayer.MultiMorphogen) && _morphogenTexture != null)
+        bool showMorphogens = ShowMorphogens &&
+            (Layer == WorldLayer.Morphogen || Layer == WorldLayer.MultiMorphogen)
+            && _morphogenTexture != null;
+
+        if (showMorphogens)
         {
             var rect = new Rect2(0, 0, (float)Sim.Morphogens.WorldWidth, (float)Sim.Morphogens.WorldHeight);
             DrawTextureRect(_morphogenTexture, rect, false);
         }
 
         if (Layer == WorldLayer.Gradient)
-        {
             DrawGradientVectors();
-            if (!ShowCells) return;
-        }
 
         for (int i = 0; i < Sim.Cells.Count; i++)
             DrawCell(Sim.Cells[i]);
@@ -415,13 +432,15 @@ public partial class WorldView : Node2D
             }
         }
 
-        if (!ShowCells) return;
-
         // State / dying tint only: the fill itself is always the phenotype colour.
         if (cell.State == CellState.Dying)
         {
             float fade = Mathf.Clamp((float)(1.0 - cell.DeathTimer / 0.6), 0.0f, 1.0f);
             fill = new Color(fill.R, fill.G * 0.3f, fill.B * 0.3f, fade * 0.8f);
+        }
+        else if (SeeThrough)
+        {
+            fill = new Color(fill.R, fill.G, fill.B, 0.30f);
         }
 
         DrawCircle(center, radius, fill);

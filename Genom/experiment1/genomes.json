@@ -4,70 +4,132 @@
     "name": "genome0",
     "genes": [
       {
-        "id": "0",
-        "name": "morph_0",
-        "displayName": "\u0422\u0440\u0433_0",
-        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "id": "secretor",
+        "name": "secretor",
+        "displayName": "",
+        "description": "",
         "role": "",
         "activationDelay": 0,
-        "regulators": [],
-        "regulatorGroups": [],
-        "effects": []
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
+        "regulators": [
+          {
+            "kind": "Morphogen",
+            "invert": false,
+            "property": "",
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "min": 0,
+            "max": 0.4
+          }
+        ],
+        "regulatorGroups": [
+          {
+            "operator": "And",
+            "regulators": [
+              {
+                "kind": "Morphogen",
+                "invert": false,
+                "property": "",
+                "morphogen": 0,
+                "typeId": -1,
+                "timer": "",
+                "min": 0,
+                "max": 0.4
+              }
+            ]
+          }
+        ],
+        "effects": [
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 30,
+            "duration": 0,
+            "probability": 0,
+            "repel": false
+          }
+        ]
       },
       {
-        "id": "1",
-        "name": "morph_1",
-        "displayName": "\u0422\u0440\u0433_1",
-        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "id": "grow",
+        "name": "grow",
+        "displayName": "",
+        "description": "",
         "role": "",
-        "activationDelay": 0,
-        "regulators": [],
-        "regulatorGroups": [],
-        "effects": []
+        "activationDelay": 0.3,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
+        "regulators": [
+          {
+            "kind": "Property",
+            "invert": false,
+            "property": "age",
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "min": 0,
+            "max": 1000000000
+          }
+        ],
+        "effects": [
+          {
+            "kind": "Grow",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 1.2,
+            "duration": 0,
+            "probability": 0,
+            "repel": false
+          }
+        ]
       },
       {
-        "id": "2",
-        "name": "morph_2",
-        "displayName": "\u0422\u0440\u0433_2",
-        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
+        "id": "divide",
+        "name": "divide",
+        "displayName": "",
+        "description": "",
         "role": "",
-        "activationDelay": 0,
-        "regulators": [],
-        "regulatorGroups": [],
-        "effects": []
-      },
-      {
-        "id": "3",
-        "name": "morph_3",
-        "displayName": "\u0422\u0440\u0433_3",
-        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
-        "role": "",
-        "activationDelay": 0,
-        "regulators": [],
-        "regulatorGroups": [],
-        "effects": []
-      },
-      {
-        "id": "4",
-        "name": "morph_4",
-        "displayName": "\u0422\u0440\u0433_4",
-        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
-        "role": "",
-        "activationDelay": 0,
-        "regulators": [],
-        "regulatorGroups": [],
-        "effects": []
-      },
-      {
-        "id": "5",
-        "name": "\u0422\u0440\u0433_5",
-        "displayName": "\u0422\u0440\u0433_5",
-        "description": "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0433\u043E \u0433\u0435\u043D\u0430.",
-        "role": "",
-        "activationDelay": 0,
-        "regulators": [],
-        "regulatorGroups": [],
-        "effects": []
+        "activationDelay": 0.5,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
+        "regulators": [
+          {
+            "kind": "Property",
+            "invert": false,
+            "property": "radius",
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "min": 17,
+            "max": 1000000000
+          }
+        ],
+        "effects": [
+          {
+            "kind": "Divide",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 0.5,
+            "duration": 0,
+            "probability": 0,
+            "repel": false
+          }
+        ]
       }
     ]
   }

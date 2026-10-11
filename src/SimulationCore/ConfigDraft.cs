@@ -277,11 +277,10 @@ public static class ConfigDraft
     /// </summary>
     public static void SanitizeMorphogenReferences(SimulationSetup setup)
     {
-        var ids = setup.Morphogens.Select(m => m.Id).ToHashSet();
         var external = setup.Morphogens.Where(m => m.IsExternal).Select(m => m.Id).ToHashSet();
         var internalIds = setup.Morphogens.Where(m => m.IsInternal).Select(m => m.Id).ToHashSet();
 
-        if (setup.Simulation.DivisionGradientMorphogen >= 0 && !ids.Contains(setup.Simulation.DivisionGradientMorphogen))
+        if (setup.Simulation.DivisionGradientMorphogen >= 0 && !external.Contains(setup.Simulation.DivisionGradientMorphogen))
             setup.Simulation.DivisionGradientMorphogen = -1;
 
         setup.Simulation.InitialExternalSources.RemoveAll(s => !external.Contains(s.MorphogenId));

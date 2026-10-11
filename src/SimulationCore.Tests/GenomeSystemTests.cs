@@ -13,7 +13,7 @@ public class GenomeSystemTests
         public Rng Rng { get; } = new(42);
         public double Killed;
         public double SampleMorphogen(int morphogen, double x, double y) => Sample;
-        public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond) => Emitted += amountPerSecond;
+        public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond, double radius = 0.0) => Emitted += amountPerSecond;
         public void Kill(Cell cell) => Killed++;
     }
 

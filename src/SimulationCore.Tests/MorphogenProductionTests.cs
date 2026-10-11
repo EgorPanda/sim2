@@ -16,7 +16,7 @@ public class MorphogenProductionTests
         public Rng Rng { get; } = new(1);
 
         public double SampleMorphogen(int morphogen, double x, double y) => ExternalConcentration;
-        public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond) => Emitted += amountPerSecond;
+        public void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond, double radius = 0.0) => Emitted += amountPerSecond;
         public void Kill(Cell cell) { }
 
         public bool IsMorphogenInternal(int morphogen) => false;

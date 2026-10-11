@@ -1,74 +1,15 @@
 [
   {
-    "id": 7,
-    "name": "morphogen",
-    "displayName": "\u041D\u043E\u0432\u044B\u0439 \u043C\u043E\u0440\u0444\u043E\u0433\u0435\u043D",
+    "id": 0,
+    "name": "nutrient",
+    "displayName": "",
     "description": "",
+    "type": "Internal",
+    "isExternal": false,
+    "isInternal": true,
     "diffusion": 0,
-    "decay": 0,
-    "color": "#ffffff"
-  },
-  {
-    "id": 8,
-    "name": "morphogen",
-    "displayName": "\u041D\u043E\u0432\u044B\u0439 \u043C\u043E\u0440\u0444\u043E\u0433\u0435\u043D",
-    "description": "",
-    "diffusion": 0,
-    "decay": 0,
-    "color": "#ffffff"
-  },
-  {
-    "id": 9,
-    "name": "morphogen",
-    "displayName": "\u041D\u043E\u0432\u044B\u0439 \u043C\u043E\u0440\u0444\u043E\u0433\u0435\u043D",
-    "description": "",
-    "diffusion": 0,
-    "decay": 0,
-    "color": "#ffffff"
-  },
-  {
-    "id": 10,
-    "name": "morphogen",
-    "displayName": "\u041D\u043E\u0432\u044B\u0439 \u043C\u043E\u0440\u0444\u043E\u0433\u0435\u043D",
-    "description": "",
-    "diffusion": 0,
-    "decay": 0,
-    "color": "#ffffff"
-  },
-  {
-    "id": 11,
-    "name": "morphogen",
-    "displayName": "\u041D\u043E\u0432\u044B\u0439 \u043C\u043E\u0440\u0444\u043E\u0433\u0435\u043D",
-    "description": "",
-    "diffusion": 0,
-    "decay": 0,
-    "color": "#ffffff"
-  },
-  {
-    "id": 12,
-    "name": "morphogen",
-    "displayName": "\u041D\u043E\u0432\u044B\u0439 \u043C\u043E\u0440\u0444\u043E\u0433\u0435\u043D",
-    "description": "",
-    "diffusion": 0,
-    "decay": 0,
-    "color": "#ffffff"
-  },
-  {
-    "id": 13,
-    "name": "morphogen",
-    "displayName": "\u041D\u043E\u0432\u044B\u0439 \u043C\u043E\u0440\u0444\u043E\u0433\u0435\u043D",
-    "description": "",
-    "diffusion": 0,
-    "decay": 0,
-    "color": "#ffffff"
-  },
-  {
-    "id": 14,
-    "name": "morphogen",
-    "displayName": "\u041D\u043E\u0432\u044B\u0439 \u043C\u043E\u0440\u0444\u043E\u0433\u0435\u043D",
-    "description": "",
-    "diffusion": 0,
-    "decay": 0,
-    "color": "#ffffff"
+    "decay": 0.25,
+    "color": "#4ea8de",
+    "initialConcentration": 0
   }
 ]

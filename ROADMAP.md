@@ -33,7 +33,7 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Full world save/load, versioned DTO (SaveSystem v2)
 - [x] Research UI: morphogen field selector, per-phenotype stats, cell inspector
 
-## M1.6 — Morphogen-triggered genes and cellular memory (current release)
+## M1.6 — Morphogen-triggered genes and cellular memory
 
 - [x] Mandatory morphogen trigger for newly-created genes (`RequireMorphogenTrigger`,
       `RequiredMorphogenId`, `RequiredMorphogenThreshold`)
@@ -53,7 +53,7 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Demo experiment `config/experiments/cell_memory/` (external signal → internal
       memory → persistent gene activation after signal fades; fixed seed)
 - [x] Tests: trigger behaviour, internal morphogens, production/decay, cell memory,
-      initialization, type migration, config validation (167 NUnit tests total)
+      initialization, type migration, config validation (~170 NUnit tests total at release)
 
 ## M1.5 — Genetic Lab
 
@@ -85,6 +85,26 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
       signal decides worker vs skin at birth; workers/skin never divide; fixed seed)
 - [x] Tests: `CellDifferentiationTests`, `MorphogenManagementTests`, demo experiment
       (116 NUnit tests total at release)
+
+## M1.7 — Morphogen identity, spatial emission and HUD (current release)
+
+- [x] Morphogen IDs are real identifiers: `0` is a valid id, `-1` means «not selected»
+- [x] Explicit `MorphogenId → field index` map in `MorphogenSystem`; only external
+      morphogens allocate spatial fields; sparse ids are memory-efficient
+- [x] `Regulator.Morphogen` reads internal morphogens from per-cell storage and
+      external morphogens from the field, matching the mandatory trigger behaviour
+- [x] `EmitMorphogen.EmissionRadius`: spatial kernel for external sources,
+      normalized so total emitted mass is independent of radius
+- [x] Diffusion stability: adaptive sub-steps, effective diffusion clamp instead of
+      silent 64-substep cap; sources distributed evenly across sub-steps
+- [x] `DivisionGradientMorphogen` restricted to external morphogens; default `-1`
+- [x] Main HUD: «Показать морфогены», «Выбрать морфогены…» popup, «Посмотреть сквозь»
+- [x] Removed the «Мир» tab; layer options and gene selector moved to the HUD
+- [x] Demo experiment `config/experiments/morphogen_spread/` (external signal reaches
+      a neighbouring cell and switches its phenotype)
+- [x] Updated `cell_memory` experiment: external signal A now has non-zero diffusion
+- [x] SaveSystem v4 stores morphogen fields with their public ids
+- [x] Performance diagnostic test + 206 NUnit tests total
 
 ## M2 — Persistence and experimentation
 

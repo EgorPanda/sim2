@@ -78,7 +78,10 @@ public static class ConfigValidator
                 "Выберите существующий идентификатор типа клеток."));
         if (s.DivisionGradientMorphogen >= 0 && !morphogenIds.Contains(s.DivisionGradientMorphogen))
             issues.Add(Err("Эксперимент", "divisionGradientMorphogen", $"Морфоген {s.DivisionGradientMorphogen} не существует.",
-                "Выберите существующий морфоген или -1."));
+                "Выберите существующий внешний морфоген или -1."));
+        else if (s.DivisionGradientMorphogen >= 0 && setup.Morphogens.FirstOrDefault(m => m.Id == s.DivisionGradientMorphogen)?.IsInternal == true)
+            issues.Add(Err("Эксперимент", "divisionGradientMorphogen", $"Морфоген {s.DivisionGradientMorphogen} — внутренний, градиент деления требует внешний морфоген.",
+                "Выберите внешний морфоген или -1."));
 
         ValidateInitialSignals(setup, issues, morphogenIds);
     }
@@ -302,6 +305,8 @@ public static class ConfigValidator
                     issues.Add(Err("Геномы", loc, $"Выделение: несуществующий морфоген {e.Morphogen}.", "Выберите морфоген."));
                 if (e.Rate < 0 || double.IsNaN(e.Rate))
                     issues.Add(Err("Геномы", loc, "Интенсивность выделения должна быть числом ≥ 0.", ""));
+                if (e.EmissionRadius < 0 || double.IsNaN(e.EmissionRadius))
+                    issues.Add(Err("Геномы", loc, "Радиус выделения должен быть числом ≥ 0.", ""));
                 break;
             case "Grow":
                 if (e.Rate < 0 || double.IsNaN(e.Rate))

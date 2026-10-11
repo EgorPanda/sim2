@@ -1,0 +1,9 @@
+{
+  "name": "Распространение внешнего морфогена",
+  "description": "Одиночная стволовая клетка выделяет внешний сигнал A. Сигнал распространяется по полю и достигает соседней наивной клетки, переключая её фенотип.",
+  "simulationFile": "morphogen_spread/simulation.json",
+  "morphogenFile": "morphogen_spread/morphogens.json",
+  "genomeFile": "morphogen_spread/genomes.json",
+  "cellTypeFile": "morphogen_spread/celltypes.json",
+  "adhesionFile": "morphogen_spread/adhesion.json"
+}

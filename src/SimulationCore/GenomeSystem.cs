@@ -158,7 +158,9 @@ public static class GenomeSystem
         {
             case "Morphogen":
             {
-                double value = ctx.SampleMorphogen(reg.Morphogen, cell.X, cell.Y);
+                double value = ctx.IsMorphogenInternal(reg.Morphogen)
+                    ? ctx.SampleInternalMorphogen(cell, reg.Morphogen)
+                    : ctx.SampleMorphogen(reg.Morphogen, cell.X, cell.Y);
                 return InRange(value, reg.Min, reg.Max);
             }
 
@@ -212,7 +214,7 @@ public static class GenomeSystem
                 if (ctx.IsMorphogenInternal(effect.Morphogen))
                     ctx.EmitInternalMorphogen(cell, effect.Morphogen, effect.Rate, dt);
                 else
-                    ctx.EmitMorphogen(effect.Morphogen, cell.X, cell.Y, effect.Rate);
+                    ctx.EmitMorphogen(effect.Morphogen, cell.X, cell.Y, effect.Rate, effect.EmissionRadius);
                 break;
 
             case "Grow":
@@ -304,7 +306,7 @@ public static class GenomeSystem
 public interface GeneContext
 {
     double SampleMorphogen(int morphogen, double x, double y);
-    void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond);
+    void EmitMorphogen(int morphogen, double x, double y, double amountPerSecond, double radius = 0.0);
     void Kill(Cell cell);
     Rng Rng { get; }
 

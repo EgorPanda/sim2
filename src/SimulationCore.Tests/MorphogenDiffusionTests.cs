@@ -9,7 +9,7 @@ public class MorphogenDiffusionTests
     [Test]
     public void Diffusion_SpreadsWithoutMassLoss_WhenDecayIsZero()
     {
-        var system = new MorphogenSystem(256, 256, 8.0, 1);
+        var system = new MorphogenSystem(256, 256, 8.0, new[] { 0 });
         // Seed a single point with mass.
         system.SetField(0, 16, 16, 1000.0);
 
@@ -30,7 +30,7 @@ public class MorphogenDiffusionTests
     [Test]
     public void Diffusion_ReducesPeak_AndSpreadsNeighbourhood()
     {
-        var system = new MorphogenSystem(256, 256, 8.0, 1);
+        var system = new MorphogenSystem(256, 256, 8.0, new[] { 0 });
         system.SetField(0, 16, 16, 1000.0);
 
         var configs = new Dictionary<int, MorphogenConfig>
@@ -51,7 +51,7 @@ public class MorphogenDiffusionTests
     [Test]
     public void Decay_ReducesTotalMass_AtExpectedRate()
     {
-        var system = new MorphogenSystem(64, 64, 8.0, 1);
+        var system = new MorphogenSystem(64, 64, 8.0, new[] { 0 });
         for (int x = 0; x < 8; x++)
             for (int y = 0; y < 8; y++)
                 system.SetField(0, x, y, 1.0);
@@ -72,7 +72,7 @@ public class MorphogenDiffusionTests
     [Test]
     public void Sampling_AtFieldCenter_ReturnsStoredValue()
     {
-        var system = new MorphogenSystem(256, 256, 8.0, 1);
+        var system = new MorphogenSystem(256, 256, 8.0, new[] { 0 });
         system.SetField(0, 10, 10, 5.0);
 
         // Grid cell (10,10) covers world [80,88] x [80,88]; centre is 84.
@@ -83,7 +83,7 @@ public class MorphogenDiffusionTests
     [Test]
     public void Update_IsStable_UnderLargeDiffusion()
     {
-        var system = new MorphogenSystem(128, 128, 8.0, 1);
+        var system = new MorphogenSystem(128, 128, 8.0, new[] { 0 });
         system.SetField(0, 8, 8, 1e6);
 
         var configs = new Dictionary<int, MorphogenConfig>

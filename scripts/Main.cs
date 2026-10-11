@@ -92,18 +92,20 @@ public partial class Main : Node2D
         _camera.MakeCurrent();
 
         _world = new WorldView { Sim = _sim };
-        int morphogenId = _setup.Morphogens.FirstOrDefault(m => m.IsExternal)?.Id ?? 0;
+        int morphogenId = _setup.Morphogens.FirstOrDefault(m => m.IsExternal)?.Id ?? -1;
         _world.MorphogenId = morphogenId;
         _world.SetCellColors(_setup.CellTypes, morphogenId);
         _world.SetMorphogenColors(_setup.Morphogens);
         ApplyMorphogenStyle(morphogenId);
-        foreach (var m in _setup.Morphogens.Where(m => m.IsExternal))
-            _world.VisibleMorphogenIds.Add(m.Id);
+        foreach (var m in _setup.Morphogens)
+        {
+            _world.SelectedMorphogenIds.Add(m.Id);
+            if (m.IsExternal) _world.VisibleMorphogenIds.Add(m.Id);
+        }
         AddChild(_world);
 
         _hud = new Hud(this);
         AddChild(_hud);
-        _hud.RefreshMorphogenFilters();
 
         _lab = new ResearchPanel(this);
         _lab.Visible = true;
@@ -235,17 +237,20 @@ public partial class Main : Node2D
         _accumulator = 0.0;
         _selectedCellId = null;
         _world.Sim = _sim;
-        int mid = _setup.Morphogens.FirstOrDefault(m => m.IsExternal)?.Id ?? 0;
+        int mid = _setup.Morphogens.FirstOrDefault(m => m.IsExternal)?.Id ?? -1;
         _world.SetCellColors(_setup.CellTypes, mid);
         _world.SetMorphogenColors(_setup.Morphogens);
         _world.MorphogenId = mid;
         ApplyMorphogenStyle(mid);
+        _world.SelectedMorphogenIds.Clear();
         _world.VisibleMorphogenIds.Clear();
-        foreach (var m in _setup.Morphogens.Where(m => m.IsExternal))
-            _world.VisibleMorphogenIds.Add(m.Id);
+        foreach (var m in _setup.Morphogens)
+        {
+            _world.SelectedMorphogenIds.Add(m.Id);
+            if (m.IsExternal) _world.VisibleMorphogenIds.Add(m.Id);
+        }
         RefreshLayer();
         _hud.SetLayer(CurrentLayer);
-        _hud.RefreshMorphogenFilters();
     }
 
     // --- Saving / loading experiment profiles -------------------------------
@@ -484,12 +489,24 @@ public partial class Main : Node2D
 
     public void RefreshLayer()
     {
-        if (_world == null) return;
-        _world.RefreshOverlay(everyNFrames: 1);
-        if (_hud != null)
+        if (_world == null || _setup == null) return;
+
+        // Make sure the primary morphogen id is compatible with the active layer.
+        switch (CurrentLayer)
         {
-            _hud.SetLayer(CurrentLayer);
+            case WorldLayer.Morphogen:
+            case WorldLayer.Gradient:
+                if (!_setup.Morphogens.Any(m => m.IsExternal && m.Id == _world.MorphogenId))
+                    _world.MorphogenId = _world.SelectedMorphogenIds.FirstOrDefault(id => _setup.Morphogens.Any(m => m.IsExternal && m.Id == id));
+                break;
+            case WorldLayer.InternalMorphogen:
+                if (!_setup.Morphogens.Any(m => m.IsInternal && m.Id == _world.MorphogenId))
+                    _world.MorphogenId = _world.SelectedMorphogenIds.FirstOrDefault(id => _setup.Morphogens.Any(m => m.IsInternal && m.Id == id));
+                break;
         }
+
+        _world.RefreshOverlay(everyNFrames: 1);
+        _hud?.SetLayer(CurrentLayer);
         _world.QueueRedraw();
     }
 
@@ -703,7 +720,7 @@ public partial class Main : Node2D
 
         // 1. Open via the same method the «Лаборатория» button invokes.
         ToggleLaboratory();
-        ExpectedVisibleAndGeometry("button-equivalent opens laboratory", ResearchPanel.TabWorld);
+        ExpectedVisibleAndGeometry("button-equivalent opens laboratory", ResearchPanel.TabGenome);
         Expect(_hud.LabButtonText == "Лаборатория (открыта)", "lab button text reflects open state");
 
         // 2. Real key route: L toggles closed and open again.
