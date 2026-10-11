@@ -137,13 +137,12 @@ public static class Localization
     public static string GeneStatus(string key) => Lookup(GeneStatusNames, key, "Состояние гена");
 
     /// <summary>
-    /// Human-readable gene name: the explicit display name, otherwise a name
-    /// derived from the id, otherwise a clear placeholder that flags the need to
-    /// fill in a description.
+    /// Human-readable gene name: the explicit name, otherwise a name derived from
+    /// the id, otherwise a clear placeholder.
     /// </summary>
     public static string GeneName(GeneConfig gene)
     {
-        if (!string.IsNullOrWhiteSpace(gene.DisplayName)) return gene.DisplayName!;
+        if (!string.IsNullOrWhiteSpace(gene.Name)) return gene.Name!;
         string key = gene.Key;
         if (!string.IsNullOrWhiteSpace(key)) return $"Ген «{key}» (без названия)";
         return "Безымянный ген";
@@ -151,11 +150,39 @@ public static class Localization
 
     /// <summary>Human-readable morphogen name.</summary>
     public static string MorphogenName(MorphogenConfig m)
-        => string.IsNullOrWhiteSpace(m.DisplayName) ? m.Name : m.DisplayName!;
+        => string.IsNullOrWhiteSpace(m.Name) ? $"Морфоген {m.Id}" : m.Name!;
 
     /// <summary>Human-readable cell type name.</summary>
     public static string CellTypeName(CellTypeConfig t)
-        => string.IsNullOrWhiteSpace(t.DisplayName) ? t.Name : t.DisplayName!;
+        => string.IsNullOrWhiteSpace(t.Name) ? $"Тип {t.Id}" : t.Name!;
+
+    /// <summary>
+    /// Unified label for morphogen selectors: [ID] Name — Role — Type.
+    /// </summary>
+    public static string MorphogenLabel(MorphogenConfig m)
+    {
+        string name = MorphogenName(m);
+        string role = string.IsNullOrWhiteSpace(m.Role) ? "без роли" : m.Role;
+        string type = MorphogenType(m.Type).ToLowerInvariant();
+        return $"[{m.Id}] {name} — {role} — {type}";
+    }
+
+    /// <summary>Short unified label for inline morphogen references.</summary>
+    public static string MorphogenInline(MorphogenConfig m)
+    {
+        string name = MorphogenName(m);
+        string type = MorphogenType(m.Type).ToLowerInvariant();
+        return $"«{name}» (ID {m.Id}, {type})";
+    }
+
+    /// <summary>Russian name for a division inheritance mode.</summary>
+    public static string DivisionInheritance(string mode) => mode.ToLowerInvariant() switch
+    {
+        "reset" => "Не наследовать — дочь получает 0",
+        "copy" => "Копировать — дочь получает такое же значение",
+        "split" => "Разделить — пополам между родителем и дочерью",
+        _ => $"Неизвестный режим «{mode}»"
+    };
 
     /// <summary>
     /// Describes the comparison encoded by a regulator's [min, max] interval in

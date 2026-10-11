@@ -1,0 +1,356 @@
+[
+  {
+    "id": 0,
+    "name": "multicellular_organism",
+    "displayName": "Геном многоклеточного организма",
+    "description": "Единый геном для стволовых, рабочих, поддерживающих клеток и клеток оболочки. Фенотип дочери зависит от позиционного градиента.",
+    "genes": [
+      {
+        "id": "stem_emit_niche",
+        "name": "stem_emit_niche",
+        "displayName": "Производство сигнала стволовой ниши",
+        "role": "Межклеточная связь",
+        "description": "Стволовые клетки постоянно выделяют внешний сигнал ID 1. Он виден отдельным слоем и помогает наблюдать область активного ядра.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.0,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 0
+          }
+        ],
+        "effects": [
+          {
+            "kind": "EmitMorphogen",
+            "morphogen": 1,
+            "rate": 18.0,
+            "emissionRadius": 22.0,
+            "once": false
+          }
+        ]
+      },
+      {
+        "id": "worker_emit_signal",
+        "name": "worker_emit_signal",
+        "displayName": "Производство сигнала рабочей ткани",
+        "role": "Межклеточная связь",
+        "description": "Рабочие клетки постоянно выделяют внешний сигнал ID 2.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.0,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 1
+          }
+        ],
+        "effects": [
+          {
+            "kind": "EmitMorphogen",
+            "morphogen": 2,
+            "rate": 10.0,
+            "emissionRadius": 18.0,
+            "once": false
+          }
+        ]
+      },
+      {
+        "id": "support_emit_matrix",
+        "name": "support_emit_matrix",
+        "displayName": "Производство сигнала поддерживающей ткани",
+        "role": "Межклеточная связь",
+        "description": "Поддерживающие клетки выделяют внешний сигнал ID 3.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.0,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 3
+          }
+        ],
+        "effects": [
+          {
+            "kind": "EmitMorphogen",
+            "morphogen": 3,
+            "rate": 8.0,
+            "emissionRadius": 16.0,
+            "once": false
+          }
+        ]
+      },
+      {
+        "id": "skin_emit_barrier",
+        "name": "skin_emit_barrier",
+        "displayName": "Производство сигнала оболочки",
+        "role": "Защитная ткань",
+        "description": "Клетки наружной оболочки выделяют внешний сигнал ID 4.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.0,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 2
+          }
+        ],
+        "effects": [
+          {
+            "kind": "EmitMorphogen",
+            "morphogen": 4,
+            "rate": 6.0,
+            "emissionRadius": 12.0,
+            "once": false
+          }
+        ]
+      },
+      {
+        "id": "stem_limit_crowding",
+        "name": "stem_limit_crowding",
+        "displayName": "Ограничение роста плотного ядра",
+        "role": "Контроль плотности",
+        "description": "Когда вокруг стволовой клетки слишком много соседей, временно блокирует деление. Это замедляет неконтролируемый рост центра.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.0,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 0
+          },
+          {
+            "kind": "Property",
+            "property": "neighbours",
+            "min": 6.0,
+            "max": 999999.0
+          }
+        ],
+        "effects": [
+          {
+            "kind": "BlockDivision"
+          }
+        ]
+      },
+      {
+        "id": "stem_divide_stem",
+        "name": "stem_divide_stem",
+        "displayName": "Деление: стволовая клетка",
+        "role": "Формирование ядра",
+        "description": "При высокой концентрации позиционного сигнала стволовая клетка создаёт стволового потомка. Так поддерживается внутреннее ядро организма.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 0,
+        "requiredMorphogenThreshold": 0.62,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 0
+          },
+          {
+            "kind": "Morphogen",
+            "morphogen": 0,
+            "min": 0.62,
+            "max": 999999.0
+          }
+        ],
+        "effects": [
+          {
+            "kind": "Divide",
+            "rate": 0.65,
+            "childTypeId": 0,
+            "once": false
+          }
+        ]
+      },
+      {
+        "id": "stem_divide_worker",
+        "name": "stem_divide_worker",
+        "displayName": "Деление: рабочая клетка",
+        "role": "Формирование рабочей ткани",
+        "description": "При средней концентрации позиционного сигнала стволовая клетка создаёт рабочую клетку.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 0,
+        "requiredMorphogenThreshold": 0.36,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 0
+          },
+          {
+            "kind": "Morphogen",
+            "morphogen": 0,
+            "min": 0.36,
+            "max": 0.619999
+          }
+        ],
+        "effects": [
+          {
+            "kind": "Divide",
+            "rate": 0.65,
+            "childTypeId": 1,
+            "once": false
+          }
+        ]
+      },
+      {
+        "id": "stem_divide_support",
+        "name": "stem_divide_support",
+        "displayName": "Деление: поддерживающая клетка",
+        "role": "Формирование промежуточного слоя",
+        "description": "При более низкой концентрации позиционного сигнала стволовая клетка создаёт поддерживающую клетку.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 0,
+        "requiredMorphogenThreshold": 0.15,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 0
+          },
+          {
+            "kind": "Morphogen",
+            "morphogen": 0,
+            "min": 0.15,
+            "max": 0.359999
+          }
+        ],
+        "effects": [
+          {
+            "kind": "Divide",
+            "rate": 0.65,
+            "childTypeId": 3,
+            "once": false
+          }
+        ]
+      },
+      {
+        "id": "stem_divide_skin",
+        "name": "stem_divide_skin",
+        "displayName": "Деление: клетка оболочки",
+        "role": "Формирование наружной оболочки",
+        "description": "При низкой, но ненулевой концентрации позиционного сигнала стволовая клетка создаёт клетку наружной оболочки.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": true,
+        "requiredMorphogenId": 0,
+        "requiredMorphogenThreshold": 0.0001,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 0
+          },
+          {
+            "kind": "Morphogen",
+            "morphogen": 0,
+            "min": 0.0001,
+            "max": 0.149999
+          }
+        ],
+        "effects": [
+          {
+            "kind": "Divide",
+            "rate": 0.65,
+            "childTypeId": 2,
+            "once": false
+          }
+        ]
+      },
+      {
+        "id": "worker_growth",
+        "name": "worker_growth",
+        "displayName": "Рост рабочей клетки",
+        "role": "Функциональная ткань",
+        "description": "Рабочая клетка постепенно увеличивается до своего максимального радиуса.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.0,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 1
+          }
+        ],
+        "effects": [
+          {
+            "kind": "Grow",
+            "rate": 0.06,
+            "once": false
+          }
+        ]
+      },
+      {
+        "id": "worker_block_division",
+        "name": "worker_block_division",
+        "displayName": "Запрет деления рабочих клеток",
+        "role": "Стабилизация ткани",
+        "description": "Рабочие клетки выполняют специализированную функцию и не делятся.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.0,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 1
+          }
+        ],
+        "effects": [
+          {
+            "kind": "BlockDivision"
+          }
+        ]
+      },
+      {
+        "id": "support_block_division",
+        "name": "support_block_division",
+        "displayName": "Запрет деления поддерживающих клеток",
+        "role": "Стабилизация ткани",
+        "description": "Поддерживающие клетки не делятся после дифференцировки.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.0,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 3
+          }
+        ],
+        "effects": [
+          {
+            "kind": "BlockDivision"
+          }
+        ]
+      },
+      {
+        "id": "skin_block_division",
+        "name": "skin_block_division",
+        "displayName": "Запрет деления клеток оболочки",
+        "role": "Защитная ткань",
+        "description": "Клетки оболочки не делятся после дифференцировки.",
+        "activationDelay": 0.0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0.0,
+        "regulators": [
+          {
+            "kind": "Phenotype",
+            "typeId": 2
+          }
+        ],
+        "effects": [
+          {
+            "kind": "BlockDivision"
+          }
+        ]
+      }
+    ]
+  }
+]

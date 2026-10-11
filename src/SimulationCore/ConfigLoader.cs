@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace SimulationCore;
@@ -18,24 +19,101 @@ public static class ConfigLoader
     };
 
     public static SimulationConfig LoadSimulationConfig(string file)
-        => JsonSerializer.Deserialize<SimulationConfig>(File.ReadAllText(file), Options)
-           ?? throw new InvalidDataException($"Failed to parse {file}");
+        => ParseSimulationConfig(MigrateSimulationJson(File.ReadAllText(file)));
 
     public static MorphogenConfig[] LoadMorphogens(string file)
-        => JsonSerializer.Deserialize<MorphogenConfig[]>(File.ReadAllText(file), Options)
-           ?? throw new InvalidDataException($"Failed to parse {file}");
+        => ParseMorphogens(MigrateMorphogensJson(File.ReadAllText(file)));
 
     public static GenomeConfig[] LoadGenomes(string file)
-        => JsonSerializer.Deserialize<GenomeConfig[]>(File.ReadAllText(file), Options)
-           ?? throw new InvalidDataException($"Failed to parse {file}");
+        => ParseGenomes(MigrateGenomesJson(File.ReadAllText(file)));
 
     public static CellTypeConfig[] LoadCellTypes(string file)
-        => JsonSerializer.Deserialize<CellTypeConfig[]>(File.ReadAllText(file), Options)
-           ?? throw new InvalidDataException($"Failed to parse {file}");
+        => ParseCellTypes(MigrateCellTypesJson(File.ReadAllText(file)));
 
     public static AdhesionConfig LoadAdhesion(string file)
         => JsonSerializer.Deserialize<AdhesionConfig>(File.ReadAllText(file), Options)
            ?? new AdhesionConfig();
+
+    // --- JSON migration (M1.6: unified names, no founder internal concentrations) ---
+
+    private static string MigrateSimulationJson(string json)
+    {
+        var node = JsonNode.Parse(json);
+        if (node is not JsonObject obj) return json;
+        obj.Remove("initialInternalMorphogens");
+        return node.ToJsonString(Options);
+    }
+
+    private static string MigrateMorphogensJson(string json)
+    {
+        var node = JsonNode.Parse(json);
+        if (node is JsonArray arr)
+        {
+            foreach (var item in arr)
+            {
+                if (item is not JsonObject obj) continue;
+                MigrateDisplayNameToName(obj);
+                obj.Remove("initialConcentration");
+                if (!obj.ContainsKey("role")) obj["role"] = "";
+                if (!obj.ContainsKey("divisionInheritance")) obj["divisionInheritance"] = "Reset";
+            }
+        }
+        return node!.ToJsonString(Options);
+    }
+
+    private static string MigrateGenomesJson(string json)
+    {
+        var node = JsonNode.Parse(json);
+        if (node is JsonArray genomes)
+        {
+            foreach (var genome in genomes)
+            {
+                if (genome is not JsonObject gObj || gObj["genes"] is not JsonArray genes) continue;
+                foreach (var item in genes)
+                {
+                    if (item is not JsonObject obj) continue;
+                    MigrateDisplayNameToName(obj);
+                    if (!obj.ContainsKey("role")) obj["role"] = "";
+                }
+            }
+        }
+        return node!.ToJsonString(Options);
+    }
+
+    private static string MigrateCellTypesJson(string json)
+    {
+        var node = JsonNode.Parse(json);
+        if (node is JsonArray arr)
+        {
+            foreach (var item in arr)
+            {
+                if (item is not JsonObject obj) continue;
+                MigrateDisplayNameToName(obj);
+            }
+        }
+        return node!.ToJsonString(Options);
+    }
+
+    private static void MigrateDisplayNameToName(JsonObject obj)
+    {
+        if (obj.TryGetPropertyValue("displayName", out var displayNode) && displayNode is JsonValue displayValue)
+        {
+            string display = displayValue.GetValue<string>();
+            if (obj.TryGetPropertyValue("name", out var nameNode) && nameNode is JsonValue nameValue)
+            {
+                string name = nameValue.GetValue<string>();
+                if (string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(display))
+                    obj["name"] = display;
+                else if (!string.IsNullOrWhiteSpace(display))
+                    obj["name"] = display; // canonical name is the human-readable one
+            }
+            else if (!string.IsNullOrWhiteSpace(display))
+            {
+                obj["name"] = display;
+            }
+            obj.Remove("displayName");
+        }
+    }
 
     // Text-based overloads so any host (e.g. Godot's FileAccess) can supply the JSON.
 

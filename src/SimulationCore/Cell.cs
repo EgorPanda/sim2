@@ -123,11 +123,40 @@ public sealed class Cell
         foreach (var kv in TimerTotals) other.TimerTotals[kv.Key] = kv.Value;
     }
 
-    /// <summary>Copies internal morphogen concentrations onto another cell (division inheritance).</summary>
-    public void CopyInternalMorphogensTo(Cell other)
+    /// <summary>
+    /// Transfers internal morphogen concentrations to a daughter cell according to
+    /// each morphogen's <see cref="MorphogenConfig.DivisionInheritance"/>:
+    /// Reset → daughter gets 0; Copy → daughter gets the same value;
+    /// Split → parent and daughter each get half of the original value.
+    /// </summary>
+    public void CopyInternalMorphogensTo(Cell other, IReadOnlyDictionary<int, MorphogenConfig> morphogens)
     {
         other.InternalMorphogenConcentrations.Clear();
+
+        // Precompute split values so multiple Split morphogens do not interfere.
+        var splitValues = new Dictionary<int, double>();
         foreach (var kv in InternalMorphogenConcentrations)
-            other.InternalMorphogenConcentrations[kv.Key] = kv.Value;
+        {
+            if (!morphogens.TryGetValue(kv.Key, out var cfg) || !cfg.IsInternal) continue;
+            if (string.Equals(cfg.DivisionInheritance, "Split", StringComparison.OrdinalIgnoreCase))
+                splitValues[kv.Key] = kv.Value * 0.5;
+        }
+
+        foreach (var kv in InternalMorphogenConcentrations)
+        {
+            if (!morphogens.TryGetValue(kv.Key, out var cfg) || !cfg.IsInternal) continue;
+            string mode = cfg.DivisionInheritance;
+            if (string.Equals(mode, "Copy", StringComparison.OrdinalIgnoreCase))
+            {
+                other.InternalMorphogenConcentrations[kv.Key] = kv.Value;
+            }
+            else if (string.Equals(mode, "Split", StringComparison.OrdinalIgnoreCase))
+            {
+                double half = splitValues[kv.Key];
+                InternalMorphogenConcentrations[kv.Key] = half;
+                other.InternalMorphogenConcentrations[kv.Key] = half;
+            }
+            // Reset: leave daughter without this morphogen.
+        }
     }
 }

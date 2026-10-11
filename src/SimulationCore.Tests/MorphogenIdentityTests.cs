@@ -148,9 +148,9 @@ public class MorphogenRegulatorTests
             }
         });
         setup.Morphogens[0].Type = "Internal";
-        setup.Simulation.InitialInternalMorphogens[0] = 1.0;
 
         var sim = new Simulation(setup);
+        sim.Cells[0].InternalMorphogenConcentrations[0] = 1.0;
         sim.Step(0.05);
 
         Assert.That(sim.Cells[0].StateOf("mem").Active, Is.True, "Internal regulator reads the cell's own concentration.");

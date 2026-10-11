@@ -113,13 +113,14 @@ public partial class MorphogenEditor : VBoxContainer
         draft.Morphogens = draft.Morphogens.Append(new MorphogenConfig
         {
             Id = id,
-            Name = "morphogen",
-            DisplayName = "Новый морфоген",
+            Name = "Новый морфоген",
+            Role = "",
             Description = "Опишите назначение этого морфогена.",
             Type = "External",
             Diffusion = 0.1,
             Decay = 0.1,
-            Color = "#4ea8de"
+            Color = "#4ea8de",
+            DivisionInheritance = "Reset"
         }).ToArray();
         _morphogenId = id;
         _main.MarkDirty();
@@ -140,31 +141,41 @@ public partial class MorphogenEditor : VBoxContainer
         RebuildList(copy.Id);
     }
 
+    private ConfirmationDialog? _pendingDeleteDialog;
+
     private void DeleteMorphogen()
     {
         var selected = Selected;
-        if (selected == null) return;
+        if (selected == null || _pendingDeleteDialog != null) return;
         var draft = _main.WorkingDraft;
-        var refs = ConfigDraft.FindMorphogenReferences(draft, selected.Id);
+        int id = selected.Id;
+        var refs = ConfigDraft.FindMorphogenReferences(draft, id);
         if (refs.Count > 0)
         {
-            var dialog = new ConfirmationDialog
+            _pendingDeleteDialog = new ConfirmationDialog
             {
                 Title = "Удалить морфоген",
-                DialogText = $"Морфоген «{Localization.MorphogenName(selected)}» (ид {selected.Id}) используют:\n" +
+                DialogText = $"Морфоген «{Localization.MorphogenName(selected)}» (ид {id}) используют:\n" +
                              $"- {string.Join("\n- ", refs)}\n\n" +
                              "Удалить морфоген и очистить все ссылки на него?",
                 OkButtonText = "Удалить",
                 CancelButtonText = "Отмена"
             };
-            dialog.Confirmed += () => { DoDelete(selected.Id); dialog.QueueFree(); };
-            dialog.Canceled += () => dialog.QueueFree();
-            dialog.CloseRequested += () => dialog.QueueFree();
-            _main.AddChild(dialog);
-            dialog.PopupCentered();
+            _pendingDeleteDialog.Confirmed += () => { DoDelete(id); CleanupDeleteDialog(); };
+            _pendingDeleteDialog.Canceled += CleanupDeleteDialog;
+            _pendingDeleteDialog.CloseRequested += CleanupDeleteDialog;
+            _main.AddChild(_pendingDeleteDialog);
+            _pendingDeleteDialog.PopupCentered();
             return;
         }
-        DoDelete(selected.Id);
+        DoDelete(id);
+    }
+
+    private void CleanupDeleteDialog()
+    {
+        if (_pendingDeleteDialog == null) return;
+        _pendingDeleteDialog.QueueFree();
+        _pendingDeleteDialog = null;
     }
 
     private void DoDelete(int id)
@@ -246,7 +257,7 @@ public partial class MorphogenEditor : VBoxContainer
         if (_searchText.Length == 0) return true;
         return m.Id.ToString().Contains(_searchText, StringComparison.OrdinalIgnoreCase)
             || (m.Name ?? "").Contains(_searchText, StringComparison.OrdinalIgnoreCase)
-            || (m.DisplayName ?? "").Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+            || (m.Role ?? "").Contains(_searchText, StringComparison.OrdinalIgnoreCase)
             || (m.Description ?? "").Contains(_searchText, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -277,21 +288,21 @@ public partial class MorphogenEditor : VBoxContainer
 
         _card.AddChild(Ui.Title($"Морфоген «{Localization.MorphogenName(m)}» (ид {m.Id})"));
 
-        _card.AddChild(Ui.Field("Название:", new LineEdit
+        _card.AddChild(Ui.Field("Имя:", new LineEdit
         {
-            Text = m.DisplayName,
+            Text = m.Name,
             PlaceholderText = "русское название, напр. «Фактор деления»"
         }, 160).Also(row => ((LineEdit)row.GetChild(1)).TextChanged += t =>
         {
-            m.DisplayName = t;
+            m.Name = t;
             _main.MarkDirty();
             UpdateEntryText(m.Id);
         }));
 
-        _card.AddChild(Ui.Field("Техническое имя:", new LineEdit { Text = m.Name, PlaceholderText = "напр. morphogen_a" }, 160)
+        _card.AddChild(Ui.Field("Роль:", new LineEdit { Text = m.Role, PlaceholderText = "напр. запускает развитие" }, 160)
             .Also(row => ((LineEdit)row.GetChild(1)).TextChanged += t =>
             {
-                m.Name = t;
+                m.Role = t;
                 _main.MarkDirty();
                 UpdateEntryText(m.Id);
             }));
@@ -331,8 +342,18 @@ public partial class MorphogenEditor : VBoxContainer
         {
             _card.AddChild(Ui.Field("Распад, 1/с:",
                 Ui.Sp(0, 20, 0.05, m.Decay, v => { m.Decay = v; _main.MarkDirty(); })));
-            _card.AddChild(Ui.Field("Начальная концентрация для основателей:",
-                Ui.Sp(0, 1e6, 0.01, m.InitialConcentration, v => { m.InitialConcentration = v; _main.MarkDirty(); })));
+            _card.AddChild(Ui.Field("Наследование при делении:",
+                Ui.Opt(
+                    new[] { "Reset", "Copy", "Split" }
+                        .Select((mode, i) => (i, Localization.DivisionInheritance(mode))),
+                    new[] { "Reset", "Copy", "Split" }
+                        .ToList()
+                        .FindIndex(mode => string.Equals(mode, m.DivisionInheritance, StringComparison.OrdinalIgnoreCase)),
+                    idx =>
+                    {
+                        m.DivisionInheritance = new[] { "Reset", "Copy", "Split" }[idx];
+                        _main.MarkDirty();
+                    }, 360)));
             _card.AddChild(Ui.Lbl("Внутренний морфоген не диффундирует в среде. Его концентрация хранится в каждой клетке отдельно.", 0, 0));
         }
         else

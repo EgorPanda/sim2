@@ -24,8 +24,7 @@ public class ConfigWriterTests
                 genome: new GeneConfig
                 {
                     Id = "g",
-                    Name = "g",
-                    DisplayName = "Ген G",
+                    Name = "Ген G",
                     Description = "Тестовое описание",
                     RegulatorGroups = new List<RegulatorGroupConfig>
                     {
@@ -33,14 +32,14 @@ public class ConfigWriterTests
                     },
                     Effects = { TestFactory.Emit(0, 5) }
                 });
-            setup.Morphogens[0].DisplayName = "Питательное вещество";
+            setup.Morphogens[0].Name = "Питательное вещество";
 
             ConfigWriter.SaveSetupToDirectory(dir, setup);
             var loaded = ConfigLoader.LoadFromDirectory(dir);
 
             Assert.That(loaded.Morphogens.Length, Is.EqualTo(2));
-            Assert.That(loaded.Morphogens[0].DisplayName, Is.EqualTo("Питательное вещество"));
-            Assert.That(loaded.Genomes[0].Genes[0].DisplayName, Is.EqualTo("Ген G"));
+            Assert.That(loaded.Morphogens[0].Name, Is.EqualTo("Питательное вещество"));
+            Assert.That(loaded.Genomes[0].Genes[0].Name, Is.EqualTo("Ген G"));
             Assert.That(loaded.Genomes[0].Genes[0].Description, Is.EqualTo("Тестовое описание"));
             Assert.That(loaded.Genomes[0].Genes[0].RegulatorGroups, Has.Count.EqualTo(1));
             Assert.That(loaded.Genomes[0].Genes[0].RegulatorGroups![0].Operator, Is.EqualTo("Or"));
@@ -68,11 +67,11 @@ public class ConfigWriterTests
             string beforeB = File.ReadAllText(Path.Combine(dirB, "genomes.json"));
 
             var edited = ConfigLoader.LoadExperiment(Path.Combine(root, "a.json"));
-            edited.Genomes[0].Genes[0].DisplayName = "Изменённое имя";
+            edited.Genomes[0].Genes[0].Name = "Изменённое имя";
             ConfigWriter.SaveExperiment(Path.Combine(root, "a.json"), edited);
 
             var reloadedA = ConfigLoader.LoadExperiment(Path.Combine(root, "a.json"));
-            Assert.That(reloadedA.Genomes[0].Genes[0].DisplayName, Is.EqualTo("Изменённое имя"));
+            Assert.That(reloadedA.Genomes[0].Genes[0].Name, Is.EqualTo("Изменённое имя"));
             Assert.That(File.ReadAllText(Path.Combine(dirB, "genomes.json")), Is.EqualTo(beforeB),
                 "Saving experiment A must not modify experiment B.");
         }
@@ -84,10 +83,10 @@ public class ConfigWriterTests
     {
         var setup = TestFactory.Setup(genome: TestFactory.Gene("g", TestFactory.Emit(0, 1)));
         var clone = ConfigLoader.DeepClone(setup);
-        clone.Genomes[0].Genes[0].DisplayName = "changed";
+        clone.Genomes[0].Genes[0].Name = "changed";
         clone.Simulation.WorldWidth = 1.0;
 
-        Assert.That(setup.Genomes[0].Genes[0].DisplayName, Is.Empty);
+        Assert.That(setup.Genomes[0].Genes[0].Name, Is.Not.EqualTo("changed"));
         Assert.That(setup.Simulation.WorldWidth, Is.Not.EqualTo(1.0));
     }
 

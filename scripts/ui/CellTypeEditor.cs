@@ -47,8 +47,7 @@ public partial class CellTypeEditor : VBoxContainer
             var type = new CellTypeConfig
             {
                 Id = id,
-                Name = "cell",
-                DisplayName = "Новый тип клетки",
+                Name = "Новый тип клетки",
                 Description = "Опишите фенотип.",
                 Color = "#63b3ed",
                 GenomeId = draft.Genomes.Length > 0 ? draft.Genomes[0].Id : 0
@@ -136,10 +135,10 @@ public partial class CellTypeEditor : VBoxContainer
 
         _card.AddChild(Ui.Title($"Тип клетки «{Localization.CellTypeName(t)}» (ид {t.Id})"));
 
-        _card.AddChild(Ui.Field("Название:", new LineEdit { Text = t.DisplayName, PlaceholderText = "русское название" }, 120)
+        _card.AddChild(Ui.Field("Имя:", new LineEdit { Text = t.Name, PlaceholderText = "русское название" }, 120)
             .Also(row => ((LineEdit)row.GetChild(1)).TextChanged += s =>
             {
-                t.DisplayName = s;
+                t.Name = s;
                 _main.MarkDirty();
                 if (_list != null)
                 {
@@ -153,8 +152,6 @@ public partial class CellTypeEditor : VBoxContainer
                     }
                 }
             }));
-        _card.AddChild(Ui.Field("Техническое имя:", new LineEdit { Text = t.Name }, 120)
-            .Also(row => ((LineEdit)row.GetChild(1)).TextChanged += s => { t.Name = s; _main.MarkDirty(); }));
         _card.AddChild(Ui.Field("Описание:", new TextEdit { Text = t.Description, CustomMinimumSize = new Vector2(0, 48) }, 120)
             .Also(row => ((TextEdit)row.GetChild(1)).TextChanged += () => { t.Description = ((TextEdit)row.GetChild(1)).Text; _main.MarkDirty(); }));
 

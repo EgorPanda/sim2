@@ -101,17 +101,6 @@ public static class ConfigValidator
             if (src.Concentration < 0.0 || double.IsNaN(src.Concentration))
                 issues.Add(Err("Эксперимент", loc, "Концентрация источника должна быть ≥ 0.", ""));
         }
-
-        foreach (var kv in s.InitialInternalMorphogens)
-        {
-            string loc = $"начальный внутренний морфоген ({kv.Key})";
-            if (!morphogenIds.Contains(kv.Key))
-                issues.Add(Err("Эксперимент", loc, $"Морфоген {kv.Key} не существует.", "Выберите существующий морфоген."));
-            else if (setup.Morphogens.FirstOrDefault(m => m.Id == kv.Key)?.IsExternal == true)
-                issues.Add(Err("Эксперимент", loc, $"Морфоген {kv.Key} — внешний, его нельзя задать внутренней концентрацией.", "Выберите внутренний морфоген."));
-            if (kv.Value < 0.0 || double.IsNaN(kv.Value))
-                issues.Add(Err("Эксперимент", loc, "Начальная концентрация должна быть ≥ 0.", ""));
-        }
     }
 
     private static void ValidateMorphogens(SimulationSetup setup, List<ConfigIssue> issues)
@@ -134,9 +123,19 @@ public static class ConfigValidator
                 issues.Add(Err("Морфогены", loc, $"Неизвестный тип морфогена «{m.Type}».", "Используйте External или Internal."));
             if (m.IsInternal && m.Diffusion > 0.0)
                 issues.Add(Warn("Морфогены", loc, "Внутренний морфоген не диффундирует; коэффициент диффузии будет проигнорирован.", "Задайте diffusion = 0."));
-            if (m.InitialConcentration < 0.0 || double.IsNaN(m.InitialConcentration))
-                issues.Add(Err("Морфогены", loc, "Начальная концентрация внутреннего морфогена должна быть ≥ 0.", ""));
+            if (!IsValidDivisionInheritance(m.DivisionInheritance))
+                issues.Add(Err("Морфогены", loc, $"Неизвестный режим наследования «{m.DivisionInheritance}».", "Используйте Reset, Copy или Split."));
+            else if (!m.IsInternal && !string.Equals(m.DivisionInheritance, "Reset", StringComparison.OrdinalIgnoreCase))
+                issues.Add(Warn("Морфогены", loc, "Наследование при делении применяется только к внутренним морфогенам.", "Для внешнего морфогена это поле игнорируется."));
         }
+    }
+
+    private static bool IsValidDivisionInheritance(string? mode)
+    {
+        if (string.IsNullOrWhiteSpace(mode)) return true; // defaults to Reset
+        return string.Equals(mode, "Reset", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(mode, "Copy", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(mode, "Split", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsValidMorphogenType(string? type)

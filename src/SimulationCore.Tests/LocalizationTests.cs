@@ -50,12 +50,12 @@ public class LocalizationTests
     }
 
     [Test]
-    public void GeneName_PrefersDisplayName_AndFlagsMissing()
+    public void GeneName_PrefersName_AndFlagsMissing()
     {
-        var named = new GeneConfig { Id = "g", DisplayName = "Секретор" };
+        var named = new GeneConfig { Id = "g", Name = "Секретор" };
         Assert.That(Localization.GeneName(named), Is.EqualTo("Секретор"));
 
-        var unnamed = new GeneConfig { Id = "g" };
+        var unnamed = new GeneConfig { Id = "g", Name = "" };
         Assert.That(Localization.GeneName(unnamed), Does.Contain("g"));
         Assert.That(Localization.GeneName(unnamed), Does.Contain("без названия"));
     }

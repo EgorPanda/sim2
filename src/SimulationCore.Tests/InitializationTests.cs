@@ -29,17 +29,17 @@ public class InitializationTests
     }
 
     [Test]
-    public void InitialInternalConcentration_AssignedToFounder()
+    public void FoundersStartWithZeroInternalConcentration()
     {
         var setup = TestFactory.Setup();
         setup.Morphogens = new[]
         {
             new MorphogenConfig { Id = 7, Type = "Internal" }
         };
-        setup.Simulation.InitialInternalMorphogens[7] = 3.5;
 
         var sim = new Simulation(setup);
-        Assert.That(sim.Cells[0].InternalMorphogenConcentrations[7], Is.EqualTo(3.5).Within(1e-9));
+        Assert.That(sim.Cells[0].InternalMorphogenConcentrations.ContainsKey(7), Is.False,
+            "Founders must not start with internal morphogen concentrations.");
     }
 
     [Test]

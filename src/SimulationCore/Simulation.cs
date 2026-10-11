@@ -136,7 +136,6 @@ public sealed class Simulation : GeneContext
                 GenomeId = type.GenomeId,
                 State = CellState.Alive
             };
-            ApplyInitialInternalMorphogens(cell);
             Cells.Add(cell);
         }
 
@@ -147,25 +146,6 @@ public sealed class Simulation : GeneContext
     {
         GenomesById.TryGetValue(genomeId, out var genome);
         return genome;
-    }
-
-    private void ApplyInitialInternalMorphogens(Cell cell)
-    {
-        foreach (var kv in Config.InitialInternalMorphogens)
-        {
-            if (!MorphogensById.TryGetValue(kv.Key, out var cfg)) continue;
-            if (!cfg.IsInternal) continue;
-            double v = kv.Value;
-            if (double.IsNaN(v) || v < 0.0) v = 0.0;
-            cell.InternalMorphogenConcentrations[kv.Key] = v;
-        }
-
-        foreach (var cfg in MorphogensById.Values)
-        {
-            if (!cfg.IsInternal) continue;
-            if (cfg.InitialConcentration > 0.0)
-                cell.InternalMorphogenConcentrations[cfg.Id] = cfg.InitialConcentration;
-        }
     }
 
     private void SeedInitialExternalMorphogens()
@@ -270,7 +250,7 @@ public sealed class Simulation : GeneContext
 
         // 6. Division & apoptosis.
         SpatialHash.Rebuild(Cells);
-        CellSystem.ResolveDivisions(SpatialHash, CellTypesById, Rng, CreateCell, _maxRadius, _divisionGradient);
+        CellSystem.ResolveDivisions(SpatialHash, CellTypesById, MorphogensById, Rng, CreateCell, _maxRadius, _divisionGradient);
         CellSystem.Cleanup(dt);
 
         // Rebuild once more so the next step and the renderer see fresh data.

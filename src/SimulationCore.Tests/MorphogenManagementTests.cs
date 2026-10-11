@@ -63,15 +63,11 @@ public class MorphogenManagementTests
             X = 40, Y = 40, Radius = 20.0, Concentration = 0.5,
             Profile = "uniform"
         });
-        setup.Simulation.InitialInternalMorphogens[0] = 3.0;
-
         var affected = ConfigDraft.RemoveMorphogen(setup, 0);
 
         Assert.That(affected, Does.Contain("начальные внешние источники"));
-        Assert.That(affected, Does.Contain("начальная внутренняя концентрация"));
         Assert.That(setup.Simulation.InitialExternalSources.Select(s => s.MorphogenId),
             Is.EqualTo(new[] { 1 }), "Only references to the deleted morphogen are removed.");
-        Assert.That(setup.Simulation.InitialInternalMorphogens.ContainsKey(0), Is.False);
 
         var issues = ConfigValidator.Validate(setup);
         Assert.That(issues.Where(i => i.IsError), Is.Empty,
@@ -88,17 +84,10 @@ public class MorphogenManagementTests
             X = 10, Y = 10, Radius = 20.0, Concentration = 1.0,
             Profile = "uniform"
         });
-        setup.Simulation.InitialInternalMorphogens[1] = 2.0;
-
         // Morphogen 0 becomes internal: its external source must go.
         setup.Morphogens[0].Type = "Internal";
         ConfigDraft.ReconcileInitialSignals(setup, 0);
         Assert.That(setup.Simulation.InitialExternalSources.Select(s => s.MorphogenId), Is.Empty);
-
-        // Morphogen 1 becomes external: its internal concentration must go.
-        setup.Morphogens[1].Type = "External";
-        ConfigDraft.ReconcileInitialSignals(setup, 1);
-        Assert.That(setup.Simulation.InitialInternalMorphogens.ContainsKey(1), Is.False);
 
         var issues = ConfigValidator.Validate(setup);
         Assert.That(issues.Where(i => i.IsError), Is.Empty);
@@ -154,7 +143,8 @@ public class MorphogenManagementTests
     public void CopyMorphogen_CreatesUniqueIdAndPreservesParameters()
     {
         var setup = TestFactory.Setup(morphogenCount: 2);
-        setup.Morphogens[1].DisplayName = "Фактор роста";
+        setup.Morphogens[1].Name = "Фактор роста";
+        setup.Morphogens[1].Role = "роль";
         setup.Morphogens[1].Description = "Описание";
         setup.Morphogens[1].Diffusion = 1.5;
         setup.Morphogens[1].Decay = 0.3;
@@ -165,7 +155,7 @@ public class MorphogenManagementTests
         Assert.That(copy.Id, Is.EqualTo(2));
         Assert.That(setup.Morphogens.Select(m => m.Id), Is.Not.Contains(copy.Id),
             "The copy gets an id not yet used in the working set.");
-        Assert.That(copy.Name, Is.EqualTo(setup.Morphogens[1].Name));
+        Assert.That(copy.Name, Is.EqualTo("Фактор роста (копия)"));
         Assert.That(copy.Diffusion, Is.EqualTo(1.5));
         Assert.That(copy.Decay, Is.EqualTo(0.3));
         Assert.That(copy.Color, Is.EqualTo("#ffcc00"));
@@ -368,13 +358,10 @@ public class MorphogenManagementTests
             X = 10, Y = 10, Radius = 20, Concentration = 1.0,
             Profile = "uniform"
         });
-        setup.Simulation.InitialInternalMorphogens[0] = 2.0;
-
         ConfigDraft.SanitizeMorphogenReferences(setup);
 
         Assert.That(setup.Simulation.DivisionGradientMorphogen, Is.EqualTo(-1));
         Assert.That(setup.Simulation.InitialExternalSources, Is.Empty);
-        Assert.That(setup.Simulation.InitialInternalMorphogens, Is.Empty);
 
         var issues = ConfigValidator.Validate(setup);
         Assert.That(issues.Where(i => i.IsError), Is.Empty,
@@ -393,12 +380,9 @@ public class MorphogenManagementTests
             X = 10, Y = 10, Radius = 20, Concentration = 1.0,
             Profile = "uniform"
         });
-        setup.Simulation.InitialInternalMorphogens[1] = 1.0;
-
         ConfigDraft.SanitizeMorphogenReferences(setup);
 
         Assert.That(setup.Simulation.DivisionGradientMorphogen, Is.EqualTo(0));
         Assert.That(setup.Simulation.InitialExternalSources, Has.Count.EqualTo(1));
-        Assert.That(setup.Simulation.InitialInternalMorphogens, Does.ContainKey(1));
     }
 }

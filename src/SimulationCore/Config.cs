@@ -22,21 +22,20 @@ public sealed class SimulationConfig
 
     /// <summary>Initial local sources of external morphogens (seeded on reset).</summary>
     public List<MorphogenSourceConfig> InitialExternalSources { get; set; } = new();
-
-    /// <summary>Initial per-cell concentrations of internal morphogens in founder cells.</summary>
-    public Dictionary<int, double> InitialInternalMorphogens { get; set; } = new();
 }
 
 /// <summary>Definition of a single morphogen (config/morphogens.json).</summary>
 public sealed class MorphogenConfig
 {
     public int Id { get; set; }
+
+    /// <summary>Human-readable name shown in the UI.</summary>
     public string Name { get; set; } = "morphogen";
 
-    /// <summary>Optional human-readable (Russian) name shown in the UI.</summary>
-    public string DisplayName { get; set; } = "";
+    /// <summary>Short biological role shown in the UI.</summary>
+    public string Role { get; set; } = "";
 
-    /// <summary>Optional human-readable purpose/description shown in the UI.</summary>
+    /// <summary>Optional detailed description shown in the UI.</summary>
     public string Description { get; set; } = "";
 
     /// <summary>
@@ -54,8 +53,14 @@ public sealed class MorphogenConfig
     public double Decay { get; set; } = 0.0;
     public string Color { get; set; } = "#ffffff";
 
-    /// <summary>Initial concentration for internal morphogens in founder cells (units).</summary>
-    public double InitialConcentration { get; set; } = 0.0;
+    /// <summary>
+    /// How an internal morphogen is inherited by the daughter cell during division.
+    /// "Reset" (default) — daughter starts with 0.
+    /// "Copy" — daughter receives the same concentration as the parent.
+    /// "Split" — parent and daughter each get half of the original concentration.
+    /// Ignored for external morphogens.
+    /// </summary>
+    public string DivisionInheritance { get; set; } = "Reset";
 }
 
 /// <summary>A local initial source of an external morphogen.</summary>
@@ -90,12 +95,11 @@ public sealed class GenomeConfig
 public sealed class CellTypeConfig
 {
     public int Id { get; set; }
+
+    /// <summary>Human-readable name shown in the UI.</summary>
     public string Name { get; set; } = "cell";
 
-    /// <summary>Optional human-readable (Russian) name shown in the UI.</summary>
-    public string DisplayName { get; set; } = "";
-
-    /// <summary>Optional human-readable purpose/description shown in the UI.</summary>
+    /// <summary>Optional detailed description shown in the UI.</summary>
     public string Description { get; set; } = "";
 
     public string Color { get; set; } = "#ffffff";
@@ -113,16 +117,14 @@ public sealed class GeneConfig
     /// <summary>Stable identifier used for per-cell gene state and silencing.</summary>
     public string Id { get; set; } = "";
 
+    /// <summary>Human-readable name shown in the UI.</summary>
     public string Name { get; set; } = "gene";
 
-    /// <summary>Optional human-readable (Russian) name shown in the UI.</summary>
-    public string DisplayName { get; set; } = "";
-
-    /// <summary>Optional human-readable purpose/description shown in the UI.</summary>
-    public string Description { get; set; } = "";
-
-    /// <summary>Optional human-readable biological role shown in the UI.</summary>
+    /// <summary>Short biological role shown in the UI.</summary>
     public string Role { get; set; } = "";
+
+    /// <summary>Optional detailed description shown in the UI.</summary>
+    public string Description { get; set; } = "";
 
     public double ActivationDelay { get; set; } = 0.0;
 

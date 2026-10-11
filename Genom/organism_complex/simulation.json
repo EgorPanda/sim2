@@ -1,0 +1,23 @@
+{
+  "worldWidth": 1000.0,
+  "worldHeight": 900.0,
+  "morphogenResolution": 8.0,
+  "fixedTimeStep": 0.05,
+  "defaultSpeed": 1.0,
+  "cellRadius": 7.0,
+  "initialCells": 1,
+  "rngSeed": 20261011,
+  "founderTypeId": 0,
+  "divisionGradientMorphogen": 0,
+  "initialExternalSources": [
+    {
+      "morphogenId": 0,
+      "x": 500.0,
+      "y": 450.0,
+      "radius": 140.0,
+      "concentration": 1.0,
+      "profile": "gaussian"
+    }
+  ],
+  "initialInternalMorphogens": {}
+}

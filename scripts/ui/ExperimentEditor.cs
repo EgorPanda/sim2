@@ -91,27 +91,6 @@ public partial class ExperimentEditor : VBoxContainer
         var draft = _main.WorkingDraft;
         var s = draft.Simulation;
 
-        var internalMorphogens = draft.Morphogens.Where(m => m.IsInternal).ToList();
-        if (internalMorphogens.Count > 0)
-        {
-            _initialSignalsBox.AddChild(Ui.Lbl("Начальные внутренние концентрации основателей:", 0, 0));
-            foreach (var m in internalMorphogens)
-            {
-                int id = m.Id;
-                double value = s.InitialInternalMorphogens.TryGetValue(id, out double v) ? v : 0.0;
-                _initialSignalsBox.AddChild(Ui.Field($"{Localization.MorphogenName(m)}:",
-                    Ui.Sp(0, 1e6, 0.01, value, v =>
-                    {
-                        s.InitialInternalMorphogens[id] = v;
-                        _main.MarkDirty();
-                    }), 180));
-            }
-        }
-        else
-        {
-            _initialSignalsBox.AddChild(Ui.Lbl("Нет внутренних морфогенов.", 0, 0));
-        }
-
         _initialSignalsBox.AddChild(Ui.Lbl("Локальные внешние источники:", 0, 0));
         for (int i = 0; i < s.InitialExternalSources.Count; i++)
         {
@@ -119,9 +98,11 @@ public partial class ExperimentEditor : VBoxContainer
             var source = s.InitialExternalSources[i];
             var row = new HBoxContainer();
             row.AddChild(Ui.Opt(
-                draft.Morphogens.Where(m => m.IsExternal).Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
+                draft.Morphogens.Where(m => m.IsExternal)
+                    .OrderBy(m => m.Id)
+                    .Select(m => (m.Id, Localization.MorphogenLabel(m))),
                 source.MorphogenId,
-                id => { source.MorphogenId = id; _main.MarkDirty(); }, 140));
+                id => { source.MorphogenId = id; _main.MarkDirty(); }, 280));
             row.AddChild(Ui.Sp(-1e6, 1e6, 1, source.X, v => { source.X = v; _main.MarkDirty(); }, 80));
             row.AddChild(Ui.Sp(-1e6, 1e6, 1, source.Y, v => { source.Y = v; _main.MarkDirty(); }, 80));
             row.AddChild(Ui.Sp(0, 1e6, 0.5, source.Radius, v => { source.Radius = v; _main.MarkDirty(); }, 70));
@@ -176,8 +157,9 @@ public partial class ExperimentEditor : VBoxContainer
                 new[] { (-1, "(не использовать)") }
                     .Concat(_main.WorkingDraft.Morphogens
                         .Where(m => m.IsExternal)
-                        .Select(m => ((int)m.Id, $"{m.Id}: {Localization.MorphogenName(m)}"))),
+                        .OrderBy(m => m.Id)
+                        .Select(m => ((int)m.Id, Localization.MorphogenLabel(m)))),
                 s.DivisionGradientMorphogen,
-                id => { s.DivisionGradientMorphogen = id; _main.MarkDirty(); }, 220)));
+                id => { s.DivisionGradientMorphogen = id; _main.MarkDirty(); }, 360)));
     }
 }

@@ -25,6 +25,12 @@ public partial class GenomeEditor : VBoxContainer
     private int _genomeIndex;
     private string _geneFilter = "all";
 
+    private OptionButton? _qlGenomeSelect;
+    private OptionButton? _qlGeneSelect;
+    private OptionButton? _qlMorphSelect;
+    private SpinBox? _qlThreshold;
+    private VBoxContainer? _qlLinksList;
+
     private GenomeConfig? CurrentGenome
     {
         get
@@ -107,6 +113,9 @@ public partial class GenomeEditor : VBoxContainer
         actionRow.AddChild(Ui.Btn("удалить", () => { DeleteGene(); }));
         left.AddChild(actionRow);
         left.AddChild(Ui.Lbl("Клик по гену — карточка справа."));
+
+        BuildQuickLinkSection(left);
+
         layout.AddChild(left);
 
         _cardScroll = new ScrollContainer
@@ -126,10 +135,165 @@ public partial class GenomeEditor : VBoxContainer
         AddChild(layout);
     }
 
+    private void BuildQuickLinkSection(VBoxContainer left)
+    {
+        left.AddChild(new HSeparator());
+        var header = new HBoxContainer();
+        header.AddChild(Ui.Title("Быстрая связь: ген → морфоген"));
+        header.AddChild(Ui.Btn("?", () => _main.OpenHelp("param.requiredTrigger")));
+        left.AddChild(header);
+
+        _qlGenomeSelect = new OptionButton { CustomMinimumSize = new Vector2(220, 0) };
+        _qlGenomeSelect.ItemSelected += _ => RefreshQuickLinkGenes();
+        left.AddChild(Ui.Field("Геном:", _qlGenomeSelect, 70));
+
+        _qlGeneSelect = new OptionButton { CustomMinimumSize = new Vector2(220, 0) };
+        left.AddChild(Ui.Field("Ген:", _qlGeneSelect, 70));
+
+        _qlMorphSelect = new OptionButton { CustomMinimumSize = new Vector2(220, 0) };
+        left.AddChild(Ui.Field("Морфоген:", _qlMorphSelect, 70));
+
+        _qlThreshold = Ui.Sp(0, 1e6, 0.01, 0.5, _ => { });
+        left.AddChild(Ui.Field("Порог:", _qlThreshold, 70));
+
+        var buttons = new HBoxContainer();
+        buttons.AddChild(Ui.Btn("Создать / обновить", () =>
+        {
+            var gene = SelectedQuickLinkGene();
+            if (gene == null) return;
+            int morphId = (int)_qlMorphSelect!.GetItemId(_qlMorphSelect.Selected);
+            gene.RequireMorphogenTrigger = true;
+            gene.RequiredMorphogenId = morphId;
+            gene.RequiredMorphogenThreshold = _qlThreshold!.Value;
+            _main.MarkDirty();
+            RebuildList();
+            RefreshQuickLinkLinks();
+        }, 160));
+        buttons.AddChild(Ui.Btn("Отключить", () =>
+        {
+            var gene = SelectedQuickLinkGene();
+            if (gene == null) return;
+            gene.RequireMorphogenTrigger = false;
+            gene.RequiredMorphogenId = -1;
+            _main.MarkDirty();
+            RebuildList();
+            RefreshQuickLinkLinks();
+        }, 100));
+        left.AddChild(buttons);
+
+        left.AddChild(Ui.Lbl("Связи:", 0, 0));
+        _qlLinksList = new VBoxContainer();
+        var linksScroll = new ScrollContainer
+        {
+            CustomMinimumSize = new Vector2(0, 120),
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+        };
+        linksScroll.AddChild(_qlLinksList);
+        left.AddChild(linksScroll);
+    }
+
+    private GeneConfig? SelectedQuickLinkGene()
+    {
+        if (_qlGeneSelect == null || _qlGeneSelect.Selected < 0) return null;
+        string key = _qlGeneSelect.GetItemText(_qlGeneSelect.Selected);
+        // Stored text is "key — Name"; extract the key part before the first space.
+        int sep = key.IndexOf(' ');
+        if (sep > 0) key = key[..sep];
+        return CurrentGenome?.Genes.FirstOrDefault(g => g.Key == key);
+    }
+
+    private void RefreshQuickLinkGenes()
+    {
+        if (_qlGenomeSelect == null || _qlGeneSelect == null) return;
+        int genomeId = (int)_qlGenomeSelect.GetItemId(_qlGenomeSelect.Selected);
+        var genome = _main.WorkingDraft.Genomes.FirstOrDefault(g => g.Id == genomeId);
+        Ui.Clear(_qlGeneSelect);
+        if (genome != null)
+        {
+            foreach (var gene in genome.Genes)
+            {
+                int id = _qlGeneSelect.ItemCount;
+                _qlGeneSelect.AddItem($"{gene.Key} — {Localization.GeneName(gene)}", id);
+            }
+            if (_qlGeneSelect.ItemCount > 0) _qlGeneSelect.Select(0);
+        }
+    }
+
+    private void RefreshQuickLinkMorphogens()
+    {
+        if (_qlMorphSelect == null) return;
+        Ui.Clear(_qlMorphSelect);
+        foreach (var m in _main.WorkingDraft.Morphogens.OrderBy(m => m.Id))
+        {
+            int id = _qlMorphSelect.ItemCount;
+            _qlMorphSelect.AddItem(Localization.MorphogenLabel(m), id);
+            _qlMorphSelect.SetItemId(id, m.Id);
+        }
+        if (_qlMorphSelect.ItemCount > 0) _qlMorphSelect.Select(0);
+    }
+
+    private void RefreshQuickLinkLinks()
+    {
+        if (_qlLinksList == null) return;
+        Ui.Clear(_qlLinksList);
+        var draft = _main.WorkingDraft;
+        bool any = false;
+        foreach (var genome in draft.Genomes)
+        {
+            foreach (var gene in genome.Genes.Where(g => g.RequireMorphogenTrigger && g.RequiredMorphogenId >= 0))
+            {
+                any = true;
+                var m = draft.Morphogens.FirstOrDefault(x => x.Id == gene.RequiredMorphogenId);
+                string target = m != null ? Localization.MorphogenInline(m) : $"морфоген #{gene.RequiredMorphogenId} (не найден)";
+                var row = new HBoxContainer();
+                row.AddChild(Ui.Lbl($"[{gene.Key}] {Localization.GeneName(gene)} → {target}, порог ≥ {Num.Fmt(gene.RequiredMorphogenThreshold)}", 220));
+                row.AddChild(Ui.Btn("→", () =>
+                {
+                    _genomeIndex = Array.IndexOf(draft.Genomes, genome);
+                    _selectedGene = gene.Key;
+                    RebuildGenomeSelect();
+                    RebuildList();
+                }, 34));
+                _qlLinksList.AddChild(row);
+            }
+        }
+        if (!any)
+            _qlLinksList.AddChild(Ui.Lbl("Связей пока нет.", 0, 0));
+    }
+
     public void RefreshData()
     {
         RebuildGenomeSelect();
+        RebuildQuickLinkGenomes();
+        RefreshQuickLinkGenes();
+        RefreshQuickLinkMorphogens();
+        RefreshQuickLinkLinks();
         RebuildList();
+    }
+
+    private void RebuildQuickLinkGenomes()
+    {
+        if (_qlGenomeSelect == null) return;
+        Ui.Clear(_qlGenomeSelect);
+        for (int i = 0; i < _main.WorkingDraft.Genomes.Length; i++)
+        {
+            var genome = _main.WorkingDraft.Genomes[i];
+            _qlGenomeSelect.AddItem($"[{genome.Id}] {genome.Name}", i);
+            _qlGenomeSelect.SetItemId(i, genome.Id);
+        }
+        if (_qlGenomeSelect.ItemCount > 0)
+        {
+            int currentId = CurrentGenome?.Id ?? _main.WorkingDraft.Genomes[0].Id;
+            for (int i = 0; i < _qlGenomeSelect.ItemCount; i++)
+            {
+                if ((int)_qlGenomeSelect.GetItemId(i) == currentId)
+                {
+                    _qlGenomeSelect.Select(i);
+                    break;
+                }
+            }
+        }
     }
 
     public void OpenGene(string geneKey)
@@ -330,17 +494,16 @@ public partial class GenomeEditor : VBoxContainer
         };
     }
 
-    private static string TriggerStatus(GeneConfig gene, SimulationSetup setup)
+    private string TriggerStatus(GeneConfig gene, SimulationSetup setup)
     {
         if (!gene.RequireMorphogenTrigger) return "обязательный триггер отключён";
         if (gene.RequiredMorphogenId < 0) return "❗ не настроен: морфоген не выбран";
         var m = setup.Morphogens.FirstOrDefault(x => x.Id == gene.RequiredMorphogenId);
         if (m == null) return $"❗ не настроен: морфоген {gene.RequiredMorphogenId} не найден";
-        string type = Localization.MorphogenType(m.Type);
-        return $"триггер: {type.ToLowerInvariant()} «{Localization.MorphogenName(m)}» ≥ {Num.Fmt(gene.RequiredMorphogenThreshold)}";
+        return $"триггер: {MorphogenInlineName(gene.RequiredMorphogenId)} ≥ {Num.Fmt(gene.RequiredMorphogenThreshold)}";
     }
 
-    private static string Brief(GeneConfig gene)
+    private string Brief(GeneConfig gene)
     {
         var parts = new List<string>();
         foreach (var group in gene.EffectiveGroups())
@@ -354,12 +517,18 @@ public partial class GenomeEditor : VBoxContainer
             ? string.Join(", ", gene.Effects.Select(e => Localization.Effect(e.Kind)))
             : "нет";
         string trigger = gene.RequireMorphogenTrigger
-            ? $"триггер: морфоген {gene.RequiredMorphogenId} ≥ {Num.Fmt(gene.RequiredMorphogenThreshold)}"
+            ? $"триггер: {MorphogenInlineName(gene.RequiredMorphogenId)} ≥ {Num.Fmt(gene.RequiredMorphogenThreshold)}"
             : "без обязательного триггера";
         return $"{trigger}\n{conditions}\nЭффекты: {effects}";
     }
 
-    private static string ConditionText(RegulatorConfig r)
+    private string MorphogenInlineName(int morphogenId)
+    {
+        var m = _main.WorkingDraft.Morphogens.FirstOrDefault(m => m.Id == morphogenId);
+        return m != null ? Localization.MorphogenInline(m) : $"морфоген #{morphogenId}";
+    }
+
+    private string ConditionText(RegulatorConfig r)
     {
         string inv = r.Invert ? "НЕ " : "";
         switch (r.Kind)
@@ -367,7 +536,7 @@ public partial class GenomeEditor : VBoxContainer
             case "Property":
                 return $"{inv}«{Localization.Property(r.Property)}» {Localization.DescribeRange(r.Min, r.Max)}";
             case "Morphogen":
-                return $"{inv}морфоген #{r.Morphogen} {Localization.DescribeRange(r.Min, r.Max)}";
+                return $"{inv}концентрация {MorphogenInlineName(r.Morphogen)} {Localization.DescribeRange(r.Min, r.Max)}";
             case "Phenotype":
                 return inv + $"тип клетки #{r.TypeId}";
             case "State":
@@ -412,18 +581,12 @@ public partial class GenomeEditor : VBoxContainer
         };
         _card.AddChild(idRow);
 
-        _card.AddChild(Ui.Field("Имя:", new LineEdit { Text = gene.Name, PlaceholderText = "короткое имя (напр. secretor)" }, w));
+        _card.AddChild(Ui.Field("Имя:", new LineEdit { Text = gene.Name, PlaceholderText = "русское название гена" }, w));
         ((LineEdit)((HBoxContainer)_card.GetChild(_card.GetChildCount() - 1)).GetChild(1)).TextChanged += t =>
         {
             gene.Name = t;
             _main.MarkDirty();
-        };
-
-        _card.AddChild(Ui.Field("Название:", new LineEdit { Text = gene.DisplayName, PlaceholderText = "русское название в интерфейсе" }, w));
-        ((LineEdit)((HBoxContainer)_card.GetChild(_card.GetChildCount() - 1)).GetChild(1)).TextChanged += t =>
-        {
-            gene.DisplayName = t;
-            _main.MarkDirty();
+            RebuildList();
         };
 
         _card.AddChild(Ui.Field("Роль:", new LineEdit { Text = gene.Role, PlaceholderText = "напр. секреция сигнала деления" }, w));
@@ -481,7 +644,8 @@ public partial class GenomeEditor : VBoxContainer
         }
 
         var morphOptions = draft.Morphogens
-            .Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)} ({Localization.MorphogenType(m.Type).ToLowerInvariant()})"))
+            .OrderBy(m => m.Id)
+            .Select(m => (m.Id, Localization.MorphogenLabel(m)))
             .ToList();
         if (morphOptions.Count == 0)
         {
@@ -499,7 +663,7 @@ public partial class GenomeEditor : VBoxContainer
                 gene.RequiredMorphogenId = id;
                 _main.MarkDirty();
                 RebuildCard();
-            }, 240));
+            }, 360));
         morphRow.AddChild(Ui.Btn("→", () => _main.OpenMorphogen(gene.RequiredMorphogenId), 40));
         into.AddChild(morphRow);
 
@@ -604,10 +768,11 @@ public partial class GenomeEditor : VBoxContainer
             OkButtonText = "Готово",
             Size = new Vector2I(540, 340)
         };
-        dialog.Confirmed += () => dialog.QueueFree();
-        dialog.Canceled += () => dialog.QueueFree();
-        dialog.CloseRequested += () => dialog.QueueFree();
-        dialog.GetOkButton().Pressed += () => dialog.QueueFree();
+
+        void OnClose()
+        {
+            dialog.QueueFree();
+        }
 
         if (isNew)
         {
@@ -618,8 +783,11 @@ public partial class GenomeEditor : VBoxContainer
                 RebuildCard();
             }
             dialog.Confirmed += Commit;
-            dialog.GetOkButton().Pressed += Commit;
         }
+
+        dialog.Confirmed += OnClose;
+        dialog.Canceled += OnClose;
+        dialog.CloseRequested += OnClose;
 
         var content = new VBoxContainer();
         dialog.AddChild(content);
@@ -666,9 +834,9 @@ public partial class GenomeEditor : VBoxContainer
             case "Morphogen":
                 into.AddChild(Ui.Field("Морфоген:",
                     Ui.Opt(
-                        draft.Morphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
+                        draft.Morphogens.OrderBy(m => m.Id).Select(m => (m.Id, Localization.MorphogenLabel(m))),
                         reg.Morphogen >= 0 ? reg.Morphogen : (draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : 0),
-                        id => { reg.Morphogen = id; _main.MarkDirty(); }, 220)));
+                        id => { reg.Morphogen = id; _main.MarkDirty(); }, 360)));
                 BuildRangeRow(into, "концентрация", reg, Rebind);
                 break;
 
@@ -847,12 +1015,12 @@ public partial class GenomeEditor : VBoxContainer
         EditEffect(gene, effect);
     }
 
-    private static string EffectLabel(GeneEffectConfig e)
+    private string EffectLabel(GeneEffectConfig e)
     {
         string baseText = Localization.Effect(e.Kind);
         return e.Kind switch
         {
-            "EmitMorphogen" => $"{baseText}: морфоген #{e.Morphogen}, {Num.Fmt(e.Rate)}/с",
+            "EmitMorphogen" => $"{baseText}: {MorphogenInlineName(e.Morphogen)}, {Num.Fmt(e.Rate)}/с",
             "Grow" => $"{baseText}: {Num.Fmt(e.Rate)} ед./с",
             "Divide" => e.ChildTypeId is int cid
                 ? $"{baseText}: {Num.Fmt(e.Rate)} ед./с, потомок → тип #{cid}"
@@ -861,7 +1029,7 @@ public partial class GenomeEditor : VBoxContainer
             "StartTimer" => $"{baseText}: «{e.Timer}» {Num.Fmt(e.Duration)} с",
             "SilenceGene" => $"{baseText}: «{e.Gene}»",
             "Apoptosis" => $"{baseText}: P={Num.Fmt(e.Probability)}/с",
-            "Move" => $"{baseText}: морфоген #{e.Morphogen}{(e.Repel ? " (отталкивание)" : "")}, {Num.Fmt(e.Rate)} ед./с",
+            "Move" => $"{baseText}: {MorphogenInlineName(e.Morphogen)}{(e.Repel ? " (отталкивание)" : "")}, {Num.Fmt(e.Rate)} ед./с",
             _ => baseText
         };
     }
@@ -875,10 +1043,11 @@ public partial class GenomeEditor : VBoxContainer
             OkButtonText = "Готово",
             Size = new Vector2I(540, 280)
         };
-        dialog.Confirmed += () => dialog.QueueFree();
-        dialog.Canceled += () => dialog.QueueFree();
-        dialog.CloseRequested += () => dialog.QueueFree();
-        dialog.GetOkButton().Pressed += () => dialog.QueueFree();
+
+        void OnClose()
+        {
+            dialog.QueueFree();
+        }
 
         if (isNew)
         {
@@ -889,8 +1058,11 @@ public partial class GenomeEditor : VBoxContainer
                 RebuildCard();
             }
             dialog.Confirmed += Commit;
-            dialog.GetOkButton().Pressed += Commit;
         }
+
+        dialog.Confirmed += OnClose;
+        dialog.Canceled += OnClose;
+        dialog.CloseRequested += OnClose;
 
         var content = new VBoxContainer();
         dialog.AddChild(content);
@@ -921,9 +1093,9 @@ public partial class GenomeEditor : VBoxContainer
             case "EmitMorphogen":
                 into.AddChild(Ui.Field("Морфоген:",
                     Ui.Opt(
-                        draft.Morphogens.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
+                        draft.Morphogens.OrderBy(m => m.Id).Select(m => (m.Id, Localization.MorphogenLabel(m))),
                         effect.Morphogen >= 0 ? effect.Morphogen : (draft.Morphogens.Length > 0 ? draft.Morphogens[0].Id : 0),
-                        id => { effect.Morphogen = id; _main.MarkDirty(); Rebind(); }, 220)));
+                        id => { effect.Morphogen = id; _main.MarkDirty(); Rebind(); }, 360)));
                 into.AddChild(Ui.Field("Скорость, ед./с:",
                     Ui.Sp(0, 1000, 0.1, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
                 bool isInternal = draft.Morphogens.FirstOrDefault(m => m.Id == effect.Morphogen)?.IsInternal == true;
@@ -988,12 +1160,12 @@ public partial class GenomeEditor : VBoxContainer
 
             case "Move":
             {
-                var external = draft.Morphogens.Where(m => m.IsExternal).ToList();
+                var external = draft.Morphogens.Where(m => m.IsExternal).OrderBy(m => m.Id).ToList();
                 into.AddChild(Ui.Field("Морфоген-направитель:",
                     Ui.Opt(
-                        external.Select(m => (m.Id, $"{m.Id}: {Localization.MorphogenName(m)}")),
+                        external.Select(m => (m.Id, Localization.MorphogenLabel(m))),
                         external.Any(m => m.Id == effect.Morphogen) ? effect.Morphogen : (external.Count > 0 ? external[0].Id : 0),
-                        id => { effect.Morphogen = id; _main.MarkDirty(); }, 220)));
+                        id => { effect.Morphogen = id; _main.MarkDirty(); }, 360)));
                 into.AddChild(Ui.Field("Скорость, ед./с:",
                     Ui.Sp(0, 1000, 0.1, effect.Rate, v => { effect.Rate = v; _main.MarkDirty(); })));
                 into.AddChild(Ui.Chk("Отталкиваться (двигаться против градиента)", effect.Repel, on =>

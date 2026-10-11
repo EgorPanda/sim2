@@ -1,0 +1,9 @@
+{
+  "name": "Многоклеточный организм — слои тканей",
+  "description": "Демонстрационный эксперимент с четырьмя фенотипами: стволовые клетки формируют центральное ядро, рабочие клетки, поддерживающий слой и наружную оболочку. Фенотип дочерней клетки определяется концентрацией позиционного морфогена.",
+  "simulationFile": "organism_complex/simulation.json",
+  "morphogenFile": "organism_complex/morphogens.json",
+  "genomeFile": "organism_complex/genomes.json",
+  "cellTypeFile": "organism_complex/celltypes.json",
+  "adhesionFile": "organism_complex/adhesion.json"
+}

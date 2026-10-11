@@ -96,6 +96,7 @@ public sealed class CellSystem
     public int ResolveDivisions(
         SpatialHash hash,
         IReadOnlyDictionary<int, CellTypeConfig> types,
+        IReadOnlyDictionary<int, MorphogenConfig> morphogens,
         Rng rng,
         Func<Cell> createCell,
         double maxQueryRadius,
@@ -120,12 +121,13 @@ public sealed class CellSystem
             bool inherited = childTypeId == cell.TypeId;
             string? ruleGene = cell.PendingDivideGene;
 
-            double radius = type.BaseRadius;
+            double parentRadius = type.BaseRadius;
+            double childRadius = types[childTypeId].BaseRadius;
 
             // Parent moves back along the split axis, child goes forward.
-            cell.X -= dx * radius;
-            cell.Y -= dy * radius;
-            cell.Radius = radius;
+            cell.X -= dx * parentRadius;
+            cell.Y -= dy * parentRadius;
+            cell.Radius = parentRadius;
             cell.DivisionProgress = 0.0;
             cell.Age = 0.0;
             cell.PendingChildTypeId = null;
@@ -134,13 +136,13 @@ public sealed class CellSystem
             var child = createCell();
             child.TypeId = childTypeId;
             child.GenomeId = cell.GenomeId;
-            child.X = cell.X + dx * radius * 2.0;
-            child.Y = cell.Y + dy * radius * 2.0;
-            child.Radius = radius;
+            child.X = cell.X + dx * (parentRadius + childRadius);
+            child.Y = cell.Y + dy * (parentRadius + childRadius);
+            child.Radius = childRadius;
             child.Age = 0.0;
             child.State = CellState.Alive;
             cell.CopyRegulationStateTo(child);
-            cell.CopyInternalMorphogensTo(child);
+            cell.CopyInternalMorphogensTo(child, morphogens);
             _cells.Add(child);
             RecordDivision(cell, child, ruleGene, inherited);
             divisions++;

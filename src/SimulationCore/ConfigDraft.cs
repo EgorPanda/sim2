@@ -31,8 +31,8 @@ public static class ConfigDraft
         return new GeneConfig
         {
             Id = key,
-            Name = key,
-            DisplayName = "Новый ген",
+            Name = "Новый ген",
+            Role = "",
             Description = "Опишите назначение этого гена.",
             Regulators = new List<RegulatorConfig>(),
             Effects = new List<GeneEffectConfig>(),
@@ -48,10 +48,9 @@ public static class ConfigDraft
         string key = UniqueGeneId(genome, source.Key + "_copy");
         var copy = CloneGene(source);
         copy.Id = key;
-        copy.Name = key;
-        copy.DisplayName = string.IsNullOrWhiteSpace(source.DisplayName)
+        copy.Name = string.IsNullOrWhiteSpace(source.Name)
             ? $"Копия «{source.Key}»"
-            : $"{source.DisplayName} (копия)";
+            : $"{source.Name} (копия)";
         return copy;
     }
 
@@ -74,9 +73,8 @@ public static class ConfigDraft
         {
             Id = source.Id,
             Name = source.Name,
-            DisplayName = source.DisplayName,
-            Description = source.Description,
             Role = source.Role,
+            Description = source.Description,
             ActivationDelay = source.ActivationDelay,
             RequireMorphogenTrigger = source.RequireMorphogenTrigger,
             RequiredMorphogenId = source.RequiredMorphogenId,
@@ -190,18 +188,14 @@ public static class ConfigDraft
 
         if (setup.Simulation.InitialExternalSources.RemoveAll(s => s.MorphogenId == morphogenId) > 0)
             affected.Add("начальные внешние источники");
-        if (setup.Simulation.InitialInternalMorphogens.Remove(morphogenId))
-            affected.Add("начальная внутренняя концентрация");
 
         setup.Morphogens = setup.Morphogens.Where(m => m.Id != morphogenId).ToArray();
         return affected;
     }
 
     /// <summary>
-    /// Removes initial-signal references that contradict the morphogen's current
-    /// type (an external initial source for an internal morphogen, an internal
-    /// founder concentration for an external one). Called when a morphogen type
-    /// is switched in the editor.
+    /// Removes initial external sources that contradict the morphogen's current
+    /// type. Called when a morphogen type is switched in the editor.
     /// </summary>
     public static void ReconcileInitialSignals(SimulationSetup setup, int morphogenId)
     {
@@ -209,8 +203,6 @@ public static class ConfigDraft
         if (cfg == null) return;
         if (cfg.IsInternal)
             setup.Simulation.InitialExternalSources.RemoveAll(s => s.MorphogenId == morphogenId);
-        else
-            setup.Simulation.InitialInternalMorphogens.Remove(morphogenId);
     }
 
     /// <summary>Returns a morphogen id unused in the working set.</summary>
@@ -278,15 +270,11 @@ public static class ConfigDraft
     public static void SanitizeMorphogenReferences(SimulationSetup setup)
     {
         var external = setup.Morphogens.Where(m => m.IsExternal).Select(m => m.Id).ToHashSet();
-        var internalIds = setup.Morphogens.Where(m => m.IsInternal).Select(m => m.Id).ToHashSet();
 
         if (setup.Simulation.DivisionGradientMorphogen >= 0 && !external.Contains(setup.Simulation.DivisionGradientMorphogen))
             setup.Simulation.DivisionGradientMorphogen = -1;
 
         setup.Simulation.InitialExternalSources.RemoveAll(s => !external.Contains(s.MorphogenId));
-        foreach (int key in setup.Simulation.InitialInternalMorphogens.Keys.ToArray())
-            if (!internalIds.Contains(key))
-                setup.Simulation.InitialInternalMorphogens.Remove(key);
     }
 
     /// <summary>Deep copy of a single morphogen with a fresh, unique id.</summary>
@@ -296,16 +284,16 @@ public static class ConfigDraft
         return new MorphogenConfig
         {
             Id = newId,
-            Name = string.IsNullOrWhiteSpace(source.Name) ? $"morphogen{newId}" : source.Name,
-            DisplayName = string.IsNullOrWhiteSpace(source.DisplayName)
-                ? $"Копия «{source.Name}»"
-                : $"{source.DisplayName} (копия)",
+            Name = string.IsNullOrWhiteSpace(source.Name)
+                ? $"Копия «{source.Id}»"
+                : $"{source.Name} (копия)",
+            Role = source.Role,
             Description = source.Description,
             Type = source.Type,
             Diffusion = source.Diffusion,
             Decay = source.Decay,
             Color = source.Color,
-            InitialConcentration = source.InitialConcentration
+            DivisionInheritance = source.DivisionInheritance
         };
     }
 
@@ -325,10 +313,9 @@ public static class ConfigDraft
         return new CellTypeConfig
         {
             Id = newId,
-            Name = string.IsNullOrWhiteSpace(source.Name) ? $"cell{newId}" : source.Name,
-            DisplayName = string.IsNullOrWhiteSpace(source.DisplayName)
-                ? $"Копия «{source.Name}»"
-                : $"{source.DisplayName} (копия)",
+            Name = string.IsNullOrWhiteSpace(source.Name)
+                ? $"Копия «{source.Id}»"
+                : $"{source.Name} (копия)",
             Description = source.Description,
             Color = source.Color,
             GenomeId = source.GenomeId,
