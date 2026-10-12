@@ -31,6 +31,16 @@ public partial class Hud : CanvasLayer
     private int? _inspectorCell;
     private bool _suppressSignals;
 
+    // Live-updated inspector sections.
+    private Label? _selHeaderLabel;
+    private Label? _selStateLabel;
+    private Label? _selStatsLabel;
+    private Label? _selTimersLabel;
+    private Label? _selExternalLabel;
+    private Label? _selInternalLabel;
+    private VBoxContainer? _selActiveGenesBox;
+    private VBoxContainer? _selSilencedGenesBox;
+
     public Hud(Main main)
     {
         _main = main;
@@ -312,76 +322,148 @@ public partial class Hud : CanvasLayer
     {
         if (_selectionBox == null) return;
         int? id = _main.SelectedCellId;
-        if (_inspectorCell == id) return;
-        _inspectorCell = id;
-        Ui.Clear(_selectionBox);
-        if (id is not int cellId) return;
-
         var sim = _main.Sim;
-        if (sim == null) return;
-        var cell = sim.Cells.FirstOrDefault(c => c.Id == cellId);
-        if (cell == null) return;
         var setup = _main.LiveSetup;
-        if (setup == null) return;
 
+        if (id is not int cellId || sim == null || setup == null)
+        {
+            _inspectorCell = null;
+            Ui.Clear(_selectionBox);
+            return;
+        }
+
+        var cell = sim.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell == null)
+        {
+            _inspectorCell = null;
+            Ui.Clear(_selectionBox);
+            return;
+        }
+
+        bool selectionChanged = _inspectorCell != id;
+        _inspectorCell = id;
+
+        if (selectionChanged)
+            BuildSelectionInspector();
+
+        UpdateSelectionInspector(cell, sim, setup);
+    }
+
+    private void BuildSelectionInspector()
+    {
+        if (_selectionBox == null) return;
+        Ui.Clear(_selectionBox);
+
+        _selHeaderLabel = Ui.Lbl("");
+        _selectionBox.AddChild(_selHeaderLabel);
+        _selStateLabel = Ui.Lbl("");
+        _selectionBox.AddChild(_selStateLabel);
+        _selStatsLabel = Ui.Lbl("");
+        _selectionBox.AddChild(_selStatsLabel);
+
+        _selectionBox.AddChild(new Label { Text = "— Активные гены —" });
+        _selActiveGenesBox = new VBoxContainer();
+        _selectionBox.AddChild(_selActiveGenesBox);
+
+        _selectionBox.AddChild(new Label { Text = "— Подавленные гены —" });
+        _selSilencedGenesBox = new VBoxContainer();
+        _selectionBox.AddChild(_selSilencedGenesBox);
+
+        _selTimersLabel = Ui.Lbl("");
+        _selectionBox.AddChild(_selTimersLabel);
+
+        _selExternalLabel = Ui.Lbl("");
+        _selectionBox.AddChild(_selExternalLabel);
+
+        _selInternalLabel = Ui.Lbl("");
+        _selectionBox.AddChild(_selInternalLabel);
+    }
+
+    private void UpdateSelectionInspector(Cell cell, SimulationCore.Simulation sim, SimulationSetup setup)
+    {
         var type = setup.CellTypes.FirstOrDefault(t => t.Id == cell.TypeId);
         var genome = sim.GenomeOf(cell.GenomeId);
 
         string typeName = type != null ? Localization.CellTypeName(type) : $"(тип {cell.TypeId})";
-        _selectionBox.AddChild(Ui.Lbl($"#{cell.Id}  {typeName}"));
-        _selectionBox.AddChild(Ui.Lbl($"состояние: {Localization.State(cell.State)}"));
-        _selectionBox.AddChild(Ui.Lbl($"радиус: {cell.Radius:F1}  возраст: {cell.Age:F1} с  соседи: {cell.NeighbourCount}"));
+        if (_selHeaderLabel != null)
+            _selHeaderLabel.Text = $"#{cell.Id}  {typeName}";
+        if (_selStateLabel != null)
+            _selStateLabel.Text = $"состояние: {Localization.State(cell.State)}";
+        if (_selStatsLabel != null)
+            _selStatsLabel.Text = $"радиус: {cell.Radius:F1}  возраст: {cell.Age:F1} с  соседи: {cell.NeighbourCount}";
 
-        if (genome != null)
+        if (_selActiveGenesBox != null && genome != null)
         {
+            Ui.Clear(_selActiveGenesBox);
             var active = genome.Genes.Where(g => cell.StateOf(g.Key).Active).ToList();
-            var silenced = genome.Genes.Where(g => cell.IsSilenced(g.Key)).ToList();
-            _selectionBox.AddChild(Ui.Lbl($"гены активны: {active.Count}/{genome.Genes.Count}"));
-            if (active.Count > 0)
+            if (active.Count == 0)
+            {
+                _selActiveGenesBox.AddChild(Ui.Lbl("нет"));
+            }
+            else
             {
                 foreach (var gene in active)
                 {
                     var row = new HBoxContainer();
                     row.AddChild(Ui.Btn(Localization.GeneName(gene), () => _main.OpenGene(gene.Key)));
                     row.AddChild(Ui.Lbl("активен"));
-                    _selectionBox.AddChild(row);
+                    _selActiveGenesBox.AddChild(row);
                 }
-            }
-            if (silenced.Count > 0)
-            {
-                var row = new HBoxContainer();
-                row.AddChild(Ui.Lbl("подавлены:"));
-                foreach (var gene in silenced)
-                {
-                    var btn = Ui.Btn(Localization.GeneName(gene), () => _main.OpenGene(gene.Key));
-                    btn.Modulate = new Color(1f, 0.6f, 0.6f);
-                    row.AddChild(btn);
-                }
-                _selectionBox.AddChild(row);
-            }
-
-            if (cell.Timers.Count > 0)
-            {
-                _selectionBox.AddChild(Ui.Lbl("таймеры: " + string.Join(", ",
-                    cell.Timers.Select(kv => $"{kv.Key} {kv.Value:F1}с"))));
             }
         }
 
-        var externalFields = setup.Morphogens
-            .Where(m => m.IsExternal)
-            .Select(m => $"{Localization.MorphogenName(m)} {sim.SampleMorphogen(m.Id, cell.X, cell.Y):F2}");
-        if (externalFields.Any())
-            _selectionBox.AddChild(Ui.Lbl("внешние: " + string.Join("  ", externalFields)));
-
-        var internalFields = setup.Morphogens
-            .Where(m => m.IsInternal)
-            .Select(m =>
+        if (_selSilencedGenesBox != null && genome != null)
+        {
+            Ui.Clear(_selSilencedGenesBox);
+            var silenced = genome.Genes.Where(g => cell.IsSilenced(g.Key)).ToList();
+            if (silenced.Count == 0)
             {
-                double v = cell.InternalMorphogenConcentrations.TryGetValue(m.Id, out double c) ? c : 0.0;
-                return $"{Localization.MorphogenName(m)} {v:F2}";
-            });
-        if (internalFields.Any())
-            _selectionBox.AddChild(Ui.Lbl("внутренние: " + string.Join("  ", internalFields)));
+                _selSilencedGenesBox.AddChild(Ui.Lbl("нет"));
+            }
+            else
+            {
+                foreach (var gene in silenced)
+                {
+                    var row = new HBoxContainer();
+                    var btn = Ui.Btn(Localization.GeneName(gene), () => _main.OpenGene(gene.Key));
+                    btn.Modulate = new Color(1f, 0.6f, 0.6f);
+                    row.AddChild(btn);
+                    _selSilencedGenesBox.AddChild(row);
+                }
+            }
+        }
+
+        if (_selTimersLabel != null)
+        {
+            _selTimersLabel.Visible = cell.Timers.Count > 0;
+            if (cell.Timers.Count > 0)
+                _selTimersLabel.Text = "таймеры: " + string.Join(", ",
+                    cell.Timers.Select(kv => $"{kv.Key} {kv.Value:F1}с"));
+        }
+
+        if (_selExternalLabel != null)
+        {
+            var externalFields = setup.Morphogens
+                .Where(m => m.IsExternal)
+                .Select(m => $"{Localization.MorphogenInline(m)} {sim.SampleMorphogen(m.Id, cell.X, cell.Y):F2}");
+            _selExternalLabel.Visible = externalFields.Any();
+            if (externalFields.Any())
+                _selExternalLabel.Text = "внешние: " + string.Join("  ", externalFields);
+        }
+
+        if (_selInternalLabel != null)
+        {
+            var internalFields = setup.Morphogens
+                .Where(m => m.IsInternal)
+                .Select(m =>
+                {
+                    double v = cell.InternalMorphogenConcentrations.TryGetValue(m.Id, out double c) ? c : 0.0;
+                    return $"{Localization.MorphogenInline(m)} {v:F2}";
+                });
+            _selInternalLabel.Visible = internalFields.Any();
+            if (internalFields.Any())
+                _selInternalLabel.Text = "внутренние: " + string.Join("  ", internalFields);
+        }
     }
 
     private void RefreshLegend()

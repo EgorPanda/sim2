@@ -6,34 +6,112 @@
       {
         "id": "secretor",
         "name": "secretor",
-        "activationDelay": 0.0,
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Morphogen", "morphogen": 0, "min": 0.0, "max": 0.4 }
+          {
+            "kind": "Morphogen",
+            "invert": false,
+            "property": "",
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "min": 0,
+            "max": 0.4
+          }
         ],
         "effects": [
-          { "kind": "EmitMorphogen", "morphogen": 0, "rate": 30.0 }
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 30,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "grow",
         "name": "grow",
+        "role": "",
+        "description": "",
         "activationDelay": 0.3,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Property", "property": "age", "min": 0.0, "max": 1e9 }
+          {
+            "kind": "Property",
+            "invert": false,
+            "property": "age",
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "min": 0,
+            "max": 1000000000
+          }
         ],
         "effects": [
-          { "kind": "Grow", "rate": 1.2 }
+          {
+            "kind": "Grow",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 1.2,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "divide",
         "name": "divide",
+        "role": "",
+        "description": "",
         "activationDelay": 0.5,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Property", "property": "radius", "min": 17.0, "max": 1e9 }
+          {
+            "kind": "Property",
+            "invert": false,
+            "property": "radius",
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "min": 17,
+            "max": 1000000000
+          }
         ],
         "effects": [
-          { "kind": "Divide", "rate": 0.5 }
+          {
+            "kind": "Divide",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 0.5,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       }
     ]

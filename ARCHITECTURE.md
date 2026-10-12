@@ -68,7 +68,9 @@ headless and independently from the interface.
   bounded `DivisionLog` (`DivisionDiagnostic`: parent/child id, phenotypes, rule gene,
   inherited flag) used by tests and the demo. Daughters inherit the parent's genome,
   regulation state (`CopyRegulationStateTo`: active genes, timers, silenced genes) and
-  internal morphogen concentrations (`CopyInternalMorphogensTo`).
+  internal morphogen concentrations (`CopyInternalMorphogensTo`). The inheritance mode is
+  configurable per morphogen via `MorphogenConfig.DivisionInheritance`: `Reset` (daughter
+  starts at 0, default), `Copy` (same value), or `Split` (half to each daughter).
 - Apoptosis: the `Apoptosis` effect (deterministic or probabilistic).
 - Differentiation: the `SetCellType` effect switches a cell's `TypeId`; the genome
   stays shared.
@@ -76,9 +78,9 @@ headless and independently from the interface.
 ### GenomeSystem
 - `GenomeConfig` = ordered list of `GeneConfig`; a `CellTypeConfig` (phenotype) only
   references a genome via `GenomeId`, so many phenotypes share one genome.
-- `GeneConfig`: `Key` (stable id/name), mandatory morphogen trigger, regulators
-  (AND-combined), activation `Delay`, and effects. Per-gene state is keyed by `Key`,
-  so gene order is not significant.
+- `GeneConfig`: `Key` (stable id), `Name`, `Role`, `Description`, mandatory morphogen
+  trigger, regulators (AND-combined), activation `Delay`, and effects. Per-gene state is
+  keyed by `Key`, so gene order is not significant.
 - Mandatory trigger: an optional additional morphogen threshold a gene must meet
   before it can activate. It is checked independently of the regulator groups and
   works for both external (field sample) and internal (per-cell concentration)
@@ -104,7 +106,8 @@ headless and independently from the interface.
   field slots via an explicit `id → index` map, so sparse ids do not waste memory and
   internal morphogens never allocate a field. **Internal** morphogens have no field;
   their concentrations live inside `Cell.InternalMorphogenConcentrations` and decay
-  locally per cell.
+  locally per cell. Founder cells start with zero internal concentration; an internal
+  signal must be produced by a gene before it can regulate anything.
 - Update: explicit diffusion (`D * laplacian`) + exponential decay + accumulated
   emission. The number of sub-steps is chosen automatically for stability
   (`D*dt/dx^2 <= 0.24`); if a very high diffusion still violates the condition, the
@@ -142,8 +145,9 @@ headless and independently from the interface.
 - `Hud` (Russian) — transport (pause / step / reset), speed, layer selector, gene
   selector for gene layers, delete tool, laboratory toggle, help button,
   «Показать морфогены» / «Выбрать морфогены…» / «Посмотреть сквозь» controls;
-  per-**phenotype statistics**, a **selected-cell inspector** (clickable genes open
-  the editor), a legend strip and notifications.
+  per-**phenotype statistics**, a live-updating **selected-cell inspector** split into
+  sections (state, active/silenced genes, timers, external/internal morphogens;
+  clickable genes open the editor), a legend strip and notifications.
 - `ui/ResearchPanel` — the **Laboratory** (`L`): tabs «Геном», «Морфогены»,
   «Типы клеток», «Настройки эксперимента», «Справочник»; toolbar Применить / Проверить /
   Восстановить / Сохранить / Сохранить как… / Открыть…; hosted in a separate `Window` so the
@@ -152,9 +156,10 @@ headless and independently from the interface.
   the «?» context buttons route through `Main.OpenHelp`, `Main.OpenGene` and
   `Main.OpenMorphogen`, which make the panel visible and select the requested
   tab/article/row.
-- `ui/GenomeEditor` — gene list + card: display data, AND/OR **groups** (OR between
-  groups, AND inside, NOT per condition), thresholds ≥ / ≤ / range / = (derived from
-  the stored `[min, max]`), effects list. `ui/MorphogenEditor`, `ui/CellTypeEditor`,
+- `ui/GenomeEditor` — gene list + card: name/role/description, AND/OR **groups** (OR
+  between groups, AND inside, NOT per condition), thresholds ≥ / ≤ / range / = (derived
+  from the stored `[min, max]`), effects list, and a compact **gene → morphogen
+  quick-link** section for mandatory triggers. `ui/MorphogenEditor`, `ui/CellTypeEditor`,
   `ui/ExperimentEditor` edit the equivalent models; deletes are guarded by
   `ConfigDraft` reference discovery.
 - `ui/HelpPanel` — help browser over the central `HelpCatalog` in the core.
@@ -163,7 +168,8 @@ headless and independently from the interface.
 ### Localization, help and configuration tooling (SimulationCore)
 - `Localization` — centralised Russian display names for regulators, effects,
   properties, states, genes/morphogens/types; `DescribeRange` renders the operator
-  notation (≥/≤/…/=) for the stored interval.
+  notation (≥/≤/…/=) for the stored interval; `MorphogenLabel` produces the unified
+  selector format `[ID] Name — Role — Type`.
 - `HelpCatalog` — ~50 Russian articles (keys `concept.*`, `logic.*`, `op.*`,
   `regulator.*`, `effect.*`, `property.*`, `param.*`, `experiment.*`, `celltype.*`,
   `timer`) with search and related-key resolution.
@@ -172,11 +178,12 @@ headless and independently from the interface.
   rejects NaN numeric parameters and a `Divide` effect whose `ChildTypeId` references
   a missing phenotype or conflicts with another active `Divide` in the same gene.
   `ConfigWriter` serialises a setup to experiment profile files (`childTypeId` is
-  omitted when null, keeping legacy configs byte-compatible). `ConfigDraft` — unique
-  ids (genes/morphogens/types), gene and morphogen copy, morphogen-only removal with
-  full reference cleanup (effect references, regulator conditions, empty group drop,
-  division-gradient reset), and reference discovery for guarded deletes. All live in
-  the core so coverage is testable.
+  omitted when null, keeping legacy configs byte-compatible). `ConfigLoader` migrates
+  legacy `displayName` into `name` and silently drops removed `initialConcentration` /
+  `initialInternalMorphogens` fields. `ConfigDraft` — unique ids (genes/morphogens/types),
+  gene and morphogen copy, morphogen-only removal with full reference cleanup (effect
+  references, regulator conditions, empty group drop, division-gradient reset), and
+  reference discovery for guarded deletes. All live in the core so coverage is testable.
 
 ### SaveSystem
 - Versioned JSON DTO (v4) capturing cells (with `GenomeId`, gene state, timers,
@@ -195,7 +202,10 @@ headless and independently from the interface.
   help-catalog completeness, morphogen management (copy, reference-guarded removal),
   birth-differentiation, genome management, the `cell_memory` and `morphogen_spread`
   demo experiments, internal/external morphogen regulation, sparse morphogen IDs,
-  spatial emission radius and a morphogen-pipeline performance diagnostic.
+  spatial emission radius and a morphogen-pipeline performance diagnostic. M1.6 adds
+  tests for unified gene/morphogen/type naming, JSON migration of legacy `displayName`,
+  removal of founder internal concentrations, and `Reset`/`Copy`/`Split` division
+  inheritance.
 - `Main` also exposes two headless/runnable checks. `--selftest` steps a fresh world
   for 4000 ticks and verifies reproducibility. `--uitest` drives the real UI in a
   process: opens the Laboratory via the button-equivalent, L and F1 keys, checks the
@@ -272,8 +282,8 @@ docs:                    ARCHITECTURE.md, ROADMAP.md, README.md, USER_GUIDE_RU.m
 | a phenotype       | add an entry to `config/celltypes.json` (set its `genomeId`)       |
 | an adhesion pair  | add it to `config/adhesion.json`                                   |
 | an experiment     | add a folder + profile under `config/experiments/`, or save from the panel |
-| an internal morphogen | set `MorphogenConfig.Type` to `Internal`; emission then writes to `Cell.InternalMorphogenConcentrations` |
-| a mandatory trigger | set `GeneConfig.RequireMorphogenTrigger` + `RequiredMorphogenId` + `RequiredMorphogenThreshold` |
+| an internal morphogen | set `MorphogenConfig.Type` to `Internal`; configure `DivisionInheritance` (`Reset`/`Copy`/`Split`) |
+| a mandatory trigger | set `GeneConfig.RequireMorphogenTrigger` + `RequiredMorphogenId` + `RequiredMorphogenThreshold`; use the quick-link UI in the genome tab |
 | a new effect/rule | handle a new `GeneEffectConfig.Kind` in `GenomeSystem`             |
 | a new regulator   | handle a new `RegulatorConfig.Kind` in `GenomeSystem`              |
 | help content      | add a `HelpArticle` in `HelpCatalog.Data` (+ tests cover search/link resolution) |

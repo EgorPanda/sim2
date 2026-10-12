@@ -2,54 +2,131 @@
   {
     "id": 0,
     "name": "cell_memory",
-    "description": "Геном эксперимента «Клеточная память»: внешний сигнал A включает производство внутреннего B; B сохраняется и переключает фенотип на memory.",
     "genes": [
       {
         "id": "senseA",
-        "name": "Чувствовать внешний A",
-        "displayName": "Чувствовать внешний A",
-        "description": "Активируется в зоне внешнего сигнала A и производит внутренний морфоген B.",
+        "name": "\u0427\u0443\u0432\u0441\u0442\u0432\u043E\u0432\u0430\u0442\u044C \u0432\u043D\u0435\u0448\u043D\u0438\u0439 A",
+        "role": "",
+        "description": "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u0443\u0435\u0442\u0441\u044F \u0432 \u0437\u043E\u043D\u0435 \u0432\u043D\u0435\u0448\u043D\u0435\u0433\u043E \u0441\u0438\u0433\u043D\u0430\u043B\u0430 A \u0438 \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442 \u0432\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u0438\u0439 \u043C\u043E\u0440\u0444\u043E\u0433\u0435\u043D B.",
+        "activationDelay": 0,
         "requireMorphogenTrigger": true,
         "requiredMorphogenId": 0,
         "requiredMorphogenThreshold": 0.5,
+        "regulators": [],
         "effects": [
-          { "kind": "EmitMorphogen", "morphogen": 1, "rate": 50.0, "emissionRadius": 0.0 }
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 50,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "actFromB",
-        "name": "Активироваться от B",
-        "displayName": "Активироваться от внутренней памяти B",
-        "description": "Переключает клетку в фенотип «память», пока внутренняя концентрация B достаточна.",
+        "name": "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u043E\u0442 \u0432\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u0435\u0439 \u043F\u0430\u043C\u044F\u0442\u0438 B",
+        "role": "",
+        "description": "\u041F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0430\u0435\u0442 \u043A\u043B\u0435\u0442\u043A\u0443 \u0432 \u0444\u0435\u043D\u043E\u0442\u0438\u043F \u00AB\u043F\u0430\u043C\u044F\u0442\u044C\u00BB, \u043F\u043E\u043A\u0430 \u0432\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u044F\u044F \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044F B \u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u0430.",
+        "activationDelay": 0,
         "requireMorphogenTrigger": true,
         "requiredMorphogenId": 1,
-        "requiredMorphogenThreshold": 1.0,
+        "requiredMorphogenThreshold": 1,
+        "regulators": [],
         "effects": [
-          { "kind": "SetCellType", "typeId": 1, "once": true }
+          {
+            "kind": "SetCellType",
+            "once": true,
+            "morphogen": -1,
+            "typeId": 1,
+            "timer": "",
+            "gene": "",
+            "rate": 0,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "divideStem",
-        "name": "Деление стволовой",
-        "displayName": "Деление стволовой клетки",
-        "description": "Стволовые клетки медленно делятся, пока не получили сигнал памяти.",
+        "name": "\u0414\u0435\u043B\u0435\u043D\u0438\u0435 \u0441\u0442\u0432\u043E\u043B\u043E\u0432\u043E\u0439 \u043A\u043B\u0435\u0442\u043A\u0438",
+        "role": "",
+        "description": "\u0421\u0442\u0432\u043E\u043B\u043E\u0432\u044B\u0435 \u043A\u043B\u0435\u0442\u043A\u0438 \u043C\u0435\u0434\u043B\u0435\u043D\u043D\u043E \u0434\u0435\u043B\u044F\u0442\u0441\u044F, \u043F\u043E\u043A\u0430 \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438 \u0441\u0438\u0433\u043D\u0430\u043B \u043F\u0430\u043C\u044F\u0442\u0438.",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 0 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 0,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          }
         ],
         "effects": [
-          { "kind": "Divide", "rate": 0.2 }
+          {
+            "kind": "Divide",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 0.2,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "blockMemory",
-        "name": "Блокировать деление памяти",
-        "displayName": "Блокировать деление памяти",
-        "description": "Клетки памяти больше не делятся.",
+        "name": "\u0411\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043F\u0430\u043C\u044F\u0442\u0438",
+        "role": "",
+        "description": "\u041A\u043B\u0435\u0442\u043A\u0438 \u043F\u0430\u043C\u044F\u0442\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435 \u0434\u0435\u043B\u044F\u0442\u0441\u044F.",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 1 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 1,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          }
         ],
         "effects": [
-          { "kind": "BlockDivision" }
+          {
+            "kind": "BlockDivision",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 0,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       }
     ]

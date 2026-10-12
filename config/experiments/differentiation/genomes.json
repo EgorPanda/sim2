@@ -2,76 +2,275 @@
   {
     "id": 0,
     "name": "differentiation",
-    "description": "Дифференцировка при делении: сигнал вокруг колонии решает, чей фенотип получит дочерняя клетка. Рабочие и покровные клетки не делятся.",
     "genes": [
       {
         "id": "secretor",
-        "name": "Питание: источник",
+        "name": "\u041F\u0438\u0442\u0430\u043D\u0438\u0435: \u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Morphogen", "morphogen": 0, "min": 0.0, "max": 0.4 }
+          {
+            "kind": "Morphogen",
+            "invert": false,
+            "property": "",
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "min": 0,
+            "max": 0.4
+          }
         ],
         "effects": [
-          { "kind": "EmitMorphogen", "morphogen": 0, "rate": 30.0 }
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 30,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "signalA",
-        "name": "Сигнал: эмиссия",
+        "name": "\u0421\u0438\u0433\u043D\u0430\u043B: \u044D\u043C\u0438\u0441\u0441\u0438\u044F",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [],
         "effects": [
-          { "kind": "EmitMorphogen", "morphogen": 1, "rate": 2.0 }
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 2,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "div_worker",
-        "name": "Деление: рабочая",
+        "name": "\u0414\u0435\u043B\u0435\u043D\u0438\u0435: \u0440\u0430\u0431\u043E\u0447\u0430\u044F",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 0 },
-          { "kind": "Morphogen", "morphogen": 1, "min": 0.15, "max": 1e9 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 0,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          },
+          {
+            "kind": "Morphogen",
+            "invert": false,
+            "property": "",
+            "morphogen": 1,
+            "typeId": -1,
+            "timer": "",
+            "min": 0.15,
+            "max": 1000000000
+          }
         ],
         "effects": [
-          { "kind": "Divide", "rate": 1.0, "childTypeId": 1 }
+          {
+            "kind": "Divide",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "childTypeId": 1,
+            "timer": "",
+            "gene": "",
+            "rate": 1,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "div_skin",
-        "name": "Деление: покровная",
+        "name": "\u0414\u0435\u043B\u0435\u043D\u0438\u0435: \u043F\u043E\u043A\u0440\u043E\u0432\u043D\u0430\u044F",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 0 },
-          { "kind": "Morphogen", "morphogen": 1, "min": 0.0, "max": 0.15 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 0,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          },
+          {
+            "kind": "Morphogen",
+            "invert": false,
+            "property": "",
+            "morphogen": 1,
+            "typeId": -1,
+            "timer": "",
+            "min": 0,
+            "max": 0.15
+          }
         ],
         "effects": [
-          { "kind": "Divide", "rate": 1.0, "childTypeId": 2 }
+          {
+            "kind": "Divide",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "childTypeId": 2,
+            "timer": "",
+            "gene": "",
+            "rate": 1,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "workerSignal",
-        "name": "Сигнал рабочих",
+        "name": "\u0421\u0438\u0433\u043D\u0430\u043B \u0440\u0430\u0431\u043E\u0447\u0438\u0445",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 1 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 1,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          }
         ],
         "effects": [
-          { "kind": "EmitMorphogen", "morphogen": 2, "rate": 1.5 }
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 2,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 1.5,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "workerBlock",
-        "name": "Рабочая: запрет деления",
+        "name": "\u0420\u0430\u0431\u043E\u0447\u0430\u044F: \u0437\u0430\u043F\u0440\u0435\u0442 \u0434\u0435\u043B\u0435\u043D\u0438\u044F",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 1 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 1,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          }
         ],
         "effects": [
-          { "kind": "BlockDivision" }
+          {
+            "kind": "BlockDivision",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 0,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "skinBlock",
-        "name": "Покровная: запрет деления",
+        "name": "\u041F\u043E\u043A\u0440\u043E\u0432\u043D\u0430\u044F: \u0437\u0430\u043F\u0440\u0435\u0442 \u0434\u0435\u043B\u0435\u043D\u0438\u044F",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 2 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 2,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          }
         ],
         "effects": [
-          { "kind": "BlockDivision" }
+          {
+            "kind": "BlockDivision",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 0,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       }
     ]

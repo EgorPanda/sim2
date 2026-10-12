@@ -2,25 +2,28 @@
   {
     "id": 0,
     "name": "stem",
+    "description": "",
     "color": "#7bd88f",
     "genomeId": 0,
-    "baseRadius": 6.0,
-    "maxRadius": 6.0
+    "baseRadius": 6,
+    "maxRadius": 6
   },
   {
     "id": 1,
     "name": "worker",
+    "description": "",
     "color": "#f6c85f",
     "genomeId": 0,
-    "baseRadius": 6.0,
-    "maxRadius": 6.0
+    "baseRadius": 6,
+    "maxRadius": 6
   },
   {
     "id": 2,
     "name": "skin",
+    "description": "",
     "color": "#6a8fe0",
     "genomeId": 0,
-    "baseRadius": 6.0,
-    "maxRadius": 6.0
+    "baseRadius": 6,
+    "maxRadius": 6
   }
 ]

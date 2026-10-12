@@ -1,32 +1,29 @@
 [
   {
     "id": 0,
-    "name": "producer",
-    "displayName": "Производитель",
-    "description": "Выделяет внешний сигнал A.",
+    "name": "\u041F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C",
+    "description": "\u0412\u044B\u0434\u0435\u043B\u044F\u0435\u0442 \u0432\u043D\u0435\u0448\u043D\u0438\u0439 \u0441\u0438\u0433\u043D\u0430\u043B A.",
     "color": "#2ed573",
     "genomeId": 0,
-    "baseRadius": 8.0,
-    "maxRadius": 14.0
+    "baseRadius": 8,
+    "maxRadius": 14
   },
   {
     "id": 1,
-    "name": "naive",
-    "displayName": "Наивная",
-    "description": "Ждёт прихода сигнала A.",
+    "name": "\u041D\u0430\u0438\u0432\u043D\u0430\u044F",
+    "description": "\u0416\u0434\u0451\u0442 \u043F\u0440\u0438\u0445\u043E\u0434\u0430 \u0441\u0438\u0433\u043D\u0430\u043B\u0430 A.",
     "color": "#4ea8de",
     "genomeId": 1,
-    "baseRadius": 8.0,
-    "maxRadius": 14.0
+    "baseRadius": 8,
+    "maxRadius": 14
   },
   {
     "id": 2,
-    "name": "activated",
-    "displayName": "Активированная",
-    "description": "Переключилась под действием сигнала A.",
+    "name": "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u0430\u044F",
+    "description": "\u041F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0438\u043B\u0430\u0441\u044C \u043F\u043E\u0434 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435\u043C \u0441\u0438\u0433\u043D\u0430\u043B\u0430 A.",
     "color": "#ff4757",
     "genomeId": 1,
-    "baseRadius": 8.0,
-    "maxRadius": 14.0
+    "baseRadius": 8,
+    "maxRadius": 14
   }
 ]

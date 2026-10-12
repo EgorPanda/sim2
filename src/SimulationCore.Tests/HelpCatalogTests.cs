@@ -39,7 +39,7 @@ public class HelpCatalogTests
             "concept.growth", "concept.adhesion", "concept.gene_regulation",
             "param.activationDelay", "param.morphogenDiffusion", "param.morphogenDecay",
             "param.emissionRate", "param.growRate", "param.divisionRate",
-            "param.timerDuration", "param.apoptosisProbability",
+            "param.timerDuration", "param.apoptosisProbability", "param.divisionInheritance",
             "experiment.worldWidth", "experiment.worldHeight", "experiment.morphogenResolution",
             "experiment.fixedTimeStep", "experiment.defaultSpeed", "experiment.cellRadius",
             "experiment.initialCells", "experiment.rngSeed", "experiment.founderTypeId",

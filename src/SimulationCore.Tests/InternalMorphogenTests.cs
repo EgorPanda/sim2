@@ -134,7 +134,7 @@ public class InternalMorphogenTests
         var setup = TestFactory.Setup();
         setup.Morphogens = new[]
         {
-            new MorphogenConfig { Id = 1, Type = "Internal", Diffusion = 0.0, Decay = 0.0 }
+            new MorphogenConfig { Id = 1, Type = "Internal", Diffusion = 0.0, Decay = 0.0, DivisionInheritance = "Copy" }
         };
         setup.Genomes = new[]
         {
@@ -165,6 +165,86 @@ public class InternalMorphogenTests
         Assert.That(sim.Cells.Count, Is.GreaterThan(1));
         var child = sim.Cells.First(c => c.Id != sim.Cells[0].Id);
         Assert.That(child.InternalMorphogenConcentrations[1], Is.EqualTo(5.0).Within(1e-9));
+    }
+
+    [Test]
+    public void Division_ResetInheritance_DoesNotTransferInternalMorphogens()
+    {
+        var setup = TestFactory.Setup();
+        setup.Morphogens = new[]
+        {
+            new MorphogenConfig { Id = 1, Type = "Internal", Diffusion = 0.0, Decay = 0.0, DivisionInheritance = "Reset" }
+        };
+        setup.Genomes = new[]
+        {
+            new GenomeConfig
+            {
+                Id = 0,
+                Genes = new()
+                {
+                    new()
+                    {
+                        Id = "divide",
+                        RequireMorphogenTrigger = false,
+                        Effects = new() { new() { Kind = "Divide", Rate = 100.0 } }
+                    }
+                }
+            }
+        };
+        setup.CellTypes = new[]
+        {
+            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 }
+        };
+
+        var sim = new Simulation(setup);
+        sim.Cells[0].InternalMorphogenConcentrations[1] = 5.0;
+
+        sim.Step(0.05);
+
+        Assert.That(sim.Cells.Count, Is.GreaterThan(1));
+        var child = sim.Cells.First(c => c.Id != sim.Cells[0].Id);
+        Assert.That(child.InternalMorphogenConcentrations.ContainsKey(1), Is.False);
+    }
+
+    [Test]
+    public void Division_SplitInheritance_HalvesInternalMorphogens()
+    {
+        var setup = TestFactory.Setup();
+        setup.Morphogens = new[]
+        {
+            new MorphogenConfig { Id = 1, Type = "Internal", Diffusion = 0.0, Decay = 0.0, DivisionInheritance = "Split" }
+        };
+        setup.Genomes = new[]
+        {
+            new GenomeConfig
+            {
+                Id = 0,
+                Genes = new()
+                {
+                    new()
+                    {
+                        Id = "divide",
+                        RequireMorphogenTrigger = false,
+                        Effects = new() { new() { Kind = "Divide", Rate = 100.0 } }
+                    }
+                }
+            }
+        };
+        setup.CellTypes = new[]
+        {
+            new CellTypeConfig { Id = 0, GenomeId = 0, BaseRadius = 6.0, MaxRadius = 6.0 }
+        };
+
+        var sim = new Simulation(setup);
+        sim.Cells[0].InternalMorphogenConcentrations[1] = 5.0;
+
+        sim.Step(0.05);
+
+        Assert.That(sim.Cells.Count, Is.GreaterThan(1));
+        var parent = sim.Cells[0];
+        var child = sim.Cells.First(c => c.Id != parent.Id);
+        Assert.That(parent.InternalMorphogenConcentrations[1], Is.EqualTo(2.5).Within(1e-9));
+        Assert.That(child.InternalMorphogenConcentrations[1], Is.EqualTo(2.5).Within(1e-9));
     }
 
     [Test]

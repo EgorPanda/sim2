@@ -6,77 +6,302 @@
       {
         "id": "secretor",
         "name": "secretor",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Morphogen", "morphogen": 0, "min": 0.0, "max": 0.4 }
+          {
+            "kind": "Morphogen",
+            "invert": false,
+            "property": "",
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "min": 0,
+            "max": 0.4
+          }
         ],
         "effects": [
-          { "kind": "EmitMorphogen", "morphogen": 0, "rate": 30.0 }
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 0,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 30,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "signalA",
         "name": "signalA",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [],
         "effects": [
-          { "kind": "EmitMorphogen", "morphogen": 1, "rate": 2.0 }
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 2,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "split",
         "name": "split",
+        "role": "",
+        "description": "",
         "activationDelay": 0.5,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 0 },
-          { "kind": "Property", "property": "radius", "min": 6.0, "max": 1e9 },
-          { "kind": "Property", "property": "neighbours", "min": 0.0, "max": 12.0 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 0,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          },
+          {
+            "kind": "Property",
+            "invert": false,
+            "property": "radius",
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "min": 6,
+            "max": 1000000000
+          },
+          {
+            "kind": "Property",
+            "invert": false,
+            "property": "neighbours",
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "min": 0,
+            "max": 12
+          }
         ],
         "effects": [
-          { "kind": "Divide", "rate": 1.0 }
+          {
+            "kind": "Divide",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 1,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "toWorker",
         "name": "toWorker",
-        "activationDelay": 1.0,
+        "role": "",
+        "description": "",
+        "activationDelay": 1,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 0 },
-          { "kind": "Property", "property": "age", "min": 12.0, "max": 1e9 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 0,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          },
+          {
+            "kind": "Property",
+            "invert": false,
+            "property": "age",
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "min": 12,
+            "max": 1000000000
+          }
         ],
         "effects": [
-          { "kind": "SetCellType", "typeId": 1, "once": true },
-          { "kind": "StartTimer", "timer": "workerLife", "duration": 12.0, "once": true }
+          {
+            "kind": "SetCellType",
+            "once": true,
+            "morphogen": -1,
+            "typeId": 1,
+            "timer": "",
+            "gene": "",
+            "rate": 0,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          },
+          {
+            "kind": "StartTimer",
+            "once": true,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "workerLife",
+            "gene": "",
+            "rate": 0,
+            "duration": 12,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "toSkin",
         "name": "toSkin",
-        "activationDelay": 1.0,
+        "role": "",
+        "description": "",
+        "activationDelay": 1,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 1 },
-          { "kind": "Timer", "timer": "workerLife", "invert": true }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 1,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          },
+          {
+            "kind": "Timer",
+            "invert": true,
+            "property": "",
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "workerLife",
+            "min": "-Infinity",
+            "max": "Infinity"
+          }
         ],
         "effects": [
-          { "kind": "SetCellType", "typeId": 2, "once": true }
+          {
+            "kind": "SetCellType",
+            "once": true,
+            "morphogen": -1,
+            "typeId": 2,
+            "timer": "",
+            "gene": "",
+            "rate": 0,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "workerSignal",
         "name": "workerSignal",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 1 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 1,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          }
         ],
         "effects": [
-          { "kind": "EmitMorphogen", "morphogen": 2, "rate": 1.5 }
+          {
+            "kind": "EmitMorphogen",
+            "once": false,
+            "morphogen": 2,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 1.5,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       },
       {
         "id": "skinStatic",
         "name": "skinStatic",
+        "role": "",
+        "description": "",
+        "activationDelay": 0,
+        "requireMorphogenTrigger": false,
+        "requiredMorphogenId": -1,
+        "requiredMorphogenThreshold": 0,
         "regulators": [
-          { "kind": "Phenotype", "typeId": 2 }
+          {
+            "kind": "Phenotype",
+            "invert": false,
+            "property": "",
+            "morphogen": -1,
+            "typeId": 2,
+            "timer": "",
+            "min": "-Infinity",
+            "max": "Infinity"
+          }
         ],
         "effects": [
-          { "kind": "BlockDivision" }
+          {
+            "kind": "BlockDivision",
+            "once": false,
+            "morphogen": -1,
+            "typeId": -1,
+            "timer": "",
+            "gene": "",
+            "rate": 0,
+            "duration": 0,
+            "probability": 0,
+            "emissionRadius": 0,
+            "repel": false
+          }
         ]
       }
     ]

@@ -104,7 +104,7 @@ public partial class MorphogenPicker : Window
             };
             row.AddChild(color);
 
-            var chk = Ui.Chk($"[{id}] {(external ? "Внешний" : "Внутренний")}: {Localization.MorphogenName(m)}", on, selected =>
+            var chk = Ui.Chk(Localization.MorphogenLabel(m), on, selected =>
             {
                 if (selected) _selected.Add(id);
                 else _selected.Remove(id);

@@ -1,26 +1,41 @@
 [
   {
     "id": 0,
-    "name": "nutrient",
-    "displayName": "Питание",
-    "diffusion": 90.0,
+    "name": "\u041F\u0438\u0442\u0430\u043D\u0438\u0435",
+    "role": "",
+    "description": "",
+    "type": "External",
+    "isExternal": true,
+    "isInternal": false,
+    "diffusion": 90,
     "decay": 0.3,
-    "color": "#4ea8de"
+    "color": "#4ea8de",
+    "divisionInheritance": "Reset"
   },
   {
     "id": 1,
-    "name": "signalA",
-    "displayName": "Позиционный сигнал",
-    "diffusion": 40.0,
+    "name": "\u041F\u043E\u0437\u0438\u0446\u0438\u043E\u043D\u043D\u044B\u0439 \u0441\u0438\u0433\u043D\u0430\u043B",
+    "role": "",
+    "description": "",
+    "type": "External",
+    "isExternal": true,
+    "isInternal": false,
+    "diffusion": 40,
     "decay": 0.15,
-    "color": "#ff9f43"
+    "color": "#ff9f43",
+    "divisionInheritance": "Reset"
   },
   {
     "id": 2,
-    "name": "signalB",
-    "displayName": "Сигнал рабочих клеток",
-    "diffusion": 25.0,
+    "name": "\u0421\u0438\u0433\u043D\u0430\u043B \u0440\u0430\u0431\u043E\u0447\u0438\u0445 \u043A\u043B\u0435\u0442\u043E\u043A",
+    "role": "",
+    "description": "",
+    "type": "External",
+    "isExternal": true,
+    "isInternal": false,
+    "diffusion": 25,
     "decay": 0.08,
-    "color": "#c56cf0"
+    "color": "#c56cf0",
+    "divisionInheritance": "Reset"
   }
 ]

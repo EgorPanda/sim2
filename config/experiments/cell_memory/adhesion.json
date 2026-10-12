@@ -2,8 +2,20 @@
   "default": 0.05,
   "maxOverlap": 0.15,
   "pairs": [
-    { "a": 0, "b": 0, "strength": 0.15 },
-    { "a": 0, "b": 1, "strength": 0.2 },
-    { "a": 1, "b": 1, "strength": 0.25 }
+    {
+      "a": 0,
+      "b": 0,
+      "strength": 0.15
+    },
+    {
+      "a": 0,
+      "b": 1,
+      "strength": 0.2
+    },
+    {
+      "a": 1,
+      "b": 1,
+      "strength": 0.25
+    }
   ]
 }

@@ -34,7 +34,11 @@ public sealed class CellMechanics
                 var a = cells[i];
                 if (a.State == CellState.Dying) continue;
 
-                hash.QueryCircle(a.X, a.Y, a.Radius * 2.0 + maxQueryRadius, _scratch);
+                // Candidates that could possibly overlap: their centre must be
+                // within a.Radius + b.Radius <= a.Radius + maxQueryRadius, so the
+                // query radius a.Radius + maxQueryRadius is exact (the old
+                // a.Radius * 2 + maxQueryRadius over-scanned by a.Radius).
+                hash.QueryCircle(a.X, a.Y, a.Radius + maxQueryRadius + 0.001, _scratch);
                 for (int k = 0; k < _scratch.Count; k++)
                 {
                     int j = _scratch[k];

@@ -58,12 +58,14 @@ godot -e --path E:\sim23
 > If `godot` is not on PATH in a fresh shell, restart the terminal (winget adds
 > the alias on install) or call the full path shown above.
 
-> Verification status (2026-10): `dotnet build Sim2.slnx` clean; 206 NUnit tests
-> pass; `--selftest` and `--uitest` pass both headless and in a real window on
-> Windows (no resource-leak messages on exit). The bundled `differentiation`,
-> `cell_memory` and `morphogen_spread` demo experiments are covered by tests and can be opened
-> from the «Настройки эксперимента» → «Открыть…». Interactive-only flows
-> (mouse gestures, message boxes in the save/load dialogs) still need a human
+> Verification status (2026-10-12): `dotnet build Sim2.slnx` clean; 214 NUnit tests
+> pass (full suite ~2 minutes); `--selftest` and `--uitest` pass both headless and in a real window on
+> Windows (no resource-leak messages on exit). The bundled `multicellular`,
+> `differentiation`, `cell_memory` and `morphogen_spread` demo experiments are
+> covered by tests and can be opened from «Настройки эксперимента» → «Открыть…».
+> Old configs with `displayName`, `initialConcentration` or
+> `initialInternalMorphogens` load transparently via migration. Interactive-only
+> flows (mouse gestures, message boxes in the save/load dialogs) still need a human
 > click.
 
 ## Controls
@@ -94,25 +96,25 @@ godot -e --path E:\sim23
   density. Use **«Показать морфогены»**, **«Выбрать морфогены…»** and **«Посмотреть сквозь»**
   in the HUD to control the overlay and cell transparency.
 - **Phenotypes** (right panel) lists live population counts per cell type.
-- **Selected cell** (right panel) shows state, radius, age, neighbours,
+- **Selected cell** (right panel) updates live: state, radius, age, neighbours,
   active/silenced genes (clickable — opens the genome editor), timers and local
   external/internal morphogen levels.
 - **Laboratory** (`L`) — opens as a **separate resizable window** so it never covers
   the simulation. Five tabs:
-  - *Геном*: create/copy/delete genomes and genes, edit display data, mandatory morphogen trigger,
-    AND/OR groups with NOT, thresholds (≥ / ≤ / range / = automatically derived from
-    the stored interval), and the list of effects (emit/grow/divide/move/
-    type switch/timers/silencing/apoptosis/division block); the «Деление» effect can set
-    the **child phenotype**; the «Выделение морфогена» effect has an **EmissionRadius**
-    for spatial spreading of external signals;
+  - *Геном*: create/copy/delete genomes and genes, edit name/role/description,
+    mandatory morphogen trigger, AND/OR groups with NOT, thresholds (≥ / ≤ / range /
+    = automatically derived from the stored interval), and the list of effects
+    (emit/grow/divide/move/type switch/timers/silencing/apoptosis/division block);
+    a compact **gene → morphogen quick-link** section edits mandatory triggers in one
+    place; the «Деление» effect can set the **child phenotype**; the «Выделение морфогена»
+    effect has an **EmissionRadius** for spatial spreading of external signals;
   - *Морфогены*: searchable list, copy, delete with automatic cleanup of every
-    reference, type (External/Internal), diffusion, decay, initial concentration,
-    colour, display name; morphogen IDs are arbitrary integers, only External
-    morphogens allocate spatial fields;
-  - *Типы клеток*: all phenotype parameters + colour + linked genome;
+    reference, name, role, type (External/Internal), diffusion, decay,
+    division inheritance (Reset/Copy/Split for internal morphogens), colour;
+    morphogen IDs are arbitrary integers, only External morphogens allocate spatial fields;
+  - *Типы клеток*: all phenotype parameters + name/description + colour + linked genome;
   - *Настройки эксперимента*: world size, solver resolution, seed, founders,
-    external division-gradient morphogen, initial external sources and founder
-    internal morphogen concentrations;
+    external division-gradient morphogen and initial external sources;
   - *Справочник*: Russian help browser with search and cross-links.
 - **Morphogen picker** (HUD button «Выбрать морфогены…»): while the simulation is running,
   choose which external and internal morphogens are shown. External morphogens render
@@ -135,8 +137,10 @@ scripts/                    Godot front-end (Main, Hud, WorldView, UiKit, ui/…
 src/SimulationCore/         pure C# simulation core (+ Localization, HelpCatalog, ConfigValidator, ConfigWriter, ConfigDraft)
 src/SimulationCore.Tests/   NUnit tests
 docs/USER_GUIDE_RU.md       user guide (Russian)
+docs/REPORT_M1.6.md         M1.6 milestone report (types, trigger, cell memory)
 ARCHITECTURE.md, ROADMAP.md design documents
 ```
 
-See `ARCHITECTURE.md` for the component model, `ROADMAP.md` for the plan and
+See `ARCHITECTURE.md` for the component model, `ROADMAP.md` for the plan,
+`docs/REPORT_M1.6.md` for the M1.6 report and
 `docs/USER_GUIDE_RU.md` for the in-depth user manual.

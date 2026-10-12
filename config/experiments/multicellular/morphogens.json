@@ -2,22 +2,40 @@
   {
     "id": 0,
     "name": "nutrient",
-    "diffusion": 90.0,
+    "role": "",
+    "description": "",
+    "type": "External",
+    "isExternal": true,
+    "isInternal": false,
+    "diffusion": 90,
     "decay": 0.3,
-    "color": "#4ea8de"
+    "color": "#4ea8de",
+    "divisionInheritance": "Reset"
   },
   {
     "id": 1,
     "name": "signalA",
-    "diffusion": 40.0,
+    "role": "",
+    "description": "",
+    "type": "External",
+    "isExternal": true,
+    "isInternal": false,
+    "diffusion": 40,
     "decay": 0.15,
-    "color": "#ff9f43"
+    "color": "#ff9f43",
+    "divisionInheritance": "Reset"
   },
   {
     "id": 2,
     "name": "signalB",
-    "diffusion": 25.0,
+    "role": "",
+    "description": "",
+    "type": "External",
+    "isExternal": true,
+    "isInternal": false,
+    "diffusion": 25,
     "decay": 0.08,
-    "color": "#c56cf0"
+    "color": "#c56cf0",
+    "divisionInheritance": "Reset"
   }
 ]

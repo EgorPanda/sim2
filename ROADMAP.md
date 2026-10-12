@@ -33,27 +33,28 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Full world save/load, versioned DTO (SaveSystem v2)
 - [x] Research UI: morphogen field selector, per-phenotype stats, cell inspector
 
-## M1.6 — Morphogen-triggered genes and cellular memory
+## M1.6 — Unified naming, roles and inheritance (current release)
 
-- [x] Mandatory morphogen trigger for newly-created genes (`RequireMorphogenTrigger`,
-      `RequiredMorphogenId`, `RequiredMorphogenThreshold`)
-- [x] Trigger works for external (field sample) and internal (per-cell) morphogens
-- [x] Legacy genes without the trigger field keep historical always-on behaviour
-- [x] Continuous morphogen production while a gene is active; `once` mode for single
-      impulse effects
-- [x] Internal vs external morphogen types (`MorphogenConfig.Type`)
-- [x] Per-cell internal morphogen concentrations (`Cell.InternalMorphogenConcentrations`)
-- [x] Local internal production, decay and inheritance on division
-- [x] Initial external sources and founder internal concentrations (`SimulationConfig`)
-- [x] Save/load internal concentrations (SaveSystem v3); old v2 saves load with empty state
-- [x] Genome editor: mandatory trigger section, status text, gene filter, morphogen link
-- [x] Morphogen editor: type selector, conditional fields, type display in list
-- [x] New analytical layer: internal morphogen concentration per cell
-- [x] Experiment editor: initial signal sources and founder internal concentrations
-- [x] Demo experiment `config/experiments/cell_memory/` (external signal → internal
-      memory → persistent gene activation after signal fades; fixed seed)
-- [x] Tests: trigger behaviour, internal morphogens, production/decay, cell memory,
-      initialization, type migration, config validation (~170 NUnit tests total at release)
+- [x] Unified naming model: genes, morphogens and cell types have a single `Name`
+      and a `Role`; legacy `DisplayName` migrates into `Name` on load
+- [x] `MorphogenConfig.Role` shown in every selector and list
+- [x] `MorphogenConfig.DivisionInheritance` for internal morphogens: `Reset` (default),
+      `Copy`, `Split`
+- [x] Removed founder initial internal concentrations from config, UI and simulation;
+      old JSON fields load silently but are ignored
+- [x] `CellSystem.ResolveDivisions` uses the configured inheritance mode and child-type
+      radius when placing daughters
+- [x] Quick gene → morphogen linker in the genome editor
+- [x] Live-updating selected-cell inspector with sections for phenotypes, state,
+      active/silenced genes, timers, external and internal morphogens
+- [x] Modal dialog exclusivity fixed in genome/morphogen editors; only one exclusive
+      dialog is active at a time and duplicate event handlers are removed
+- [x] All morphogen selectors use the unified `[ID] Name — Role — Type` label
+- [x] `ConfigLoader` migrates old `displayName`, `initialConcentration` and
+      `initialInternalMorphogens`; `ConfigWriter` serialises the new clean schema
+- [x] Updated demo experiments and help catalog (`param.divisionInheritance`)
+- [x] Tests: naming migration, division inheritance modes, config validation,
+      help-catalog completeness, 214 NUnit tests total
 
 ## M1.5 — Genetic Lab
 
@@ -86,7 +87,7 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` planned.
 - [x] Tests: `CellDifferentiationTests`, `MorphogenManagementTests`, demo experiment
       (116 NUnit tests total at release)
 
-## M1.7 — Morphogen identity, spatial emission and HUD (current release)
+## M1.7 — Morphogen identity, spatial emission and HUD (previous release)
 
 - [x] Morphogen IDs are real identifiers: `0` is a valid id, `-1` means «not selected»
 - [x] Explicit `MorphogenId → field index` map in `MorphogenSystem`; only external

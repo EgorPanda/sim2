@@ -114,7 +114,15 @@ public sealed class CellSystem
             if (!types.TryGetValue(cell.TypeId, out var type)) continue;
 
             if (!FindFreeDirection(cell, type, hash, rng, maxQueryRadius, gradient, out double dx, out double dy))
+            {
+                // Crowded: no free direction. Reset the division progress so a
+                // saturated cell does not re-run all direction probes on every
+                // step; it re-accumulates progress from the active "Divide" gene
+                // and retries after ~1/rate seconds. Does not affect cells that
+                // divide in free space (their probes succeed immediately).
+                cell.DivisionProgress = 0.0;
                 continue;
+            }
 
             int childTypeId = cell.PendingChildTypeId ?? cell.TypeId;
             if (!types.ContainsKey(childTypeId)) childTypeId = cell.TypeId;
